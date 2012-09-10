@@ -1242,6 +1242,7 @@ namespace HistFactory{
 
 	if( fObsNameVec.size() > 3 ) {
 	  std::cout << "Cannot include Stat Error for histograms of more than 3 dimensions." << std::endl; 
+	  throw hf_exc();
 	} else {
 
 	  // If we are using StatUncertainties, we multiply this object
@@ -1387,13 +1388,16 @@ namespace HistFactory{
 
 	if( fObsNameVec.size() > 3 ) {
 	  std::cout << "Cannot include Stat Error for histograms of more than 3 dimensions." << std::endl; 
+	  // We should probably stop execution here, instead of being silent
+	  throw hf_exc();
 	} else {
 
 	  std::cout << "Sample: "     << it->name << " in channel: " << it->channel
 		    << " to be include a ShapeFactor."
 		    << std::endl;
 	  
-	  std::string funcName = it->channel + "_" + it->shapeFactorName + "_shapeFactor";
+	  //ES// std::string funcName = it->channel + "_" + it->shapeFactorName + "_shapeFactor";
+	  std::string funcName = channel_name + "_" + it->shapeFactorName + "_shapeFactor";
 	  ParamHistFunc* paramHist = (ParamHistFunc*) proto->function( funcName.c_str() );
 	  if( paramHist == NULL ) {
 
@@ -1446,6 +1450,7 @@ namespace HistFactory{
 
 	if( fObsNameVec.size() > 3 ) {
 	  std::cout << "Cannot include Stat Error for histograms of more than 3 dimensions." << std::endl; 
+	  throw hf_exc();
 	} else {
 
 	  // List of ShapeSys ParamHistFuncs
