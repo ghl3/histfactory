@@ -1,7 +1,6 @@
 
 // A set of utils for navegating HistFactory models
 #include <stdexcept>    
-#include <typeinfo>
 
 #include "RooStats/HistFactory/ParamHistFunc.h"
 #include "TIterator.h"
@@ -317,7 +316,7 @@ namespace HistFactory{
       
       //if( TermName.find(gamma_stat->GetName())!=string::npos ) {
       if( term_constr->dependsOn( *gamma_stat) ) {
-	if( TermName.find("_constraint")!=std::string::npos ) {
+	if( TermName.find("_constraint")!=string::npos ) {
 	  FoundConstraintTerm=true;
 	  constraintTerm = (RooAbsPdf*) term_constr;
 	  break;
@@ -352,7 +351,7 @@ namespace HistFactory{
     while((term_pois=(RooAbsArg*)iter_pois->Next())) {
       std::string serverName = term_pois->GetName();
       //std::cout << "Checking Server: " << serverName << std::endl;
-      if( serverName.find("nom_")!=std::string::npos ) {
+      if( serverName.find("nom_")!=string::npos ) {
 	FoundNomMean = true;  
 	pois_nom = (RooRealVar*) term_pois;
       }
@@ -399,7 +398,7 @@ namespace HistFactory{
     while((term_in_product=(RooAbsArg*)iter_product->Next())) {
       std::string serverName = term_in_product->GetName();
       //std::cout << "Checking Server: " << serverName << std::endl;
-      if( serverName.find("_tau")!=std::string::npos ) {
+      if( serverName.find("_tau")!=string::npos ) {
 	FoundTau = true;  
 	tau = (RooRealVar*) term_in_product;
       }
