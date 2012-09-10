@@ -194,6 +194,7 @@ namespace HistFactory{
   }
 
 
+  // We want to eliminate this interface and use the measurment directly
   RooWorkspace* HistoToWorkspaceFactoryFast::MakeSingleChannelModel( Measurement& measurement, Channel& channel ) {
 
     // This is a pretty light-weight wrapper function
@@ -1053,37 +1054,53 @@ namespace HistFactory{
 
 
   ///////////////////////////////////////////////
-  RooWorkspace* HistoToWorkspaceFactoryFast::MakeSingleChannelModel(vector<EstimateSummary> summary, vector<string> systToFix, bool doRatio)
+  // Original signature:
+  //  RooWorkspace* HistoToWorkspaceFactoryFast::MakeSingleChannelModel( std::vector<EstimateSummary> summary, vector<string> systToFix, bool doRatio)
+  //
+  RooWorkspace* HistoToWorkspaceFactoryFast::MakeSingleChannelModel(Measurment& measurement, Channel& channel)
   {
+
+    // Set these by hand inside the function
+    vector<string> systToFix = measurement.GetConstantParams();
+    bool doRatio=false;
+
     // to time the macro
     TStopwatch t;
     t.Start();
-    string channel=summary[0].channel;
-
+    //*/ string channel_name=summary[0].channel;
+    string channel_name = channel.GetName();
+    
     /// MB: reset observable names for each new channel.
     fObsNameVec.clear();
 
     /// MB: label observables x,y,z, depending on histogram dimensionality
-    if (fObsNameVec.empty()) { GuessObsNameVec( summary.at(0).nominal ); }
+    /// GHL: Give it the first sample's nominal histogram as a template
+    ///      since the data histogram may not be present
+    //if (fObsNameVec.empty()) { GuessObsNameVec( summary.at(0).nominal ); }
+    TH1* channel_hist_template = channel.GetSamples().at(0).GetHisto();
+    if (fObsNameVec.empty()) { GuessObsNameVec(channel_hist_template); }
 
     for ( unsigned int idx=0; idx<fObsNameVec.size(); ++idx ) {
-      fObsNameVec[idx] = "obs_" + fObsNameVec[idx] + "_" + summary[0].channel ;
+      //*/ fObsNameVec[idx] = "obs_" + fObsNameVec[idx] + "_" + summary[0].channel ;
+      fObsNameVec[idx] = "obs_" + fObsNameVec[idx] + "_" + channel_name ;
     }
 
     if (fObsNameVec.empty()) {
       //    fObsName.c_str()=Form("%s_%s",summary.at(0).nominal->GetXaxis()->GetName()],summary[0].channel.c_str()); // set name ov observable
-      fObsName= "obs_"+summary[0].channel; // set name ov observable
+      //*/ fObsName= "obs_"+summary[0].channel; // set name ov observable
+      fObsName= "obs_" + channel_name; // set name ov observable
       fObsNameVec.push_back( fObsName );
     }
 
     R__ASSERT( fObsNameVec.size()>=1 && fObsNameVec.size()<=3 );
 
-    cout << "\n\n-------------------\nStarting to process " << channel << " channel with " << fObsNameVec.size() << " observables" << endl;
+    cout << "\n\n-------------------\nStarting to process " << channel_name << " channel with " << fObsNameVec.size() << " observables" << endl;
 
     //
     // our main workspace that we are using to construct the model
     //
-    RooWorkspace* proto = new RooWorkspace(summary[0].channel.c_str(),(summary[0].channel+" workspace").c_str());
+    //*/ RooWorkspace* proto = new RooWorkspace(summary[0].channel.c_str(),(summary[0].channel+" workspace").c_str());
+    RooWorkspace* proto = new RooWorkspace(channel_name.c_str(), (channel_name+" workspace").c_str());
     ModelConfig * proto_config = new ModelConfig("ModelConfig", proto);
     proto_config->SetWorkspace(*proto);
 
@@ -1097,7 +1114,7 @@ namespace HistFactory{
 
 
     RooArgSet likelihoodTerms("likelihoodTerms"), constraintTerms("constraintTerms");
-    vector<string> likelihoodTermNames, constraintTermNames, totSystTermNames,syst_x_expectedPrefixNames, normalizationNames;
+    vector<string> likelihoodTermNames, constraintTermNames, totSystTermNames, syst_x_expectedPrefixNames, normalizationNames;
 
     vector< pair<string,string> >   statNamePairs;
     vector< pair<TH1*,TH1*> >       statHistPairs; // <nominal, error>
@@ -1131,16 +1148,27 @@ namespace HistFactory{
     ///////////////////////////////////
     // loop through estimates, add expectation, floating bin predictions, 
     // and terms that constrain floating to expectation via uncertainties
-    vector<EstimateSummary>::iterator it = summary.begin();
-    for(; it!=summary.end(); ++it){
-      if(it->name=="Data") continue;
+    // GHL: Loop over samples instead, which doesn't contain the data
+    //* vector<EstimateSummary>::iterator it = summary.begin();
+    //* for(; it!=summary.end(); ++it){
+    //*   if(it->name=="Data") continue;
+    vector<Sample>::iterator it = Channel.GetSamples().begin();
+    for(; it!=Channel.GetSamples().end(); ++it) {
 
-      string overallSystName = it->name+"_"+it->channel+"_epsilon"; 
+      //*/ string overallSystName = it->name+"_"+it->channel+"_epsilon"; 
+      Sample& sample = (*it);
+      string overallSystName = sample.GetName() + "_" + channel_name + "_epsilon"; 
+
       string systSourcePrefix = "alpha_";
+      //*/ AddEfficiencyTerms(proto,systSourcePrefix, overallSystName,
+      //*/	it->overallSyst, constraintTermNames /*likelihoodTermNames*/, totSystTermNames);    
+      // constraintTermNames and totSystTermNames are vectors that are passed
+      // by reference and filled by this method
       AddEfficiencyTerms(proto,systSourcePrefix, overallSystName,
-			 it->overallSyst, constraintTermNames /*likelihoodTermNames*/, totSystTermNames);    
+			 sample.GetOverallSysList(), constraintTermNames /*likelihoodTermNames*/, totSystTermNames);    
 
-      overallSystName = AddNormFactor(proto, channel, overallSystName, *it, doRatio); 
+      //*/ overallSystName = AddNormFactor(proto, channel_name, overallSystName, *it, doRatio); 
+      overallSystName = AddNormFactor(proto, channel_name, overallSystName, sample, doRatio); 
 
 
       // Create the string for the object
@@ -1488,9 +1516,9 @@ namespace HistFactory{
     
     ///////////////////////////////////
     // for ith bin calculate totN_i =  lumi * sum_j expected_j * syst_j 
-    MakeTotalExpected(proto,channel+"_model",channel,"Lumi",fLowBin,fHighBin, 
+    MakeTotalExpected(proto,channel_name+"_model",channel_name,"Lumi",fLowBin,fHighBin, 
           syst_x_expectedPrefixNames, normalizationNames);
-    likelihoodTermNames.push_back(channel+"_model");
+    likelihoodTermNames.push_back(channel_name+"_model");
 
     //////////////////////////////////////
     // fix specified parameters
@@ -1565,7 +1593,7 @@ namespace HistFactory{
     cout <<"-----------------------------------------"<<endl;
     cout <<"import model into workspace" << endl;
 
-    RooProdPdf* model = new RooProdPdf(("model_"+channel).c_str(),    // MB : have changed this into conditional pdf. Much faster for toys!
+    RooProdPdf* model = new RooProdPdf(("model_"+channel_name).c_str(),    // MB : have changed this into conditional pdf. Much faster for toys!
                "product of Poissons accross bins for a single channel",
 	       constraintTerms, Conditional(likelihoodTerms,observables));  //likelihoodTerms);
     proto->import(*model,RecycleConflictNodes());
