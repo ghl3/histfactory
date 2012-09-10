@@ -1396,8 +1396,10 @@ namespace HistFactory{
 		    << " to be include a ShapeFactor."
 		    << std::endl;
 	  
+	  ShapeFactor& shapeFactor = sample.GetShapeFactorList().at(0);
+
 	  //ES// std::string funcName = it->channel + "_" + it->shapeFactorName + "_shapeFactor";
-	  std::string funcName = channel_name + "_" + it->shapeFactorName + "_shapeFactor";
+	  std::string funcName = channel_name + "_" + shapeFactor.GetName() + "_shapeFactor";
 	  ParamHistFunc* paramHist = (ParamHistFunc*) proto->function( funcName.c_str() );
 	  if( paramHist == NULL ) {
 
@@ -1410,7 +1412,10 @@ namespace HistFactory{
 	    //	    RooRealVar* var = (RooRealVar*) observables.first();
 
 	    // Create the Parameters
-	    std::string funcParams = "gamma_" + it->shapeFactorName;
+	    //ES//std::string funcParams = "gamma_" + it->shapeFactorName;
+	    std::string funcParams = "gamma_" + shapeFactor.GetName();
+	    // GHL: Again, we are putting hard ranges on the gamma's
+	    //      We should change this to range from 0 to /inf
 	    RooArgList shapeFactorParams = ParamHistFunc::createParamSet(*proto, funcParams.c_str(), observables, 0, 1000);
 
 	    // Create the Function
@@ -1446,7 +1451,8 @@ namespace HistFactory{
       // Create a ShapeSys for this channel //
       ////////////////////////////////////////
 
-      if( it->shapeSysts.size() != 0 ) {
+      //ES// if( it->shapeSysts.size() != 0 ) {
+      if( sample.GetShapeSysList().size() != 0 ) {
 
 	if( fObsNameVec.size() > 3 ) {
 	  std::cout << "Cannot include Stat Error for histograms of more than 3 dimensions." << std::endl; 
@@ -1467,12 +1473,14 @@ namespace HistFactory{
 	    
 	    // Send the name of that product to the RooRealSumPdf
 
-	    EstimateSummary::ShapeSys Sys = it->shapeSysts.at(i);
-	    
-	    std::cout << "Sample: "     << it->name << " in channel: " << it->channel
+	    //ES// EstimateSummary::ShapeSys Sys = it->shapeSysts.at(i);
+	    RooStats::HistFactory::ShapeSys& shapeSys = sample.GetShapeSysList().at(i);
+
+	    std::cout << "Sample: " << sample.GetName() << " in channel: " << channel_name
 		      << " to include a ShapeSys." << std::endl;
 
-	    std::string funcName = it->channel + "_" + Sys.name + "_ShapeSys";
+	    //ES// std::string funcName = it->channel + "_" + Sys.name + "_ShapeSys";
+	    std::string funcName = channel_name + "_" + shapeSys.GetName() + "_ShapeSys";
 	    ShapeSysNames.push_back( funcName );
 	    ParamHistFunc* paramHist = (ParamHistFunc*) proto->function( funcName.c_str() );
 	    if( paramHist == NULL ) {
@@ -1480,17 +1488,28 @@ namespace HistFactory{
 	      //std::string funcParams = "gamma_" + it->shapeFactorName;
 	      //paramHist = CreateParamHistFunc( proto, fObsNameVec, funcParams, funcName );
 
+	      //ES// 
+	      // GHL: Chaning this to be more readable
+	      /*
 	      RooArgList observables;
 	      std::vector<std::string>::iterator itr = fObsNameVec.begin();
 	      for (int idx=0; itr!=fObsNameVec.end(); ++itr, ++idx ) {
 		observables.add( *proto->var(itr->c_str()) );
 	      }
-	  
+	      */
+	      RooArgList observables;
+	      std::vector<std::string>::iterator itr = fObsNameVec.begin();
+	      for(; itr!=fObsNameVec.end(); ++itr ) {
+		observables.add( *proto->var(itr->c_str()) );
+	      }
+
 	      //	      RooRealVar* var = (RooRealVar*) observables.first();
 
 	      // Create the Parameters
-	      std::string funcParams = "gamma_" + Sys.name;
-	      RooArgList shapeFactorParams = ParamHistFunc::createParamSet(*proto, funcParams.c_str(), observables,0,10);
+	      //ES// std::string funcParams = "gamma_" + Sys.name;
+	      std::string funcParams = "gamma_" + shapeSys.GetName();
+	      RooArgList shapeFactorParams = ParamHistFunc::createParamSet(*proto, funcParams.c_str(), 
+									   observables, 0, 10);
 
 	      // Create the Function
 	      ParamHistFunc shapeFactorFunc( funcName.c_str(), funcName.c_str(),
@@ -1506,8 +1525,22 @@ namespace HistFactory{
 	    // as well as the list of constraint terms (constraintTermNames)
 	    
 	    // The syst should be a fractional error
-	    TH1* shapeErrorHist = Sys.hist;
-	    EstimateSummary::ConstraintType shapeConstraintType = Sys.constraint;
+	    //ES// TH1* shapeErrorHist = Sys.hist;
+	    TH1* shapeErrorHist = shapeSys.GetHist();
+
+
+	    // Set the EstimateSummary style constraint type
+	    // To be updated later
+	    //ES// EstimateSummary::ConstraintType shapeConstraintType = Sys.constraint;
+	    EstimateSummary::ConstraintType shapeConstraintType = EstimateSummary::Gaussian;
+	    Constraint::Type systype = shapeSys.GetConstraintType();
+	    if( systype == Constraint::Gaussian) {
+	      shapeConstraintType = EstimateSummary::Gaussian;
+	    }
+	    if( systype == Constraint::Poisson ) {
+	      shapeConstraintType = EstimateSummary::Poisson;
+	    }
+
 	    Double_t minShapeUncertainty = 0.0;
 	    RooArgList shapeConstraints = createStatConstraintTerms(proto, constraintTermNames, *paramHist, shapeErrorHist, 
 								    shapeConstraintType, minShapeUncertainty);
@@ -1538,27 +1571,39 @@ namespace HistFactory{
 	  syst_x_expectedPrefix = nodeWithShapeFactor.GetName();
 
 	} // End: NumObsVar == 1
-	
 
       } // End: ShapeSysts Size != 0
-
-
-
-
-
 
       // Append the name of the "node"
       // that is to be summed with the
       // RooRealSumPdf
       syst_x_expectedPrefixNames.push_back(syst_x_expectedPrefix);
 
+      //ES//
+      /*
       if(it->normName=="")
         normalizationNames.push_back( "Lumi" );
       else
         normalizationNames.push_back( it->normName);
+      */
+
+      // GHL: This was pretty confusing before,
+      //      hopefully using the measurement directly
+      //      will improve it
+      if( sample.GetNormalizeByTheory() ) {
+	//sample_es.normName = "" ; // Really bad, confusion convention
+	normalizationNames.push_back( "Lumi" );
+      }
+      else {
+	TString lumiStr;
+	lumiStr += measurement.GetLumi();
+	lumiStr.ReplaceAll(' ', TString());
+	//sample_es.normName = lumiStr ;
+        normalizationNames.push_back(lumiStr);
+      }
+
     } // END: Loop over EstimateSummaries
     //    proto->Print();
-
 
     // If a non-zero number of samples call for
     // Stat Uncertainties, create the statFactor functions
@@ -1652,21 +1697,26 @@ namespace HistFactory{
     // list of observables
     RooArgList observables;
     std::string observablesStr;
+    //ES// 
+    // GHL: Again, I don't know why 'idx' is used here
+    /*
     std::vector<std::string>::iterator itr = fObsNameVec.begin();
     for (int idx=0; itr!=fObsNameVec.end(); ++itr, ++idx ) {
       observables.add( *proto->var(itr->c_str()) );
       if (!observablesStr.empty()) { observablesStr += ","; }
       observablesStr += *itr;
     }
-    proto->defineSet("observablesSet",Form("%s",observablesStr.c_str()));
-
+    */
+    std::vector<std::string>::iterator itr = fObsNameVec.begin();
+    for (; itr!=fObsNameVec.end(); ++itr ) {
+      observables.add( *proto->var(itr->c_str()) );
+      if (!observablesStr.empty()) { observablesStr += ","; }
+      observablesStr += *itr;
+    }
+    proto->defineSet("observablesSet", Form("%s",observablesStr.c_str()));
 
     // Create the ParamHistFunc
     // after observables have been made
-
-
-
-
 
     cout <<"-----------------------------------------"<<endl;
     cout <<"import model into workspace" << endl;
@@ -1710,13 +1760,17 @@ namespace HistFactory{
     }
     proto->import(*asimovDataUnbinned);
 
+    //ES// if(summary.at(0).name=="Data") { 
+    // GHL: Determine to use data if the hist isn't 'NULL'
+    if(channel.GetData().GetHisto() != NULL) { 
 
-    if (summary.at(0).name=="Data") { 
+      Data* data = channel.GetData();
 
       // THis works and is natural, but the memory size of the simultaneous dataset grows exponentially with channels
       RooDataSet* obsDataUnbinned = new RooDataSet("obsData","",*proto->set("obsAndWeight"),weightName);
 
-      TH1* mnominal = summary.at(0).nominal;
+      //ES// TH1* mnominal = summary.at(0).nominal;
+      TH1* mnominal = data.GetHisto(); 
       TAxis* ax = mnominal->GetXaxis(); 
       TAxis* ay = mnominal->GetYaxis(); 
       TAxis* az = mnominal->GetZaxis(); 	
