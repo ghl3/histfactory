@@ -1067,7 +1067,7 @@ namespace HistFactory{
     // to time the macro
     TStopwatch t;
     t.Start();
-    //*/ string channel_name=summary[0].channel;
+    //ES// string channel_name=summary[0].channel;
     string channel_name = channel.GetName();
     
     /// MB: reset observable names for each new channel.
@@ -1081,13 +1081,13 @@ namespace HistFactory{
     if (fObsNameVec.empty()) { GuessObsNameVec(channel_hist_template); }
 
     for ( unsigned int idx=0; idx<fObsNameVec.size(); ++idx ) {
-      //*/ fObsNameVec[idx] = "obs_" + fObsNameVec[idx] + "_" + summary[0].channel ;
+      //ES// fObsNameVec[idx] = "obs_" + fObsNameVec[idx] + "_" + summary[0].channel ;
       fObsNameVec[idx] = "obs_" + fObsNameVec[idx] + "_" + channel_name ;
     }
 
     if (fObsNameVec.empty()) {
       //    fObsName.c_str()=Form("%s_%s",summary.at(0).nominal->GetXaxis()->GetName()],summary[0].channel.c_str()); // set name ov observable
-      //*/ fObsName= "obs_"+summary[0].channel; // set name ov observable
+      //ES// fObsName= "obs_"+summary[0].channel; // set name ov observable
       fObsName= "obs_" + channel_name; // set name ov observable
       fObsNameVec.push_back( fObsName );
     }
@@ -1099,7 +1099,7 @@ namespace HistFactory{
     //
     // our main workspace that we are using to construct the model
     //
-    //*/ RooWorkspace* proto = new RooWorkspace(summary[0].channel.c_str(),(summary[0].channel+" workspace").c_str());
+    //ES// RooWorkspace* proto = new RooWorkspace(summary[0].channel.c_str(),(summary[0].channel+" workspace").c_str());
     RooWorkspace* proto = new RooWorkspace(channel_name.c_str(), (channel_name+" workspace").c_str());
     ModelConfig * proto_config = new ModelConfig("ModelConfig", proto);
     proto_config->SetWorkspace(*proto);
@@ -1155,19 +1155,19 @@ namespace HistFactory{
     vector<Sample>::iterator it = Channel.GetSamples().begin();
     for(; it!=Channel.GetSamples().end(); ++it) {
 
-      //*/ string overallSystName = it->name+"_"+it->channel+"_epsilon"; 
+      //ES// string overallSystName = it->name+"_"+it->channel+"_epsilon"; 
       Sample& sample = (*it);
       string overallSystName = sample.GetName() + "_" + channel_name + "_epsilon"; 
 
       string systSourcePrefix = "alpha_";
-      //*/ AddEfficiencyTerms(proto,systSourcePrefix, overallSystName,
-      //*/	it->overallSyst, constraintTermNames /*likelihoodTermNames*/, totSystTermNames);    
+      //ES// AddEfficiencyTerms(proto,systSourcePrefix, overallSystName,
+      //ES//	it->overallSyst, constraintTermNames /*likelihoodTermNames*/, totSystTermNames);    
       // constraintTermNames and totSystTermNames are vectors that are passed
       // by reference and filled by this method
       AddEfficiencyTerms(proto,systSourcePrefix, overallSystName,
 			 sample.GetOverallSysList(), constraintTermNames /*likelihoodTermNames*/, totSystTermNames);    
 
-      //*/ overallSystName = AddNormFactor(proto, channel_name, overallSystName, *it, doRatio); 
+      //ES// overallSystName = AddNormFactor(proto, channel_name, overallSystName, *it, doRatio); 
       overallSystName = AddNormFactor(proto, channel_name, overallSystName, sample, doRatio); 
 
 
@@ -1177,10 +1177,22 @@ namespace HistFactory{
       string syst_x_expectedPrefix = "";
 
       // get histogram
-      TH1* nominal = it->nominal;
+      //ES// TH1* nominal = it->nominal;
+      TH1* nominal = sample.GetHisto();
 
       // MB : HACK no option to have both non-hist variations and hist variations ?
       // get histogram
+      // GHL: Okay, this is going to be non-trivial.
+      //      We will loop over histosys's, which contain both
+      //      the low hist and the high hist together.
+
+      // Logic:  
+      //        - If we have no HistoSys's, do part A
+      //        - else, if the histo syst's don't match, return (we ignore this case)
+      //        - finally, we take the syst's and apply the linear interpolation w/ constraint
+
+      //ES//  
+      /*
       if(it->lowHists.size() == 0){
         cout << it->name+"_"+it->channel+" has no variation histograms " <<endl;
         string expPrefix=it->name+"_"+it->channel;//+"_expN";
@@ -1196,16 +1208,37 @@ namespace HistFactory{
 	syst_x_expectedPrefix = it->name+"_"+it->channel+"_overallSyst_x_HistSyst";
         LinInterpWithConstraint(proto, nominal, it->lowHists, it->highHists, it->systSourceForHist,
               constraintPrefix, syst_x_expectedPrefix, overallSystName, 
-				fLowBin, fHighBin, constraintTermNames /*likelihoodTermNames*/);
+				fLowBin, fHighBin, constraintTermNames / *likelihoodTermNames* /);
         //syst_x_expectedPrefixNames.push_back(syst_x_expectedPrefix);
       }
-      
+      */
+      if(sample.GetHistoSysList().size() == 0){
+	// If no HistoSys
+        cout << sample.GetName() + "_" + channel_name + " has no variation histograms " << endl;
+        string expPrefix = sample.GetName() + "_" + channel_name; //+"_expN";
+        syst_x_expectedPrefix = sample.GetName() + "_" + channel_name + "_overallSyst_x_Exp";
+        ProcessExpectedHisto(sample.GetHisto(), proto, expPrefix, syst_x_expectedPrefix, 
+			     overallSystName, atoi(NoHistConst_Low),atoi(NoHistConst_High),
+			     fLowBin, fHighBin);
+        //syst_x_expectedPrefixNames.push_back(syst_x_expectedPrefix);
+      } else {
+	// If there ARE HistoSys(s)
+        string constraintPrefix = sample.GetName() + "_" + channel_name + "_Hist_alpha"; // name of source for variation
+	syst_x_expectedPrefix = sample.GetName() + "_" + channel_name + "_overallSyst_x_HistSyst";
+	// constraintTermNames are passed by reference and appended to,
+	// overallSystName is a std::string for this sample
+        LinInterpWithConstraint(proto, nominal, sample.GetHistoSysList(),
+				constraintPrefix, syst_x_expectedPrefix, overallSystName, 
+				fLowBin, fHighBin, constraintTermNames);
+        //syst_x_expectedPrefixNames.push_back(syst_x_expectedPrefix);
+      }
 
       ////////////////////////////////////
       // Add StatErrors to this Channel //
       ////////////////////////////////////
 
-      if( it->IncludeStatError ) {
+      //ES// if( it->IncludeStatError ) {
+      if( sample.GetStatError().GetActivate() ) {
 
 	if( fObsNameVec.size() > 3 ) {
 	  std::cout << "Cannot include Stat Error for histograms of more than 3 dimensions." << std::endl; 
@@ -1215,24 +1248,51 @@ namespace HistFactory{
 	  // by the ParamHistFunc and then pass that to the
 	  // RooRealSumPdf by appending it's name to the list
 
-	  std::cout << "Sample: "     << it->name    << " to be included in Stat Error " 
-		    << "for channel " << it->channel
+	  std::cout << "Sample: "     << sample.GetName()  << " to be included in Stat Error " 
+		    << "for channel " << channel_name
 		    << std::endl;
 
-	  statConstraintType = it->StatConstraintType;
-	  statRelErrorThreshold = it->RelErrorThreshold;
+	  //ES// statConstraintType = it->StatConstraintType;
+	  //ES// statRelErrorThreshold = it->RelErrorThreshold;
+	  
+	  // Get the type of StatError constraint from the channel
+	  Constraint::Type type = channel.GetStatErrorConfig().GetConstraintType();
+
+	  // For now, convert it to an EstimateSummary constraint
+	  // Will remove this intermediate step later
+	  EstimateSummary::ConstraintType statConstraintType = EstimateSummary::Gaussian;
+	  if( type == Constraint::Gaussian) {
+	    std::cout << "Using Gaussian StatErrors" << std::endl;
+	    sample_es.StatConstraintType = EstimateSummary::Gaussian;
+	  }
+	  if( type == Constraint::Poisson ) {
+	    std::cout << "Using Poisson StatErrors" << std::endl;
+	    sample_es.StatConstraintType = EstimateSummary::Poisson;
+	  }
+
+	  statRelErrorThreshold = channel.GetStatErrorConfig().GetRelErrorThreshold();
+
 
 	  // First, get the uncertainty histogram
 	  // and push it back to our vectors
 	
-	  TH1* statErrorHist = it->relStatError;
+	  //ES// TH1* statErrorHist = it->relStatError;
+
+	  // And get the Relative Error histogram for this sample, if there is one
+	  TH1* statErrorHist = NULL;
+	  if( sample.GetStatError().GetErrorHist() ) {
+	    statErrorHist = (TH1*) sample.GetStatError().GetErrorHist()->Clone();
+	  }
+
 	  string UncertName  = syst_x_expectedPrefix + "_StatAbsolUncert";
 	
 	  if( statErrorHist == NULL ) {
 	    // Make the absolute stat error
 	    std::cout << "Making Statistical Uncertainty Hist for "
-		      << " Channel: " << it->channel
-		      << " Sample: "  << it->name
+	      //ES// << " Channel: " << it->channel
+	      //ES// << " Sample: "  << it->name
+		      << " Channel: " << channel_name
+		      << " Sample: "  << sample.GetName()
 		      << std::endl;
 	    statErrorHist = MakeAbsolUncertaintyHist( UncertName, nominal );
 	  } else {
@@ -1240,10 +1300,14 @@ namespace HistFactory{
 	    // We must turn it into an absolute error
 	    // using the nominal histogram
 	    std::cout << "Using external histogram for Stat Errors for "
-		      << " Channel: " << it->channel
-		      << " Sample: " << it->name
+	      //ES// << " Channel: " << it->channel
+	      //ES// << " Sample: "  << it->name
+		      << " Channel: " << channel_name
+		      << " Sample: "  << sample.GetName()
 		      << std::endl;
 	    std::cout << "Error Histogram: " << statErrorHist->GetName() << std::endl;
+	    // Multiply the relative stat uncertainty by the
+	    // nominal to get the overall stat uncertainty
 	    statErrorHist->Multiply( nominal );
 	    statErrorHist->SetName( UncertName.c_str() );
 	  }
@@ -1254,7 +1318,8 @@ namespace HistFactory{
 
 	  // Next, try to get the flexible ParamHistFunc/
 	  // or create it if it doesn't yet exist:
-	  statFuncName = "mc_stat_" + it->channel;
+	  //ES// statFuncName = "mc_stat_" + it->channel;
+	  statFuncName = "mc_stat_" + channel_name;
 	  ParamHistFunc* paramHist = (ParamHistFunc*) proto->function( statFuncName.c_str() );
 	  if( paramHist == NULL ) {
 
@@ -1270,7 +1335,7 @@ namespace HistFactory{
 	  
 	    // Create the list of terms to
 	    // control the bin heights:
-	    std::string ParamSetPrefix  = "gamma_stat_" + it->channel; 
+	    std::string ParamSetPrefix  = "gamma_stat_" + channel_name;
 	    Double_t gammaMin = 0.0;
 	    Double_t gammaMax = 10.0;
 	    RooArgList statFactorParams = ParamHistFunc::createParamSet(*proto, ParamSetPrefix.c_str(), observables, gammaMin, gammaMax);
@@ -1288,7 +1353,8 @@ namespace HistFactory{
 	  // Create the node as a product
 	  // of this function and the 
 	  // expected value from MC
-	  statNodeName = it->name+"_"+it->channel+"_overallSyst_x_StatUncert";
+	  //ES// statNodeName = it->name+"_"+it->channel+"_overallSyst_x_StatUncert";
+	  statNodeName = sample.GetName() + "_" + channel_name + "_overallSyst_x_StatUncert";
 	
 	  RooAbsReal* expFunc = (RooAbsReal*) proto->function( syst_x_expectedPrefix.c_str() );
 	  RooProduct nodeWithMcStat(statNodeName.c_str(), statNodeName.c_str(),
@@ -1309,12 +1375,19 @@ namespace HistFactory{
       // Create a ShapeFactor for this channel //
       ///////////////////////////////////////////
 
-      if( it->shapeFactorName != "" ) {
+      //ES// if( it->shapeFactorName != "" ) {
+      // GHL: I belive this is logically what we want
+      if( sample.GetShapeFactorList().size() > 0 ) {
 
-	if( fObsNameVec.size() >3 ) {
+	// For now, only one shape factor per channel
+	if( sample.GetShapeFactorList().size() > 1 ) {
+	  std::cout << "Error: Only One Shape Factor currently supported" << std::endl;
+	  throw hf_exc();
+	}
+
+	if( fObsNameVec.size() > 3 ) {
 	  std::cout << "Cannot include Stat Error for histograms of more than 3 dimensions." << std::endl; 
 	} else {
-
 
 	  std::cout << "Sample: "     << it->name << " in channel: " << it->channel
 		    << " to be include a ShapeFactor."
