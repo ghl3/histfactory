@@ -387,9 +387,16 @@ namespace HistFactory{
   }
 
 
-  void HistoToWorkspaceFactoryFast::LinInterpWithConstraint(RooWorkspace* proto, TH1* nominal, vector<TH1*> lowHist, vector<TH1*> highHist, 
-							    vector<string> sourceName, string prefix, string productPrefix, string systTerm, 
-                                                            int /*lowBin*/, int /*highBin */, vector<string>& constraintTermNames){
+
+  //ES// 
+  // void HistoToWorkspaceFactoryFast::LinInterpWithConstraint(RooWorkspace* proto, TH1* nominal, vector<TH1*> lowHist, vector<TH1*> highHist, 
+  //							    vector<string> sourceName, string prefix, string productPrefix, string systTerm, 
+  //                                                        int /*lowBin*/, int /*highBin */, vector<string>& constraintTermNames){
+  void HistoToWorkspaceFactoryFast::LinInterpWithConstraint(RooWorkspace* proto, TH1* nominal, 
+							    std::vector<HistoSys> histoSysList,
+							    string prefix, string productPrefix, string systTerm, 
+							    int /*lowBin*/, int /*highBin */, vector<string>& constraintTermNames){
+
     // these are the nominal predictions: eg. the mean of some space of variations
     // later fill these in a loop over histogram bins
 
@@ -438,20 +445,26 @@ namespace HistFactory{
     RooArgList params( ("alpha_Hist") );
     // range is set using defined macro (see top of the page)
     string range=string("[")+alpha_Low+","+alpha_High+"]";
-    for(unsigned int j=0; j<lowHist.size(); ++j){
+    //ES// for(unsigned int j=0; j<lowHist.size(); ++j){
+    for(unsigned int j=0; j<histoSysList.size(); ++j){
       std::stringstream str;
       str<<"_"<<j;
 
-      RooRealVar* temp = (RooRealVar*) proto->var(("alpha_"+sourceName.at(j)).c_str());
+      HistoSys* histoSys = histoSysList.at(j);
+      string histoSysName = histoSys.GetName();
+
+      //ES// RooRealVar* temp = (RooRealVar*) proto->var(("alpha_"+sourceName.at(j)).c_str());
+      RooRealVar* temp = (RooRealVar*) proto->var(("alpha_" + histoSysName).c_str());
       if(!temp){
-        temp = (RooRealVar*) proto->factory(("alpha_"+sourceName.at(j)+range).c_str());
+        //ES// temp = (RooRealVar*) proto->factory(("alpha_" + sourceName.at(j)+range).c_str());
+	temp = (RooRealVar*) proto->factory(("alpha_" + histoSysName + range).c_str());
 
         // now add a constraint term for these parameters
-        string command=("Gaussian::alpha_"+sourceName.at(j)+"Constraint(alpha_"+sourceName.at(j)+",nom_alpha_"+sourceName.at(j)+"[0.,-10,10],1.)");
+        string command=("Gaussian::alpha_"+histoSysName+"Constraint(alpha_"+histoSysName+",nom_alpha_"+histoSysName+"[0.,-10,10],1.)");
         cout << command << endl;
         constraintTermNames.push_back(  proto->factory( command.c_str() )->GetName() );
-	proto->var(("nom_alpha_"+sourceName.at(j)).c_str())->setConstant();
-	const_cast<RooArgSet*>(proto->set("globalObservables"))->add(*proto->var(("nom_alpha_"+sourceName.at(j)).c_str()));
+	proto->var(("nom_alpha_"+histoSysName).c_str())->setConstant();
+	const_cast<RooArgSet*>(proto->set("globalObservables"))->add(*proto->var(("nom_alpha_"+histoSysName).c_str()));
       } 
       params.add(* temp );
     }
@@ -460,13 +473,18 @@ namespace HistFactory{
     // get low/high variations to interpolate between
     vector<double> low, high;
     RooArgSet lowSet, highSet;
-    for(unsigned int j=0; j<lowHist.size(); ++j){
+    //ES// for(unsigned int j=0; j<lowHist.size(); ++j){
+    for(unsigned int j=0; j<histoSysList.size(); ++j){
       std::stringstream str;
       str<<"_"<<j;
-      lowHist.at(j);
-      highHist.at(j);
-      RooDataHist* lowDHist = new RooDataHist((prefix+str.str()+"lowDHist").c_str(),"",observables,lowHist.at(j));
-      RooDataHist* highDHist = new RooDataHist((prefix+str.str()+"highDHist").c_str(),"",observables,highHist.at(j));
+      // GHL: No, I don't know what these lines do:
+      //ES// lowHist.at(j);
+      //ES// highHist.at(j);
+      HistoSys* histoSys = histoSysList.at(j);
+      //ES// RooDataHist* lowDHist = new RooDataHist((prefix+str.str()+"lowDHist").c_str(),"",observables,lowHist.at(j));
+      //ES// RooDataHist* highDHist = new RooDataHist((prefix+str.str()+"highDHist").c_str(),"",observables,highHist.at(j));
+      RooDataHist* lowDHist = new RooDataHist((prefix+str.str()+"lowDHist").c_str(),"",observables, histoSys.GetHistoLow());
+      RooDataHist* highDHist = new RooDataHist((prefix+str.str()+"highDHist").c_str(),"",observables, histoSys.GetHistoHigh());
       RooHistFunc* lowFunc = new RooHistFunc((prefix+str.str()+"low").c_str(),"",observables,*lowDHist,0) ;
       RooHistFunc* highFunc = new RooHistFunc((prefix+str.str()+"high").c_str(),"",observables,*highDHist,0) ;
       lowSet.add(*lowFunc);
