@@ -1253,7 +1253,7 @@ namespace HistFactory{
         string expPrefix = sample.GetName() + "_" + channel_name; //+"_expN";
         syst_x_expectedPrefix = sample.GetName() + "_" + channel_name + "_overallSyst_x_Exp";
         ProcessExpectedHisto(sample.GetHisto(), proto, expPrefix, syst_x_expectedPrefix, 
-			     overallSystName, atoi(NoHistConst_Low),atoi(NoHistConst_High),
+			     overallSystName, atoi(NoHistConst_Low), atoi(NoHistConst_High),
 			     fLowBin, fHighBin);
         //syst_x_expectedPrefixNames.push_back(syst_x_expectedPrefix);
       } else {
