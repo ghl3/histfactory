@@ -210,10 +210,13 @@ namespace HistFactory{
     string ch_name = channel.GetName();
 
     // First, turn the channel into a vector of estimate summaries
-    std::vector<EstimateSummary> channel_estimateSummary = GetChannelEstimateSummaries( measurement, channel );
+    //WS// std::vector<EstimateSummary> channel_estimateSummary = GetChannelEstimateSummaries( measurement, channel );
     
     // Then, use HistFactory on that vector to create the workspace
-    RooWorkspace* ws_single = this->MakeSingleChannelModel(channel_estimateSummary, measurement.GetConstantParams());
+    //RooWorkspace* ws_single = this->MakeSingleChannelModel(channel_estimateSummary, measurement.GetConstantParams());
+    // GHL: Renaming to 'MakeSingleChannelWorkspace'
+    //WS// RooWorkspace* ws_single = this->MakeSingleChannelWorkspace(channel_estimateSummary, measurement.GetConstantParams());
+    RooWorkspace* ws_single = this->MakeSingleChannelWorkspace(measurement, channel);
     if( ws_single == NULL ) {
       std::cout << "Error: Failed to make Single-Channel workspace for channel: " << ch_name
 		<< " and measurement: " << measurement.GetName() << std::endl;
@@ -264,6 +267,7 @@ namespace HistFactory{
       string ch_name = channel.GetName();
       channel_names.push_back(ch_name);
 
+      // GHL: Renaming to 'MakeSingleChannelWorkspace'
       RooWorkspace* ws_single = factory.MakeSingleChannelModel( measurement, channel );
       
       channel_workspaces.push_back(ws_single);
@@ -384,7 +388,7 @@ namespace HistFactory{
 
 
   void HistoToWorkspaceFactoryFast::LinInterpWithConstraint(RooWorkspace* proto, TH1* nominal, vector<TH1*> lowHist, vector<TH1*> highHist, 
-             vector<string> sourceName, string prefix, string productPrefix, string systTerm, 
+							    vector<string> sourceName, string prefix, string productPrefix, string systTerm, 
                                                             int /*lowBin*/, int /*highBin */, vector<string>& constraintTermNames){
     // these are the nominal predictions: eg. the mean of some space of variations
     // later fill these in a loop over histogram bins
@@ -529,7 +533,8 @@ namespace HistFactory{
         rangeNames.push_back(range.str());
 	normFactorNames.push_back(varname);
       }
-      overallNorm_times_sigmaEpsilon = es.name + "_" + channel + "_overallNorm_x_sigma_epsilon";
+      //ES// overallNorm_times_sigmaEpsilon = es.name + "_" + channel + "_overallNorm_x_sigma_epsilon";
+      overallNorm_times_sigmaEpsilon = sample.GetName() + "_" + channel + "_overallNorm_x_sigma_epsilon";
       proto->factory(("prod::" + overallNorm_times_sigmaEpsilon + "(" + prodNames + "," + sigmaEpsilon + ")").c_str());
     }
 
@@ -537,7 +542,8 @@ namespace HistFactory{
     for( vector<string>::iterator nit = normFactorNames.begin(); nit!=normFactorNames.end(); ++nit){
         if( count (normFactorNames.begin(), normFactorNames.end(), *nit) > 1 ){
 	  cout <<"WARNING: <NormFactor Name =\""<<*nit<<"\"> is duplicated for <Sample Name=\"" 
-	       << es.name <<"\">, but only one factor will be included.  \n Instead, define something like" 
+	    //ES// << es.name <<"\">, but only one factor will be included.  \n Instead, define something like" 
+	       << sample.GetName() << "\">, but only one factor will be included.  \n Instead, define something like" 
 	    //       << "\n\t<Function Name=\""<<*nit<<"Squared\" Expresion=\""<<*nit<<"\" Var=\""<<*nit<<range<<"\">"
 	       << "\n\t<Function Name=\""<<*nit<<"Squared\" Expresion=\""<<*nit<<"*"<<*nit<<"\" Var=\""<<*nit<<rangeNames.at(rangeIndex)
 	       << "\"> \nin your top-level XML's <Measurment> entry and use <NormFactor Name=\""<<*nit<<"Squared\" in your channel XML file."<< endl;
@@ -573,7 +579,7 @@ namespace HistFactory{
     RooArgSet params(prefix.c_str());
     vector<double> lowVec, highVec;
     //ES// for(map<string,pair<double,double> >::iterator it=systMap.begin(); it!=systMap.end(); ++it){
-    for(int i = 0; i < sysList.size(); ++i) {
+    for(unsigned int i = 0; i < systList.size(); ++i) {
 
       OverallSys sys = systList.at(i); 
 
@@ -604,13 +610,13 @@ namespace HistFactory{
       double high = it->second.second;
       */
       double low = sys.GetLow();
-      double low = sys.GetHigh();
+      double high = sys.GetHigh();
       lowVec.push_back(low);
       highVec.push_back(high);
       
     }
     //ES//if(systMap.size()>0){
-    if(sysList.size() > 0){
+    if(systList.size() > 0){
       // this is epsilon(alpha_j), a piece-wise linear interpolation
       //      LinInterpVar interp( (interpName).c_str(), "", params, 1., lowVec, highVec);
       FlexibleInterpVar interp( (interpName).c_str(), "", params, 1., lowVec, highVec);
@@ -1091,7 +1097,7 @@ namespace HistFactory{
   // Original signature:
   //  RooWorkspace* HistoToWorkspaceFactoryFast::MakeSingleChannelModel( std::vector<EstimateSummary> summary, vector<string> systToFix, bool doRatio)
   //
-  RooWorkspace* HistoToWorkspaceFactoryFast::MakeSingleChannelModel(Measurment& measurement, Channel& channel)
+  RooWorkspace* HistoToWorkspaceFactoryFast::MakeSingleChannelWorkspace(Measurement& measurement, Channel& channel)
   {
 
     // Set these by hand inside the function
@@ -1186,8 +1192,8 @@ namespace HistFactory{
     //* vector<EstimateSummary>::iterator it = summary.begin();
     //* for(; it!=summary.end(); ++it){
     //*   if(it->name=="Data") continue;
-    vector<Sample>::iterator it = Channel.GetSamples().begin();
-    for(; it!=Channel.GetSamples().end(); ++it) {
+    vector<Sample>::iterator it = channel.GetSamples().begin();
+    for(; it!=channel.GetSamples().end(); ++it) {
 
       //ES// string overallSystName = it->name+"_"+it->channel+"_epsilon"; 
       Sample& sample = (*it);

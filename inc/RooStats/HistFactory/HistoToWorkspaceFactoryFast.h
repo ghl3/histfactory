@@ -50,7 +50,7 @@ namespace HistFactory{
     RooWorkspace* MakeSingleChannelModel( Measurement& measurement, Channel& channel );
     static RooWorkspace* MakeCombinedModel( Measurement& measurement );
     
-    void SetFunctionsToPreprocess(std::vector<std::string> lines){ fPreprocessFunctions = lines;}
+    void SetFunctionsToPreprocess(std::vector<std::string> lines){ fPreprocessFunctions = lines; }
     
     //ES//
     /*
@@ -63,7 +63,7 @@ namespace HistFactory{
 			    std::vector<std::string>& likelihoodTermNames, std::vector<std::string>& totSystTermNames);
 
     //ES// std::string AddNormFactor(RooWorkspace *, std::string & , std::string & , EstimateSummary & , bool );
-    string AddNormFactor(RooWorkspace* proto, string& channel, string& sigmaEpsilon, Sample& sample, bool doRatio){    
+    std::string AddNormFactor(RooWorkspace* proto, std::string& channel, std::string& sigmaEpsilon, Sample& sample, bool doRatio);
 
     void AddMultiVarGaussConstraint(RooWorkspace* proto, std::string prefix,int lowBin, int highBin, std::vector<std::string>& likelihoodTermNames);
     
@@ -91,7 +91,8 @@ namespace HistFactory{
     TDirectory* Makedirs( TDirectory* file, std::vector<std::string> names );
     
     //ES// RooWorkspace* MakeSingleChannelModel(std::vector<RooStats::HistFactory::EstimateSummary> summary, std::vector<std::string> systToFix, bool doRatio=false);
-    RooWorkspace* MakeSingleChannelModel(Measurment& measurement, Channel& channel);
+    // GHL: Renaming to "MakeSingleChannelWorkspace"
+    RooWorkspace* MakeSingleChannelWorkspace(Measurement& measurement, Channel& channel);
     
     void  MakeTotalExpected(RooWorkspace* proto, std::string totName, std::string /**/, std::string /**/,
 			    int lowBin, int highBin, std::vector<std::string>& syst_x_expectedPrefixNames,
