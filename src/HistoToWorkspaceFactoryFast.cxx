@@ -450,7 +450,7 @@ namespace HistFactory{
       std::stringstream str;
       str<<"_"<<j;
 
-      HistoSys* histoSys = histoSysList.at(j);
+      HistoSys& histoSys = histoSysList.at(j);
       string histoSysName = histoSys.GetName();
 
       //ES// RooRealVar* temp = (RooRealVar*) proto->var(("alpha_"+sourceName.at(j)).c_str());
@@ -480,7 +480,7 @@ namespace HistFactory{
       // GHL: No, I don't know what these lines do:
       //ES// lowHist.at(j);
       //ES// highHist.at(j);
-      HistoSys* histoSys = histoSysList.at(j);
+      HistoSys& histoSys = histoSysList.at(j);
       //ES// RooDataHist* lowDHist = new RooDataHist((prefix+str.str()+"lowDHist").c_str(),"",observables,lowHist.at(j));
       //ES// RooDataHist* highDHist = new RooDataHist((prefix+str.str()+"highDHist").c_str(),"",observables,highHist.at(j));
       RooDataHist* lowDHist = new RooDataHist((prefix+str.str()+"lowDHist").c_str(),"",observables, histoSys.GetHistoLow());
@@ -1320,14 +1320,17 @@ namespace HistFactory{
 
 	  // For now, convert it to an EstimateSummary constraint
 	  // Will remove this intermediate step later
-	  EstimateSummary::ConstraintType statConstraintType = EstimateSummary::Gaussian;
+	  // EstimateSummary::ConstraintType:
+	  statConstraintType = EstimateSummary::Gaussian;
 	  if( type == Constraint::Gaussian) {
 	    std::cout << "Using Gaussian StatErrors" << std::endl;
-	    sample_es.StatConstraintType = EstimateSummary::Gaussian;
+	    // sample_es.StatConstraintType = EstimateSummary::Gaussian;
+	    statConstraintType = EstimateSummary::Gaussian;
 	  }
 	  if( type == Constraint::Poisson ) {
 	    std::cout << "Using Poisson StatErrors" << std::endl;
-	    sample_es.StatConstraintType = EstimateSummary::Poisson;
+	    // sample_es.StatConstraintType = EstimateSummary::Poisson;
+	    statConstraintType = EstimateSummary::Poisson;
 	  }
 
 	  statRelErrorThreshold = channel.GetStatErrorConfig().GetRelErrorThreshold();
@@ -1451,9 +1454,12 @@ namespace HistFactory{
 	  throw hf_exc();
 	} else {
 
-	  std::cout << "Sample: "     << it->name << " in channel: " << it->channel
-		    << " to be include a ShapeFactor."
-		    << std::endl;
+	  //ES//std::cout << "Sample: "     << it->name << " in channel: " << it->channel
+	  //	    << " to be include a ShapeFactor."
+	  //	    << std::endl;
+	  std::cout << "Sample: "     << sample.GetName() << " in channel: " << channel_name
+	  	    << " to be include a ShapeFactor."
+	  	    << std::endl;
 	  
 	  ShapeFactor& shapeFactor = sample.GetShapeFactorList().at(0);
 
@@ -1521,7 +1527,8 @@ namespace HistFactory{
 	  // List of ShapeSys ParamHistFuncs
 	  std::vector<string> ShapeSysNames;
 
-	  for( unsigned int i = 0; i < it->shapeSysts.size(); ++i) {
+	  //ES// for( unsigned int i = 0; i < it->shapeSysts.size(); ++i) {
+	  for( unsigned int i = 0; i < sample.GetShapeSysList().size(); ++i) {
 	  	    
 	    // Create the ParamHistFunc's
 	    // Create their constraint terms and add them
@@ -1585,7 +1592,7 @@ namespace HistFactory{
 	    
 	    // The syst should be a fractional error
 	    //ES// TH1* shapeErrorHist = Sys.hist;
-	    TH1* shapeErrorHist = shapeSys.GetHist();
+	    TH1* shapeErrorHist = shapeSys.GetErrorHist();
 
 
 	    // Set the EstimateSummary style constraint type
@@ -1654,11 +1661,11 @@ namespace HistFactory{
 	normalizationNames.push_back( "Lumi" );
       }
       else {
-	TString lumiStr;
-	lumiStr += measurement.GetLumi();
-	lumiStr.ReplaceAll(' ', TString());
+	TString lumiParamString;
+	lumiParamString += measurement.GetLumi();
+	lumiParamString.ReplaceAll(' ', TString());
 	//sample_es.normName = lumiStr ;
-        normalizationNames.push_back(lumiStr);
+        normalizationNames.push_back(lumiParamString.Data());
       }
 
     } // END: Loop over EstimateSummaries
@@ -1823,7 +1830,7 @@ namespace HistFactory{
     // GHL: Determine to use data if the hist isn't 'NULL'
     if(channel.GetData().GetHisto() != NULL) { 
 
-      Data* data = channel.GetData();
+      Data& data = channel.GetData();
 
       // THis works and is natural, but the memory size of the simultaneous dataset grows exponentially with channels
       RooDataSet* obsDataUnbinned = new RooDataSet("obsData","",*proto->set("obsAndWeight"),weightName);

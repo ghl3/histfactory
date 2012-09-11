@@ -84,9 +84,11 @@ namespace HistFactory{
     //void FormatFrameForLikelihood(RooPlot* frame, std::string XTitle=std::string("#sigma / #sigma_{SM}"), std::string YTitle=std::string("-log likelihood"));
     
     
-    void LinInterpWithConstraint(RooWorkspace* proto, TH1* nominal, std::vector<TH1*> lowHist, std::vector<TH1*> highHist,
-				 std::vector<std::string> sourceName, std::string prefix, std::string productPrefix, std::string systTerm,
-				 int lowBin, int highBin, std::vector<std::string>& likelihoodTermNames);
+    //ES// void LinInterpWithConstraint(RooWorkspace* proto, TH1* nominal, std::vector<TH1*> lowHist, std::vector<TH1*> highHist,
+    //ES// 				 std::vector<std::string> sourceName, std::string prefix, std::string productPrefix, std::string systTerm,
+    //ES// 				 int lowBin, int highBin, std::vector<std::string>& likelihoodTermNames);
+    void LinInterpWithConstraint(RooWorkspace* proto, TH1* nominal, std::vector<HistoSys>,  std::string prefix, std::string productPrefix, std::string systTerm,
+     				 int lowBin, int highBin, std::vector<std::string>& likelihoodTermNames);
     
     TDirectory* Makedirs( TDirectory* file, std::vector<std::string> names );
     
