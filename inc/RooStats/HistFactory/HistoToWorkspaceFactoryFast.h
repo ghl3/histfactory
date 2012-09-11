@@ -59,7 +59,7 @@ namespace HistFactory{
 			    std::vector<std::string>& likelihoodTermNames, std::vector<std::string>& totSystTermNames);
     */			    
     void AddEfficiencyTerms(RooWorkspace* proto, std::string prefix, std::string interpName,
-			    std::vector<OverallSys> systList, 			 
+			    std::vector<OverallSys>& systList, 			 
 			    std::vector<std::string>& likelihoodTermNames, std::vector<std::string>& totSystTermNames);
 
     //ES// std::string AddNormFactor(RooWorkspace *, std::string & , std::string & , EstimateSummary & , bool );

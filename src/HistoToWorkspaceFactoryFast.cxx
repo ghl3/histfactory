@@ -583,8 +583,8 @@ namespace HistFactory{
     vector<string>& constraintTermNames, vector<string>& totSystTermNames){
   */
   void HistoToWorkspaceFactoryFast::AddEfficiencyTerms(RooWorkspace* proto, string prefix, string interpName,
-						       std::vector<OverallSys> systList, 
-						       vector<string>& constraintTermNames, vector<string>& totSystTermNames){
+						       std::vector<OverallSys>& systList, 
+						       vector<string>& constraintTermNames, vector<string>& totSystTermNames) {
 
     // 
     // add variables for all the relative overall uncertainties we expect
@@ -599,7 +599,7 @@ namespace HistFactory{
     //ES// for(map<string,pair<double,double> >::iterator it=systMap.begin(); it!=systMap.end(); ++it){
     for(unsigned int i = 0; i < systList.size(); ++i) {
 
-      OverallSys sys = systList.at(i); 
+      OverallSys& sys = systList.at(i); 
 
       // add efficiency term
       //ES// RooRealVar* temp = (RooRealVar*) proto->var((prefix+ it->first).c_str());
@@ -611,12 +611,13 @@ namespace HistFactory{
         //string command=("Gaussian::"+prefix+it->first+"Constraint("+prefix+it->first+",nom_"+prefix+it->first+"[0.,-10,10],1.)");
 	string command=("Gaussian::" + prefix + sys.GetName() + 
 			"Constraint(" + prefix + sys.GetName() +
-			",nom_" + sys.GetName() + "[0.,-10,10],1.)");
+			",nom_" + prefix + sys.GetName() + "[0.,-10,10],1.)");
         cout << command << endl;
         constraintTermNames.push_back( proto->factory( command.c_str() )->GetName() );
 	proto->var(("nom_" + prefix + sys.GetName()).c_str())->setConstant();
 	const_cast<RooArgSet*>(proto->set("globalObservables"))->add(*proto->var(("nom_" + prefix + sys.GetName()).c_str()));	
       } 
+
       params.add(*temp);
 
       // add constraint in terms of bifrucated gauss with low/high as sigmas
@@ -1807,7 +1808,7 @@ namespace HistFactory{
     const char* weightName="weightVar";
     proto->factory(Form("%s[0,-1e10,1e10]",weightName));
     proto->defineSet("obsAndWeight",Form("%s,%s",weightName,observablesStr.c_str()));
-    RooAbsData* data = model->generateBinned(observables,ExpectedData());
+    RooAbsData* asimov_data = model->generateBinned(observables,ExpectedData());
 
     /// Asimov dataset
     RooDataSet* asimovDataUnbinned = new RooDataSet("asimovData","",*proto->set("obsAndWeight"),weightName);
@@ -1819,10 +1820,10 @@ namespace HistFactory{
       binWidthW *= proto->var(obsName.c_str())->numBins()/(proto->var(obsName.c_str())->getMax() - proto->var(obsName.c_str())->getMin()) ; 
     }
     */
-    for(int i=0; i<data->numEntries(); ++i){
-      data->get(i)->Print("v");
+    for(int i=0; i<asimov_data->numEntries(); ++i){
+      asimov_data->get(i)->Print("v");
       //cout << "GREPME : " << i << " " << data->weight() <<endl;
-      asimovDataUnbinned->add( *data->get(i), data->weight() );
+      asimovDataUnbinned->add( *asimov_data->get(i), asimov_data->weight() );
     }
     proto->import(*asimovDataUnbinned);
 
