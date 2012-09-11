@@ -487,40 +487,50 @@ namespace HistFactory{
 
   }
 
-  string HistoToWorkspaceFactoryFast::AddNormFactor(RooWorkspace * proto, string & channel, string & sigmaEpsilon, EstimateSummary & es, bool doRatio){
+  //ES// string HistoToWorkspaceFactoryFast::AddNormFactor(RooWorkspace * proto, string & channel, string & sigmaEpsilon, EstimateSummary & es, bool doRatio){
+  // GHL: Consider passing the NormFactor list instead of the entire sample
+  string HistoToWorkspaceFactoryFast::AddNormFactor(RooWorkspace* proto, string& channel, string& sigmaEpsilon, Sample& sample, bool doRatio){
     string overallNorm_times_sigmaEpsilon ;
     string prodNames;
-    vector<EstimateSummary::NormFactor> norm=es.normFactor;
+    //ES// vector<EstimateSummary::NormFactor> norm=es.normFactor;
+    vector<NormFactor> normList = sample.GetNormFactorList();
     vector<string> normFactorNames, rangeNames;
-    if(norm.size()){
-      for(vector<EstimateSummary::NormFactor>::iterator itr=norm.begin(); itr!=norm.end(); ++itr){
-        cout << "making normFactor: " << itr->name << endl;
+    //ES//if(norm.size()){
+    if(normList.size() > 0){
+      //ES// for(vector<EstimateSummary::NormFactor>::iterator itr=norm.begin(); itr!=norm.end(); ++itr){
+      for(vector<NormFactor>::iterator itr = normList.begin(); itr != normList.end(); ++itr){
+
+	NormFactor& norm = *itr;
+        //ES//cout << "making normFactor: " << itr->name << endl;
+	cout << "making normFactor: " << norm.GetName() << endl;
         // remove "doRatio" and name can be changed when ws gets imported to the combined model.
         std::stringstream range;
-        range<<"["<<itr->val<<","<<itr->low<<","<<itr->high<<"]";
+        //ES//range<<"["<<itr->val<<","<<itr->low<<","<<itr->high<<"]";
+	range << "[" << norm.GetVal() << "," << norm.GetLow() << "," << norm.GetHigh() << "]";
 
         string varname;
-        if(!prodNames.empty()) prodNames+=",";
+        if(!prodNames.empty()) prodNames += ",";
         if(doRatio) {
-          varname=itr->name+"_"+channel;
+          varname = norm.GetName() + "_" + channel;
         }
         else {
-          varname=itr->name;
+          varname=norm.GetName();
         }
-        proto->factory((varname+range.str()).c_str());
-	if(itr->constant){
+        proto->factory((varname + range.str()).c_str());
+	//ES// if(itr->constant){
+	if(norm.GetConst()) {
 	  //	  proto->var(varname.c_str())->setConstant();
 	  //	  cout <<"setting " << varname << " constant"<<endl;
-	  cout <<"WARNING: Const attribute to <NormFactor> tag is deprecated, will ignore."<<
-	    " Instead, add \n\t<ParamSetting Const=\"True\">"<<varname<<"</ParamSetting>\n"<<
-	    " to your top-level XML's <Measurment> entry"<< endl;
+	  cout << "WARNING: Const attribute to <NormFactor> tag is deprecated, will ignore." <<
+	    " Instead, add \n\t<ParamSetting Const=\"True\">" << varname << "</ParamSetting>\n" <<
+	    " to your top-level XML's <Measurment> entry" << endl;
 	}
         prodNames+=varname;
         rangeNames.push_back(range.str());
 	normFactorNames.push_back(varname);
       }
-      overallNorm_times_sigmaEpsilon = es.name+"_"+channel+"_overallNorm_x_sigma_epsilon";
-      proto->factory(("prod::"+overallNorm_times_sigmaEpsilon+"("+prodNames+","+sigmaEpsilon+")").c_str());
+      overallNorm_times_sigmaEpsilon = es.name + "_" + channel + "_overallNorm_x_sigma_epsilon";
+      proto->factory(("prod::" + overallNorm_times_sigmaEpsilon + "(" + prodNames + "," + sigmaEpsilon + ")").c_str());
     }
 
     unsigned int rangeIndex=0;
@@ -1192,6 +1202,7 @@ namespace HistFactory{
 			 sample.GetOverallSysList(), constraintTermNames /*likelihoodTermNames*/, totSystTermNames);    
 
       //ES// overallSystName = AddNormFactor(proto, channel_name, overallSystName, *it, doRatio); 
+      // GHL: Consider passing the NormFactor list instead of the entire sample
       overallSystName = AddNormFactor(proto, channel_name, overallSystName, sample, doRatio); 
 
 
