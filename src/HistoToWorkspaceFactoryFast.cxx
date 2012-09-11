@@ -542,9 +542,17 @@ namespace HistFactory{
   }        
 
 
+  //ES// 
+  /*
+    void HistoToWorkspaceFactoryFast::AddEfficiencyTerms(RooWorkspace* proto, string prefix, string interpName,
+    map<string,pair<double,double> > systMap, 
+    vector<string>& constraintTermNames, vector<string>& totSystTermNames){
+  */
   void HistoToWorkspaceFactoryFast::AddEfficiencyTerms(RooWorkspace* proto, string prefix, string interpName,
-        map<string,pair<double,double> > systMap, 
-        vector<string>& constraintTermNames, vector<string>& totSystTermNames){
+						       std::vector<OverallSys> systList, 
+						       vector<string>& constraintTermNames, vector<string>& totSystTermNames){
+
+    // 
     // add variables for all the relative overall uncertainties we expect
     
     // range is set using defined macro (see top of the page)
@@ -554,29 +562,45 @@ namespace HistFactory{
     //bool first=true;
     RooArgSet params(prefix.c_str());
     vector<double> lowVec, highVec;
-    for(map<string,pair<double,double> >::iterator it=systMap.begin(); it!=systMap.end(); ++it){
-      // add efficiency term
-      RooRealVar* temp = (RooRealVar*) proto->var((prefix+ it->first).c_str());
-      if(!temp){
-        temp = (RooRealVar*) proto->factory((prefix+ it->first +range).c_str());
+    //ES// for(map<string,pair<double,double> >::iterator it=systMap.begin(); it!=systMap.end(); ++it){
+    for(int i = 0; i < sysList.size(); ++i) {
 
-        string command=("Gaussian::"+prefix+it->first+"Constraint("+prefix+it->first+",nom_"+prefix+it->first+"[0.,-10,10],1.)");
+      OverallSys sys = systList.at(i); 
+
+      // add efficiency term
+      //ES// RooRealVar* temp = (RooRealVar*) proto->var((prefix+ it->first).c_str());
+      RooRealVar* temp = (RooRealVar*) proto->var((prefix + sys.GetName()).c_str());
+      if(!temp){
+        //ES// temp = (RooRealVar*) proto->factory((prefix+ it->first +range).c_str());
+	temp = (RooRealVar*) proto->factory((prefix + sys.GetName() + range).c_str());
+
+        //string command=("Gaussian::"+prefix+it->first+"Constraint("+prefix+it->first+",nom_"+prefix+it->first+"[0.,-10,10],1.)");
+	string command=("Gaussian::" + prefix + sys.GetName() + 
+			"Constraint(" + prefix + sys.GetName() +
+			",nom_" + sys.GetName() + "[0.,-10,10],1.)");
         cout << command << endl;
-        constraintTermNames.push_back(  proto->factory( command.c_str() )->GetName() );
-	proto->var(("nom_"+prefix+it->first).c_str())->setConstant();
-	const_cast<RooArgSet*>(proto->set("globalObservables"))->add(*proto->var(("nom_"+prefix+it->first).c_str()));	
+        constraintTermNames.push_back( proto->factory( command.c_str() )->GetName() );
+	proto->var(("nom_" + prefix + sys.GetName()).c_str())->setConstant();
+	const_cast<RooArgSet*>(proto->set("globalObservables"))->add(*proto->var(("nom_" + prefix + sys.GetName()).c_str()));	
       } 
       params.add(*temp);
 
       // add constraint in terms of bifrucated gauss with low/high as sigmas
       std::stringstream lowhigh;
+      //ES//
+      // GHL: Really... Really...?
+      /*
       double low = it->second.first; 
       double high = it->second.second;
+      */
+      double low = sys.GetLow();
+      double low = sys.GetHigh();
       lowVec.push_back(low);
       highVec.push_back(high);
       
     }
-    if(systMap.size()>0){
+    //ES//if(systMap.size()>0){
+    if(sysList.size() > 0){
       // this is epsilon(alpha_j), a piece-wise linear interpolation
       //      LinInterpVar interp( (interpName).c_str(), "", params, 1., lowVec, highVec);
       FlexibleInterpVar interp( (interpName).c_str(), "", params, 1., lowVec, highVec);
