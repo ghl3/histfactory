@@ -538,7 +538,14 @@ namespace HistFactory{
         else {
           varname=norm.GetName();
         }
-        proto->factory((varname + range.str()).c_str());
+
+	// GHL: Check that the NormFactor doesn't already exist
+	//      (it may have been created as a function expression
+	//       during preprocessing)
+	if( proto->obj(varname.c_str()) == NULL) {
+	  proto->factory((varname + range.str()).c_str());
+	}
+
 	//ES// if(itr->constant){
 	if(norm.GetConst()) {
 	  //	  proto->var(varname.c_str())->setConstant();
