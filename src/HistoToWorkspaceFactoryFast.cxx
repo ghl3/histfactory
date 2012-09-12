@@ -523,12 +523,6 @@ namespace HistFactory{
       for(vector<NormFactor>::iterator itr = normList.begin(); itr != normList.end(); ++itr){
 
 	NormFactor& norm = *itr;
-        //ES//cout << "making normFactor: " << itr->name << endl;
-	cout << "making normFactor: " << norm.GetName() << endl;
-        // remove "doRatio" and name can be changed when ws gets imported to the combined model.
-        std::stringstream range;
-        //ES//range<<"["<<itr->val<<","<<itr->low<<","<<itr->high<<"]";
-	range << "[" << norm.GetVal() << "," << norm.GetLow() << "," << norm.GetHigh() << "]";
 
         string varname;
         if(!prodNames.empty()) prodNames += ",";
@@ -542,7 +536,14 @@ namespace HistFactory{
 	// GHL: Check that the NormFactor doesn't already exist
 	//      (it may have been created as a function expression
 	//       during preprocessing)
+	std::stringstream range;
+	//ES//range<<"["<<itr->val<<","<<itr->low<<","<<itr->high<<"]";
+	range << "[" << norm.GetVal() << "," << norm.GetLow() << "," << norm.GetHigh() << "]";
+
 	if( proto->obj(varname.c_str()) == NULL) {
+	  //ES//cout << "making normFactor: " << itr->name << endl;
+	  cout << "making normFactor: " << norm.GetName() << endl;
+	  // remove "doRatio" and name can be changed when ws gets imported to the combined model.
 	  proto->factory((varname + range.str()).c_str());
 	}
 
