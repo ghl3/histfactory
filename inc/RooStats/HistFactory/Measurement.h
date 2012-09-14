@@ -35,7 +35,7 @@ public:
 
   // void SetPOI( const std::string& POI ) { fPOI = POI; }
   void AddPOI( const std::string& POI ) { fPOI.push_back(POI); }
-  std::string GetPOI(unsigned int i) { return fPOI.at(i); }
+  std::string GetPOI(unsigned int i=0) { return fPOI.at(i); }
   std::vector<std::string>& GetPOIList() { return fPOI; }
 
 

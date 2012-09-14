@@ -167,10 +167,20 @@ namespace HistFactory{
 		<< std::endl;
       throw hf_exc();
     }
-    cout << "Setting Parameter of Interest as :" << measurement.GetPOI() << endl;
+
+
+    std::vector<std::string> poi_list = measurement.GetPOIList();
+    if( poi_list.size()==0 ) {
+      std::cout << "Warining: No Parametetrs of interest are set" << std::endl;
+    }
+
+    cout << "Setting Parameter(s) of Interest as :";
+    for(unsigned int i = 0; i < poi_list.size(); ++i) {
+      cout << poi_list.at(i) << " ";
+    }
+    cout << endl;
 
     RooArgSet * params= new RooArgSet;
-    std::vector<std::string> poi_list = measurement.GetPOIList();
     for( unsigned int i = 0; i < poi_list.size(); ++i ) {
       std::string poi_name = poi_list.at(i);
       RooRealVar* poi = (RooRealVar*) ws_single->var( poi_name.c_str() );
@@ -195,7 +205,7 @@ namespace HistFactory{
   
     // Set the ModelConfig's Params of Interest
     RooAbsData* expData = ws_single->data("asimovData");
-    if(poi){
+    if(poi_list.size()!=0){
       proto_config->GuessObsAndNuisance(*expData);
     }
 
