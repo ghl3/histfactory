@@ -168,10 +168,20 @@ namespace HistFactory{
       throw hf_exc();
     }
     cout << "Setting Parameter of Interest as :" << measurement.GetPOI() << endl;
-    RooRealVar* poi = (RooRealVar*) ws_single->var( (measurement.GetPOI()).c_str() );
+
     RooArgSet * params= new RooArgSet;
-    if(poi){
-      params->add(*poi);
+    std::vector<std::string> poi_list = measurement.GetPOIList();
+    for( unsigned int i = 0; i < poi_list.size(); ++i ) {
+      std::string poi_name = poi_list.at(i);
+      RooRealVar* poi = (RooRealVar*) ws_single->var( poi_name.c_str() );
+      if(poi){
+	params->add(*poi);
+      }
+      else {
+	std::cout << "Error: Can't find parameter of interest: " << poi_name 
+		  << " in Workspace. Aborting" << std::endl;
+	throw hf_exc();
+      }
     }
     proto_config->SetParametersOfInterest(*params);
 
