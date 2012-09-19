@@ -33,7 +33,7 @@ public:
   void SetOutputFilePrefix( const std::string& prefix ) { fOutputFilePrefix = prefix; }
   std::string GetOutputFilePrefix() { return fOutputFilePrefix; }
 
-  // void SetPOI( const std::string& POI ) { fPOI = POI; }
+  void SetPOI( const std::string& POI ) { fPOI.insert( fPOI.begin(), POI ); }
   void AddPOI( const std::string& POI ) { fPOI.push_back(POI); }
   std::string GetPOI(unsigned int i=0) { return fPOI.at(i); }
   std::vector<std::string>& GetPOIList() { return fPOI; }
