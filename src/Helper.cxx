@@ -374,34 +374,36 @@ std::vector<EstimateSummary> GetChannelEstimateSummaries(Measurement& measuremen
 
 
 
-void unfoldConstraints(RooArgSet& initial, RooArgSet& final, RooArgSet& obs, RooArgSet& nuis, int& counter)
-{
-  if (counter > 50)
-  {
+void unfoldConstraints(RooArgSet& initial, RooArgSet& final, RooArgSet& obs, RooArgSet& nuis, int& counter) {
+  //
+  // Loop through an initial set of constraints
+  // and create a final list of constraints
+  // This is done recursively
+
+
+  if (counter > 50) {
     cout << "ERROR::Couldn't unfold constraints!" << endl;
     cout << "Initial: " << endl;
     initial.Print("v");
     cout << endl;
     cout << "Final: " << endl;
     final.Print("v");
-    exit(1);
+    return;
   }
+  
   TIterator* itr = initial.createIterator();
   RooAbsPdf* pdf;
-  while ((pdf = (RooAbsPdf*)itr->Next()))
-  {
+  while ((pdf = (RooAbsPdf*)itr->Next())) {
     RooArgSet nuis_tmp = nuis;
     RooArgSet constraint_set(*pdf->getAllConstraints(obs, nuis_tmp, false));
     //if (constraint_set.getSize() > 1)
     //{
     string className(pdf->ClassName());
-    if (className != "RooGaussian" && className != "RooLognormal" && className != "RooGamma" && className != "RooPoisson" && className != "RooBifurGauss")
-    {
+    if (className != "RooGaussian" && className != "RooLognormal" && className != "RooGamma" && className != "RooPoisson" && className != "RooBifurGauss") {
       counter++;
       unfoldConstraints(constraint_set, final, obs, nuis, counter);
     }
-    else
-    {
+    else {
       final.add(*pdf);
     }
   }
@@ -409,11 +411,21 @@ void unfoldConstraints(RooArgSet& initial, RooArgSet& final, RooArgSet& obs, Roo
 }
 
 
-void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combWS, RooAbsPdf* combPdf, RooDataSet* combData, bool b_only, double doMuHat, double muVal, bool signalInjection, bool doNuisPro)
-{
+void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combWS, 
+		    RooAbsPdf* combPdf, RooDataSet* combData, bool b_only, double doMuHat, 
+		    double muVal, bool signalInjection, bool doNuisPro) {
 ////////////////////
 //make asimov data//
 ////////////////////
+
+  // mcInWs -> The ModelCofig for this likelihood
+  // doConditional -> Minimize parameters for asimov quantities
+  // doNuisPro -> Set all nuisance parameters to '0' and to constant
+  //              before minimizing. This should be done with *care*!!
+  //              i.e. It should probably be removed as an option.
+
+
+
   if (muVal == -999) muVal = !b_only;
 
   int _printLevel = 0;
@@ -543,25 +555,28 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
   if (!doMuHat) mu->setConstant(1);
   else mu->setRange(-10,100);
 
-  if (doConditional)
-  {
+
+  // Conditional: "Minimize the parameters"
+  if(doConditional) {
+
     cout << "Starting minimization.." << endl;
 
-    if (!doNuisPro) {
+    // Consider removing this option:
+    if(!doNuisPro) {
       TIterator* nIter = nuiSet_tmp.createIterator();
       RooRealVar* thisNui = NULL;
-      while ((thisNui = (RooRealVar*)nIter->Next()))
-	{
-	  thisNui->setVal(0);
-	  thisNui->setConstant();
-	}
+      while((thisNui = (RooRealVar*) nIter->Next())) {
+	thisNui->setVal(0);
+	thisNui->setConstant();
+      }
       delete nIter;
-      if (combWS->var("Lumi")) {
+      // This should be checked, we don't want to 
+      if(combWS->var("Lumi")) {
 	combWS->var("Lumi")->setVal(1);
 	combWS->var("Lumi")->setConstant();
       }
     }
-
+    
     RooAbsReal* nll = combPdf->createNLL(*combData, RooFit::Constrain(nuiSet_tmp));
     RooMinimizer minim(*nll);
     minim.setStrategy(2); 
@@ -570,8 +585,7 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
     std::cout << "Minimizing to make Asimov dataset:" << std::endl;
     int status = minim.minimize(ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), "migrad");
     std::cout << "Successfully minimized to make Asimov dataset:" << std::endl;
-    if (status != 0)
-    {
+    if (status != 0) {
       cout << "Fit failed for mu = " << mu->getVal() << " with status " << status << endl;
       cout << "Trying minuit..." << endl;
       status = minim.minimize("Minuit", "migrad");
@@ -582,20 +596,19 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
     }
     //RooFitResult* res = minim.save();
     //res->correlationMatrix().Print();
-
+    
     if (!doNuisPro) {
       TIterator* nIter = nuiSet_tmp.createIterator();
       RooRealVar* thisNui = NULL;
-      while ((thisNui = (RooRealVar*)nIter->Next()))
-	{
-	  thisNui->setConstant(false);
-	}
+      while ((thisNui = (RooRealVar*)nIter->Next())) {
+	thisNui->setConstant(false);
+      }
       delete nIter;
       if (combWS->var("Lumi")) {
 	combWS->var("Lumi")->setConstant(false);
       }
     }
-
+    
     cout << "Done" << endl;
     //combPdf->fitTo(*combData,Hesse(false),Minos(false),PrintLevel(0),Extended(), Constrain(nuiSet_tmp));
   }
@@ -631,10 +644,6 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
     combWS->loadSnapshot("nominalGlobs");
     combWS->loadSnapshot("nominalNuis");
   }
-
-  // Add artificial break here
-  // See if bug is before or after me!!
-
 
   //cout << "Making asimov" << endl;
 //make the asimov data (snipped from Kyle)
@@ -679,7 +688,7 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
   // Add artificial break here
   // See if bug is before or after me!!
 
-    if (!simPdf)
+  if (!simPdf)
   {
     // Get pdf associated with state from simpdf
     RooAbsPdf* pdftmp = mc->GetPdf();//simPdf->getPdf(channelCat->getLabel()) ;
@@ -722,9 +731,6 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
       exit(1);
     }
 
-    //((RooRealVar*)obstmp->first())->Print();
-    //cout << "expected events " << pdftmp->expectedEvents(*obstmp) << endl;
-     
     combWS->import(*asimovData);
     asimovData->Print();
 
@@ -738,9 +744,7 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
   {
     cout << "found a simPdf: " << simPdf << endl;
     map<string, RooDataSet*> asimovDataMap;
-
     
-    //try fix for sim pdf
     RooCategory* channelCat = (RooCategory*)&simPdf->indexCat();//(RooCategory*)combWS->cat("master_channel");//(RooCategory*) (&simPdf->indexCat());
     //    TIterator* iter = simPdf->indexCat().typeIterator() ;
     TIterator* iter = channelCat->typeIterator() ;
@@ -750,17 +754,9 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
       nrIndices++;
     }
 
-
-    // OKAY, TRACKED DOWN THE BUG
-    // IT'S AFTER HERE!!!
-
     for (int i=0;i<nrIndices;i++){
 
-
-      // THIS IS THE LINE!!!
       channelCat->setIndex(i);
-      // THAT WAS THE LINE!!
-
 
       std::cout << "Checking channel: " << channelCat->getLabel() << std::endl;
       iFrame++;
@@ -781,10 +777,6 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
       double expectedEvents = pdftmp->expectedEvents(*obstmp);
       double thisNorm = 0;
       TString pdftmp_name = pdftmp->GetName();
-
-
-      // BEFORE HERE
-
 
       if (!expectedEvents) {
 	std::cout << "Not expected events" << std::endl;
@@ -822,7 +814,6 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
 	}
       }
 
-
       if (_printLevel >= 1)
 	{
 	  obsDataUnbinned->Print();
@@ -841,12 +832,9 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
 	  obsDataUnbinned->Print();
 	  cout << endl;
 	}
-
     }
 
-    // PROBLEM FIX HERE
     channelCat->setIndex(0);
-
 
     RooDataSet* asimovData;
     if (signalInjection)
@@ -856,12 +844,6 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
     combWS->import(*asimovData);
   }
 
-
-
-      // Add artificial break here
-      // See if bug is before or after me!!
-
-//bring us back to nominal for exporting
     combWS->loadSnapshot("nominalNuis");
     combWS->loadSnapshot("nominalGlobs");
 }
