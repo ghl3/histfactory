@@ -468,21 +468,29 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
   if(signalInjection) mu->setVal(0);
   else mu->setVal(muVal);
 
+  // Get necessary info from the ModelConfig
   RooArgSet mc_obs = *mcInWs->GetObservables();
   RooArgSet mc_globs = *mcInWs->GetGlobalObservables();
   RooArgSet mc_nuis = *mcInWs->GetNuisanceParameters();
 
-  // Get the constraint terms, given
-  // the observables and nuisance parameters
+  // Create a set of constraint terms, which 
+  // is stored in 'constraint_set'
+  // Make some temporary variables and use the
+  // unfoldConstrants function to do this.
+  // (Really, there should be a wrapper to unfoldConstraints
+  // that just gives you what you really want)
+  RooArgSet constraint_set;
+  int counter_tmp = 0;
+  RooArgSet constraint_set_tmp(*combPdf->getAllConstraints(mc_obs, mc_nuis_tmp, false));
+  unfoldConstraints(constraint_set_tmp, constraint_set, mc_obs, mc_nuis_tmp, counter_tmp);
+
+  // Now that we have the constraint terms, we 
+  // can create the full lists of nuisance parameters
+  // and global variables
   RooArgSet mc_nuis_tmp = mc_nuis;
   RooArgList nui_list("ordered_nuis");
   RooArgList glob_list("ordered_globs");
-  RooArgSet constraint_set_tmp(*combPdf->getAllConstraints(mc_obs, mc_nuis_tmp, false));
-  RooArgSet constraint_set;
-  int counter_tmp = 0;
-  unfoldConstraints(constraint_set_tmp, constraint_set, mc_obs, mc_nuis_tmp, counter_tmp);
 
-  // Loop over the constraint terms
   TIterator* cIter = constraint_set.createIterator();
   RooAbsArg* arg;
   while ((arg = (RooAbsArg*)cIter->Next())) {
@@ -500,14 +508,11 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
     }
     delete nIter;
 
-
     // need this in case the observable isn't fundamental. 
     // in this case, see which variable is dependent on the nuisance parameter and use that.
     RooArgSet* components = pdf->getComponents();
-    //components->Print();
     components->remove(*pdf);
     if(components->getSize()) {
-
       TIterator* itr1 = components->createIterator();
       RooAbsArg* arg1;
       while ((arg1 = (RooAbsArg*)itr1->Next())) {
@@ -547,18 +552,14 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
     if (!thisNui || !thisGlob)
     {
       cout << "WARNING::Couldn't find nui or glob for constraint: " << pdf->GetName() << endl;
-      //return;
       continue;
     }
 
     if (_printLevel >= 1) cout << "Pairing nui: " << thisNui->GetName() << ", with glob: " << thisGlob->GetName() << ", from constraint: " << pdf->GetName() << endl;
 
-    //thisNui->setRange(-2,2); // hack, restrict nuis params to +/- 2 sigma
-    
     nui_list.add(*thisNui);
     glob_list.add(*thisGlob);
-    //thisNui->Print();
-    //thisGlob->Print();
+
   } // End Loop over Constraint Terms
   delete cIter;
 
@@ -592,12 +593,14 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
 	combWS->var("Lumi")->setConstant();
       }
     }
-    
+
+    // Create the nll and its minimizer    
     RooAbsReal* nll = combPdf->createNLL(*combData, RooFit::Constrain(nuiSet_tmp));
     RooMinimizer minim(*nll);
     minim.setStrategy(2); 
     minim.setPrintLevel(999);
 
+    // Do the minimization
     std::cout << "Minimizing to make Asimov dataset:" << std::endl;
     int status = minim.minimize(ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), "migrad");
     std::cout << "Successfully minimized to make Asimov dataset:" << std::endl;
@@ -610,9 +613,9 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
 	exit(1);
       }
     }
-    //RooFitResult* res = minim.save();
-    //res->correlationMatrix().Print();
     
+    // Undo the 'doNuisPro' part
+    // Again, may want to remove this
     if (!doNuisPro) {
       TIterator* nIter = nuiSet_tmp.createIterator();
       RooRealVar* thisNui = NULL;
@@ -626,10 +629,9 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
     }
     
     cout << "Done" << endl;
-    //combPdf->fitTo(*combData,Hesse(false),Minos(false),PrintLevel(0),Extended(), Constrain(nuiSet_tmp));
   } // END: DoConditional
-  mu->setConstant(false);
 
+  mu->setConstant(false);
 
   //loop over the nui/glob list, grab the corresponding variable from the tmp ws, 
   // and set the glob to the value of the nui
@@ -639,9 +641,9 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
     return;
   }
 
-  for (int i=0;i<nrNuis;i++) {
-    RooRealVar* nui = (RooRealVar*)nui_list.at(i);
-    RooRealVar* glob = (RooRealVar*)glob_list.at(i);
+  for(int i=0; i<nrNuis; i++) {
+    RooRealVar* nui = (RooRealVar*) nui_list.at(i);
+    RooRealVar* glob = (RooRealVar*) glob_list.at(i);
 
     if (_printLevel >= 1) cout << "nui: " << nui << ", glob: " << glob << endl;
     if (_printLevel >= 1) cout << "Setting glob: " << glob->GetName() << ", which had previous val: " << glob->getVal() << ", to conditional val: " << nui->getVal() << endl;
@@ -649,7 +651,7 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
     glob->setVal(nui->getVal());
   }
 
-//save the snapshots of conditional parameters
+  //save the snapshots of conditional parameters
   //cout << "Saving conditional snapshots" << endl;
   combWS->saveSnapshot(("conditionalGlobs"+muStr.str()).c_str(),glob_list);
   combWS->saveSnapshot(("conditionalNuis" +muStr.str()).c_str(), nui_list);
@@ -671,10 +673,9 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
 
   const char* weightName = "weightVar";
   RooArgSet obsAndWeight;
-  //cout << "adding obs" << endl;
   obsAndWeight.add(*mc->GetObservables());
-  //cout << "adding weight" << endl;
 
+  // Get the weightVar, or create one if necessary
   RooRealVar* weightVar = combWS->var(weightName); // NULL;
   //  if (!(weightVar = combWS->var(weightName)))
   if( weightVar==NULL ) {
@@ -714,18 +715,6 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
     RooDataSet* asimovData;
     asimovData = new RooDataSet(dataSetName.c_str(), dataSetName.c_str(),
 				RooArgSet(obsAndWeight), WeightVar(*weightVar));
-    /*
-      if (signalInjection) {
-      //std::string dataSetName = "signalInjection" + muStr.str();
-      asimovData = new RooDataSet(dataSetName.c_str(), dataSetName.c_str(),
-      RooArgSet(obsAndWeight), WeightVar(*weightVar));
-      }
-      else {
-      //std::string dataSetName = "asimovData" + muStr.str();
-      asimovData = new RooDataSet(dataSetName.c_str(), dataSetName.c_str(),
-      RooArgSet(obsAndWeight), WeightVar(*weightVar));
-      }
-    */
 
     RooRealVar* thisObs = ((RooRealVar*)obstmp->first());
     double expectedEvents = pdftmp->expectedEvents(*obstmp);
@@ -762,6 +751,9 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
   }
   else
   {
+    
+    // If it IS a simultaneous pdf
+    
     cout << "found a simPdf: " << simPdf << endl;
     map<string, RooDataSet*> asimovDataMap;
     
@@ -786,8 +778,7 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
       // Generate observables defined by the pdf associated with this state
       RooArgSet* obstmp = pdftmp->getObservables(*mc->GetObservables()) ;
 
-      if (_printLevel >= 1)
-      {
+      if (_printLevel >= 1) {
 	obstmp->Print();
 	cout << "on type " << channelCat->getLabel() << " " << iFrame << endl;
       }
@@ -860,15 +851,9 @@ void makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combW
     asimovData = new RooDataSet(dataSetName.c_str(),dataSetName.c_str(),
 				RooArgSet(obsAndWeight,*channelCat), Index(*channelCat),
 				Import(asimovDataMap), WeightVar(*weightVar));
-    /*
-    if (signalInjection)
-      asimovData = new RooDataSet(("signalInjection"+muStr.str()).c_str(),("signalInjection"+muStr.str()).c_str(),RooArgSet(obsAndWeight,*channelCat),Index(*channelCat),Import(asimovDataMap),WeightVar(*weightVar));
-    else
-      asimovData = new RooDataSet(("asimovData"+muStr.str()).c_str(),("asimovData"+muStr.str()).c_str(),RooArgSet(obsAndWeight,*channelCat),Index(*channelCat),Import(asimovDataMap),WeightVar(*weightVar));
-    */
 
     combWS->import(*asimovData);
-  }
+  } // End if over simultaneous pdf
 
     combWS->loadSnapshot("nominalNuis");
     combWS->loadSnapshot("nominalGlobs");
