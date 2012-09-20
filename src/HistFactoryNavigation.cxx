@@ -15,16 +15,23 @@ namespace RooStats {
 
 
 
-    void HistFactoryNavigation::_GetNodes(std::vector< std::vector< TH1* > >& channelHistListVec, std::vector< TH1* >& channelDataVec,
-					  ModelConfig* mc, RooAbsData* data) {
+    // A simple wrapper to use a ModelConfig
+    void HistFactoryNavigation::_GetNodes(ModelConfig* mc) {
+      RooAbsPdf* modelPdf = mc->GetPdf();
+      RooArgSet* observables = mc->GetObservables();
+      _GetNodes(modelPdf, observables)
+    }
+
+    void HistFactoryNavigation::_GetNodes(RooAbsPdf* modelPdf, RooArgSet* observables) {
       
       // Get the pdf from the ModelConfig
-      RooAbsPdf* modelPdf = mc->GetPdf();
+      //RooAbsPdf* modelPdf = mc->GetPdf();
+      //RooArgSet* observables = mc->GetObservables();
 
       // Create vectors to hold the channel pdf's
       // as well as the set of observables for each channel
-      std::map< RooAbsPdf* >  channelPdfVec;
-      std::map< RooArgSet* >  channelObservVec;
+      //std::map< std::string, RooAbsPdf* >  channelPdfMap;
+      //std::map< std::string, RooArgSet* >  channelObservMap;
       
       // Check if it is a simultaneous pdf or not
       // (if it's an individual channel, it won't be, if it's
@@ -44,95 +51,77 @@ namespace RooStats {
 	RooCatType* tt = NULL;
         while((tt=(RooCatType*) iter->Next())) {
 	  std::string ChannelName = tt->GetName();
-	  RooAbsPdf* pdftmp = simPdf->getPdf(ChannelName.c_str()) ;
-	  RooArgSet* obstmp = pdftmp->getObservables(*mc->GetObservables()) ;
-	  channelPdfVec.push_back( pdftmp );
-	  channelObservVec.push_back( obstmp );
 	  fChannelNameVec.push_back( ChannelName );
+	  RooAbsPdf* pdftmp = simPdf->getPdf(ChannelName.c_str()) ;
+	  RooArgSet* obstmp = pdftmp->getObservables(*observables) ;
+	  fChannelPdfMap[ChannelName] = pdftmp;
+	  fChannelObservMap[ChannelName] =  obstmp;
 	}
 
       } else { 
 	RooArgSet* obstmp = modelPdf->getObservables(*mc->GetObservables()) ;	
-	channelPdfVec.push_back( modelPdf );
-	channelObservVec.push_back( obstmp );
-	channelNameVec.push_back( modelPdf->GetName() );
-      } 
+	std::string ChannelName = modelPdf->GetName();
+	fChannelNameVec.push_back(ChannelName);
+	fChannelPdfMap[ChannelName] = modelPdf;
+	fChannelObservMap[ChannelName] = obstmp;
 
+      }
 
-      // Okay, now we have a list of the pdf's 
+      // Okay, now we have maps of the pdfs 
       // and the observable list per channel
-      // Now loop over the channel pdf's:
-      // and find their RooRealSumPdf's
-      std::map< std::string, RooRealSumPdf* > channelSumNodeVec;
+      // We then loop over the channel pdfs:
+      // and find their RooRealSumPdfs
+      // std::map< std::string, RooRealSumPdf* > channelSumNodeMap;
 
-      for( unsigned int i = 0; i < channelPdfVec.size(); ++i ) {
+      for( unsigned int i = 0; i < fChannelNameVec.size(); ++i ) {
 
-	RooAbsPdf* pdf   = channelPdfVec.at(i);
-	std::string Name = channelNameVec.at(i);
+	std::string ChannelName = fChannelNameVec.at(i);
+	RooAbsPdf* pdf = fChannelPdfMap[ChannelName];
+	std::string Name = channelNameMap[ChannelName];
 
-	// Loop over the pdf's components
+	// Loop over the pdf's components and find
+	// the (one) that is a RooRealSumPdf
+	// Based on the mode, we assume that node is 
+	// the "unconstrained" pdf node for that channel
 	RooArgSet* components = pdf->getComponents();
 	TIterator* argItr = components->createIterator();
 	RooAbsArg* arg = NULL;
 	while( (arg=(RooAbsArg*)argItr->Next()) ) {
 	  std::string ClassName = arg->ClassName();
 	  if( ClassName == "RooRealSumPdf" ) {
-	    channelSumNodeVec.push_back( (RooRealSumPdf*) arg );
+	    fChannelSumNodeMap[ChannelName] = (RooRealSumPdf*) arg;
 	    std::cout << "Found RooRealSumPdf: " << arg << " " << arg->GetName() << std::endl;
 	    break;
 	  }
 	}
-
       }
       
       // Okay, now we have all necessary
       // nodes filled for each channel.
+      for( unsigned int i = 0; i < fChannelPdfName.size(); ++i ) {
 
-      for( unsigned int i = 0; i < channelPdfVec.size(); ++i ) {
-
-	std::string    Channel  = channelNameVec.at(i);
-	RooRealSumPdf* sumPdf   = (RooRealSumPdf*) channelSumNodeVec.at(i);
-	RooArgList* observables = (RooArgList*) channelObservVec.at(i);
-      
-	std::cout << "Looping over sum pdf: " << Channel << " " << sumPdf << std::endl;
+	std::string ChannelName = fChannelNameVec.at(i);
+	RooRealSumPdf* sumPdf = (RooRealSumPdf*) fChannelSumNodeMap[ChannelName];
 	
-	// Print the nodes:
-	RooArgList nodes = sumPdf->funcList();
-	nodes.Print();
+	// We now take the RooRealSumPdf and loop over
+	// its component functions.  The RooRealSumPdf turns
+	// a list of functions (expected events or bin heights
+	// per sample) and turns it into a pdf.
+	// Therefore, we loop over it to find the expected
+	// height for the various samples
 
-	// Create a vector to store the sample
-	// histograms for this channel
-	std::vector< TH1* > histList;
+	// First, create a map to store the function nodes
+	// for each sample in this channel
+	std::map< std::string, RooAbsReal*> sampleFunctionMap;
 
 	// Loop over the sample nodes in this
 	// channel's RooRealSumPdf
+	RooArgList nodes = sumPdf->funcList();
 	TIterator* sampleItr = nodes.createIterator();
 	RooAbsArg* sample;
 	while( (sample=(RooAbsArg*)sampleItr->Next()) ) {
 
-	  if( observables->getSize() == 0 ) {
-	    std::cout << "Error: No observables found in channel: " << Channel << std::endl;
-	  }
-	  if( observables->getSize() > 1 ) {
-	    std::cout << "Error: This function for now only works with 1-d histograms" << std::endl;
-	  }
-
-
-	  RooRealVar* xVar = (RooRealVar*) observables->at(0);
-
-	  // First, get the Data histogram
-	  // for this channel
-	  TH1* dataHist = new TH1F( (Channel+"_data").c_str(), "", 
-				    xVar->numBins(), xVar->getMin(), xVar->getMax() );
-	  //dataHist->Sumw2();
-	  data->fillHistogram( dataHist, RooArgSet( *xVar ) );
-	  // Fix the histogram's bin errors:
-	  for( int j_bin = 0; j_bin < dataHist->GetNbinsX(); ++j_bin ) {
-	    dataHist->SetBinError( j_bin + 1, TMath::Sqrt( dataHist->GetBinContent( j_bin + 1 ) ) );
-	  }
-	  channelDataVec.push_back( dataHist );
-
-	  // Get a list of the RooAbsReal nodes:
+	  // Cast this node as a function
 	  RooAbsReal* func = (RooAbsReal*) sample;
 
 	  // Do a bit of work to get the name of each sample
@@ -146,11 +135,8 @@ namespace RooStats {
 	    SampleName = SampleName.substr(0, index-1);
 	  }
 
-	  TH1* sampleHist = MakeHistFromRooFunction( func, xVar, SampleName /*sample->GetName()*/ ); 
-	  sampleHist->SetTitle( SampleName.c_str() );
-	  //	  sampleHist->SetName( SampleName.c_str() );
-	  histList.push_back( sampleHist );
-	  std::cout << "Adding histogram for sample: " << SampleName /*sample->GetName()*/ << std::endl;
+	  // And simply save this node into our map
+	  sampleFunctionMap[SampleName] = func;
 
 	}
 

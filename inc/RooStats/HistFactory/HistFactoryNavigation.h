@@ -67,25 +67,27 @@ namespace RooStats {
       // and TH1's for the data
       // (For this method, we don't want to return histograms, we want
       // pointers for the pdf objects)
-      void _GetNodes( std::vector< std::string>& chanName, std::vector< std::vector< TH1* > >& channelHistListVec, std::vector< TH1* >& channelDataVec,
-		      ModelConfig* mc, RooAbsData* data);
+      void _GetNodes(ModelConfig* mc);
+      void _GetNodes(RooAbsPdf* model, RooArgSet* observables);
 
 
       TH1* MakeHistFromRooFunction( RooAbsReal* func, RooRealVar* var, std::string name="Hist" );
       
 
+      // The HistFactory Pdf Pointer
+      RooAbsPdf* fModel;
 
       // The list of channels
       std::vector<std::string> fChannelNameVec;
 
-      // The HistFactory Pdf Pointer
-      RooAbsPdf* fModel;
-
       // Map of channel names to their full pdf's
-      std::map< std::string, RooAbsPdf* > fChannelMap;  
+      std::map< std::string, RooAbsPdf* > fChannelPdfMap;  
 
       // Map of channel names to pdf without constraint
-      std::map< std::string, RooAbsPdf* > fChannelWithoutConstraintMap;  
+      std::map< std::string, RooAbsPdf* > fChannelSumNodeMap;  
+      
+      // Map of channel names to their set of ovservables
+      std::map< std::string, RooArgAet*> fChannelObservMap;
       
 
     };
