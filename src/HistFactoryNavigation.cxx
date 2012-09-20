@@ -1,28 +1,75 @@
 
 
-
-
 #include "RooStats/HistFactory/HistFactoryNavigation.h"
-
-
+#include "RooStats/HistFactory/HistFactoryException.h"
 
 namespace RooStats {
   namespace HistFactory {
 
-    HistFactoryNavigation::HistFactoryNavigation(RooAbsPdf* model) {
-      fModel = model;
+    HistFactoryNavigation::HistFactoryNavigation(ModelConfig* mc) {
+
+      // Save the model pointer
+      fModel = mc->GetPdf();
+      fObservables = (RooArgSet*) mc->GetObservables();
+      
+      // Initialize the rest of the members
+      _GetNodes(fModel, fObservables);
+
     }
 
 
+    RooAbsReal* HistFactoryNavigation::SampleFunction(const std::string& channel, const std::string& sample){
 
-    // A simple wrapper to use a ModelConfig
-    void HistFactoryNavigation::_GetNodes(ModelConfig* mc) {
-      RooAbsPdf* modelPdf = mc->GetPdf();
-      RooArgSet* observables = mc->GetObservables();
-      _GetNodes(modelPdf, observables)
+      std::map< std::string, std::map< std::string, RooAbsReal*> >::iterator channel_itr;
+      channel_itr = fChannelSampleFunctionMap.find(channel);
+      if( channel_itr==fChannelSampleFunctionMap.end() ){
+	std::cout << "Error: Channel: " << channel << " not found in Navigation" << std::endl;
+	throw hf_exc();
+      }
+
+      std::map< std::string, RooAbsReal*>& SampleMap = channel_itr->second;
+      std::map< std::string, RooAbsReal*>::iterator sample_itr;
+      sample_itr = SampleMap.find(sample);
+      if( sample_itr==SampleMap.end() ){
+	std::cout << "Error: Sample: " << sample << " not found in Navigation" << std::endl;
+	throw hf_exc();
+      }
+      
+      return sample_itr->second;
+
     }
 
-    void HistFactoryNavigation::_GetNodes(RooAbsPdf* modelPdf, RooArgSet* observables) {
+    RooArgSet* HistFactoryNavigation::GetObservableSet(const std::string& channel) {
+
+      std::map< std::string, RooArgSet*>::iterator channel_itr;
+      channel_itr = fChannelObservMap.find(channel);
+      if( channel_itr==fChannelObservMap.end() ){
+	std::cout << "Error: Channel: " << channel << " not found in Navigation" << std::endl;
+	throw hf_exc();
+      }
+      
+      return channel_itr->second;
+
+    }
+
+
+    TH1* HistFactoryNavigation::GetSampleHist(const std::string& channel, const std::string& sample) {
+
+      // Convert the ArgSet to an ArgList
+      // This is temporary!
+      RooArgList observable_list( *GetObservableSet(channel) );//observable_list( *(fChannelObservMap[channel]) );
+      RooRealVar* observable = (RooRealVar*) observable_list.at(0);
+      
+      std::string HistName = channel + "_" + sample + "_hist";
+
+      RooAbsReal* sample_function = SampleFunction(channel, sample); //fChannelSampleFunctionMap[channel][sample];
+
+      return MakeHistFromRooFunction( sample_function, observable, HistName );
+				     
+    }
+
+
+    void HistFactoryNavigation::_GetNodes(RooAbsPdf* modelPdf, const RooArgSet* observables) {
       
       // Get the pdf from the ModelConfig
       //RooAbsPdf* modelPdf = mc->GetPdf();
@@ -59,7 +106,7 @@ namespace RooStats {
 	}
 
       } else { 
-	RooArgSet* obstmp = modelPdf->getObservables(*mc->GetObservables()) ;	
+	RooArgSet* obstmp = modelPdf->getObservables(*observables) ;	
 	std::string ChannelName = modelPdf->GetName();
 	fChannelNameVec.push_back(ChannelName);
 	fChannelPdfMap[ChannelName] = modelPdf;
@@ -77,7 +124,7 @@ namespace RooStats {
 
 	std::string ChannelName = fChannelNameVec.at(i);
 	RooAbsPdf* pdf = fChannelPdfMap[ChannelName];
-	std::string Name = channelNameMap[ChannelName];
+	//std::string Name = fChannelNameMap[ChannelName];
 
 	// Loop over the pdf's components and find
 	// the (one) that is a RooRealSumPdf
@@ -90,7 +137,6 @@ namespace RooStats {
 	  std::string ClassName = arg->ClassName();
 	  if( ClassName == "RooRealSumPdf" ) {
 	    fChannelSumNodeMap[ChannelName] = (RooRealSumPdf*) arg;
-	    std::cout << "Found RooRealSumPdf: " << arg << " " << arg->GetName() << std::endl;
 	    break;
 	  }
 	}
@@ -98,7 +144,7 @@ namespace RooStats {
       
       // Okay, now we have all necessary
       // nodes filled for each channel.
-      for( unsigned int i = 0; i < fChannelPdfName.size(); ++i ) {
+      for( unsigned int i = 0; i < fChannelNameVec.size(); ++i ) {
 
 	std::string ChannelName = fChannelNameVec.at(i);
 	RooRealSumPdf* sumPdf = (RooRealSumPdf*) fChannelSumNodeMap[ChannelName];
@@ -130,8 +176,8 @@ namespace RooStats {
 	    size_t index = SampleName.find("L_x_");
 	    SampleName.replace( index, 4, "" );
 	  }
-	  if( SampleName.find(Channel.c_str()) != std::string::npos ) {
-	    size_t index = SampleName.find(Channel.c_str());
+	  if( SampleName.find(ChannelName.c_str()) != std::string::npos ) {
+	    size_t index = SampleName.find(ChannelName.c_str());
 	    SampleName = SampleName.substr(0, index-1);
 	  }
 
@@ -140,7 +186,7 @@ namespace RooStats {
 
 	}
 
-	channelHistListVec.push_back( histList );
+	fChannelSampleFunctionMap[ChannelName] = sampleFunctionMap;
 
 	// Okay, now we have a list of histograms
 	// representing the samples for this channel.
@@ -198,13 +244,15 @@ namespace RooStats {
 		  << std::endl;
 
       }
-
       return hist;
-      
-
     }
 
-
+    // A simple wrapper to use a ModelConfig
+    void HistFactoryNavigation::_GetNodes(ModelConfig* mc) {
+      RooAbsPdf* modelPdf = mc->GetPdf();
+      const RooArgSet* observables = mc->GetObservables();
+      _GetNodes(modelPdf, observables);
+    }
 
   }
 }
