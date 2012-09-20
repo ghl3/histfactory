@@ -18,6 +18,19 @@ namespace RooStats {
     }
 
 
+    std::map< std::string, RooAbsReal*> HistFactoryNavigation::GetSampleFunctionMap(const std::string& channel) {
+    
+      std::map< std::string, std::map< std::string, RooAbsReal*> >::iterator channel_itr;
+      channel_itr = fChannelSampleFunctionMap.find(channel);
+      if( channel_itr==fChannelSampleFunctionMap.end() ){
+	std::cout << "Error: Channel: " << channel << " not found in Navigation" << std::endl;
+	throw hf_exc();
+      }
+
+      return channel_itr->second;
+    }
+
+
     RooAbsReal* HistFactoryNavigation::SampleFunction(const std::string& channel, const std::string& sample){
 
       std::map< std::string, std::map< std::string, RooAbsReal*> >::iterator channel_itr;
@@ -39,6 +52,7 @@ namespace RooStats {
 
     }
 
+
     RooArgSet* HistFactoryNavigation::GetObservableSet(const std::string& channel) {
 
       std::map< std::string, RooArgSet*>::iterator channel_itr;
@@ -57,15 +71,55 @@ namespace RooStats {
 
       // Convert the ArgSet to an ArgList
       // This is temporary!
-      RooArgList observable_list( *GetObservableSet(channel) );//observable_list( *(fChannelObservMap[channel]) );
+      RooArgList observable_list( *GetObservableSet(channel) );
       RooRealVar* observable = (RooRealVar*) observable_list.at(0);
       
       std::string HistName = channel + "_" + sample + "_hist";
 
-      RooAbsReal* sample_function = SampleFunction(channel, sample); //fChannelSampleFunctionMap[channel][sample];
+      RooAbsReal* sample_function = SampleFunction(channel, sample);
 
       return MakeHistFromRooFunction( sample_function, observable, HistName );
 				     
+    }
+
+
+    TH1* HistFactoryNavigation::GetChannelHist(const std::string& channel) {
+
+      // Convert the ArgSet to an ArgList
+      // This is temporary!
+      RooArgList observable_list( *GetObservableSet(channel) );
+      RooRealVar* observable = (RooRealVar*) observable_list.at(0);
+
+      std::map< std::string, RooAbsReal*> SampleFunctionMap = GetSampleFunctionMap(channel);
+
+
+      // Okay, 'loop' once 
+      TH1* total_hist=NULL;
+      std::map< std::string, RooAbsReal*>::iterator itr = SampleFunctionMap.begin();
+      for( ; itr != SampleFunctionMap.end(); ++itr) {
+	std::string sample_name = itr->first;
+	std::string hist_name = sample_name + "_hist_tmp";
+	RooAbsReal* sample_function = itr->second;
+	TH1* sample_hist = MakeHistFromRooFunction(sample_function, observable, hist_name);
+	total_hist = (TH1*) sample_hist->Clone("TotalHist");
+	delete sample_hist;
+	break;
+      }
+
+      // Loop over the SampleFunctionMap and add up all the histograms
+      // to get the total histogram for the channel
+      itr = SampleFunctionMap.begin();
+      for( ; itr != SampleFunctionMap.end(); ++itr) {
+	
+	std::string sample_name = itr->first;
+	std::string hist_name = sample_name + "_hist_tmp";
+	RooAbsReal* sample_function = itr->second;
+	TH1* sample_hist = MakeHistFromRooFunction(sample_function, observable, hist_name);
+	total_hist->Add(sample_hist);
+      }
+
+      return total_hist;
+
     }
 
 
