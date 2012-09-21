@@ -346,7 +346,7 @@ namespace RooStats {
       // For now, it's designed for a 1-d histogram, but
       // should work for n-d.  It just won't be as pretty
       for( unsigned int i = 0; i < hist->GetNbinsX(); ++i) {
-	std::cout << hist->GetBinContent(i+1);
+	std::cout << hist->GetBinContent(i+1) << " ";
       }
       std::cout << std::endl;
     }
