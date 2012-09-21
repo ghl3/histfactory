@@ -58,10 +58,13 @@ namespace RooStats {
       // TO BE IMPLEMENTED
       // RooArgSet* GetNuisanceParameters(const std::string& channel);
 
-      // <-- Should pretty print all channels and the current values 
-      void PrintState() { return; } 
-      // <-- Should pretty print this and the current values
+      // Should pretty print all channels and the current values 
+      void PrintState();
+      // Should pretty print this and the current values
       void PrintState(const std::string& channel);
+
+      // Print a "HistFactory style" RooDataSet in a readable way
+      static void PrintDataSet(RooDataSet* data);
   
     private:
 

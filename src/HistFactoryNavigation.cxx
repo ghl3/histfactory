@@ -48,6 +48,92 @@ namespace RooStats {
 
     }
 
+    void HistFactoryNavigation::PrintState() {
+      for(unsigned int i = 0; i < fChannelNameVec.size(); ++i) {
+	PrintState(fChannelNameVec.at(i));
+      }
+    }
+
+
+    void HistFactoryNavigation::PrintDataSet(RooDataSet* data) {
+
+      // Print the contents of a 'HistFactory' RooDataset
+      // These are stored in a somewhat odd way that makes
+      // them difficult to inspect for humans.
+      // They have the following layout:
+      // =====================================================
+      // ChannelA      ChannelB     ChannelCat   Weight
+      // -----------------------------------------------------
+      // bin_1_center   0           ChannelA     bin_1_height
+      // bin_2_center   0           ChannelA     bin_2_height
+      //      0        bin_1_center ChannelB     bin_1_height
+      //      0        bin_2_center ChannelB     bin_2_height
+      //                        ...etc...
+      // =====================================================
+
+      // Get some preliminary information
+      // from the RooDataSet
+
+      std::map< std::string, std::vector<double> > ChannelBinsMap;
+      
+      for(int i = 0; i < data->numEntries(); ++i) {
+
+	// Get the row
+	const RooArgSet* row = data->get(i);
+
+	// The current bin height is the weight
+	// of this row.
+	double bin_height = data->weight();
+
+	// Let's figure out the channel
+	// For now, the variable 'channelCat' is magic, but
+	// we should change this to be a bit smarter...
+	std::string channel = row->getCatLabel("channelCat");
+
+	// Get the vector of bin heights (creating if necessary)
+	// and append
+	std::vector<double>& bins = ChannelBinsMap[channel];
+	bins.push_back(bin_height);
+
+      }
+
+      std::map< std::string, std::vector<double> >::iterator itr = ChannelBinsMap.begin();
+
+      for( ; itr != ChannelBinsMap.end(); ++itr) {
+
+	std::string channel_name = itr->first;
+	std::vector<double>& bins = itr->second;
+
+	std::cout << std::setw(10) << channel_name;
+	for(unsigned int i = 0; i < bins.size(); ++i) {
+	  std::cout << std::setw(10) << bins.at(i);
+	}
+	std::cout << std::endl;
+
+      }
+
+      /*
+      os << "[" ;
+      TIterator* iter = _varsNoWgt.createIterator() ;
+      RooAbsArg* arg ;
+      Bool_t first(kTRUE) ;
+      while((arg=(RooAbsArg*)iter->Next())) {
+	if (first) {
+	  first=kFALSE ;
+	} else {
+	  os << "," ;
+	}
+	os << arg->GetName() ;
+      }
+      if (_wgtVar) {
+	os << ",weight:" << _wgtVar->GetName() ;
+      }
+      os << "]" ;
+      delete iter ;
+      */
+      
+    }
+
 
     std::map< std::string, RooAbsReal*> HistFactoryNavigation::GetSampleFunctionMap(const std::string& channel) {
     
