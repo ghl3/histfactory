@@ -31,6 +31,10 @@ namespace RooStats {
       // Initialze based on an already-created HistFactory Model
       HistFactoryNavigation(ModelConfig* mc);
 
+      // Return the total hist (fitted) in the channel
+      // This is harder, implement later
+      //TH1* GetChannelHist(const std::string& channel); 
+
       // Get the RooAbsReal function for a given sample in a given channel
       RooAbsReal* SampleFunction(const std::string& channel, const std::string& sample);
 
@@ -42,6 +46,7 @@ namespace RooStats {
       TH1* GetSampleHist(const std::string& channel, const std::string& sample, const std::string& name="");  
 
       // Get the total channel histogram for this channel
+      // This is found by summing over the sample histograms
       TH1* GetChannelHist(const std::string& channel, const std::string& name="");
 
       // Should pretty print all channels and the current values 
@@ -57,26 +62,31 @@ namespace RooStats {
       // The value of the ith bin for that sample and channel 
       double GetBinValue(int bin, const std::string& channel, const std::string& sample);  
 
+      // Get the nuisance parameters for this channell
+      // TO BE IMPLEMENTED
+      // RooArgSet* GetNuisanceParameters(const std::string& channel);
 
-    protected:
 
-      // Fetch the node information for the pdf in question, and
-      // save it in the varous collections in this class
+    private:
+
+      // Internal Methods
+      
+      // To be used in the constructor, and results should be cached
+      // Given a ModelConfig* and a RooAbsData* (optionally),
+      // return vectors of the channel names, TH1*'s for the channels, 
+      // and TH1's for the data
+      // (For this method, we don't want to return histograms, we want
+      // pointers for the pdf objects)
       void _GetNodes(ModelConfig* mc);
       void _GetNodes(RooAbsPdf* model, const RooArgSet* observables);
-
-      // Print a histogram's contents to the screen
+      
       void PrettyPrintHistogram(TH1* hist);
 
       // Make a histogram from a funciton
       // Edit so it can take a RooArgSet of parameters
       TH1* MakeHistFromRooFunction( RooAbsReal* func, RooArgList vars, std::string name="Hist" );
 
-      // Get a map of sample names to their functions for a particular channel
       std::map< std::string, RooAbsReal*> GetSampleFunctionMap(const std::string& channel);
-
-
-    private:
       
       // The HistFactory Pdf Pointer
       RooAbsPdf* fModel;
