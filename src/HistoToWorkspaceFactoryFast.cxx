@@ -174,7 +174,7 @@ namespace HistFactory{
       std::cout << "Warining: No Parametetrs of interest are set" << std::endl;
     }
 
-    cout << "Setting Parameter(s) of Interest as :";
+    cout << "Setting Parameter(s) of Interest as: ";
     for(unsigned int i = 0; i < poi_list.size(); ++i) {
       cout << poi_list.at(i) << " ";
     }
@@ -188,9 +188,9 @@ namespace HistFactory{
 	params->add(*poi);
       }
       else {
-	std::cout << "Error: Can't find parameter of interest: " << poi_name 
-		  << " in Workspace. Aborting" << std::endl;
-	throw hf_exc();
+	std::cout << "WARNING: Can't find parameter of interest: " << poi_name 
+		  << " in Workspace. Not setting in ModelConfig." << std::endl;
+	//throw hf_exc();
       }
     }
     proto_config->SetParametersOfInterest(*params);

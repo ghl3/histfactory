@@ -54,7 +54,10 @@ namespace RooStats {
       void PrintParameters(bool IncludeConstantParams=false);
 
       // Print a "HistFactory style" RooDataSet in a readable way
-      static void PrintDataSet(RooDataSet* data);
+      static void PrintDataSet(RooDataSet* data, const std::string& channel="");
+
+      // Print the model and the data, comparing channel by channel
+      void PrintModelAndData(RooDataSet* data);
 
       // The value of the ith bin for the total in that channel
       double GetBinValue(int bin, const std::string& channel);  
@@ -102,6 +105,9 @@ namespace RooStats {
       // Map of Map of Channel, Sample names to Function Nodes
       // Used by doing: fChannelSampleFunctionMap["MyChannel"]["MySample"]
       std::map< std::string, std::map< std::string, RooAbsReal*> > fChannelSampleFunctionMap;
+
+    protected:
+      ClassDef(RooStats::HistFactory::HistFactoryNavigation,2)
 
     };
 

@@ -4,6 +4,10 @@
 #include "RooStats/HistFactory/HistFactoryNavigation.h"
 #include "RooStats/HistFactory/HistFactoryException.h"
 
+
+ClassImp(RooStats::HistFactory::HistFactoryNavigation);
+
+
 namespace RooStats {
   namespace HistFactory {
 
@@ -22,7 +26,7 @@ namespace RooStats {
 
     void HistFactoryNavigation::PrintState(const std::string& channel) {
 
-      int label_print_width = 15;
+      int label_print_width = 20;
       int bin_print_width = 10;
       std::cout << std::endl << channel << ":" << std::endl;
 
@@ -73,7 +77,7 @@ namespace RooStats {
     }
 
 
-    void HistFactoryNavigation::PrintDataSet(RooDataSet* data) {
+    void HistFactoryNavigation::PrintDataSet(RooDataSet* data, const std::string& channel_to_print) {
 
       // Print the contents of a 'HistFactory' RooDataset
       // These are stored in a somewhat odd way that makes
@@ -120,9 +124,12 @@ namespace RooStats {
       for( ; itr != ChannelBinsMap.end(); ++itr) {
 
 	std::string channel_name = itr->first;
-	std::vector<double>& bins = itr->second;
 
-	std::cout << std::setw(15) << channel_name + " (data)";
+	// If we pass a channel string, we only print that one channel
+	if( channel_to_print != "" && channel_name != channel_to_print) continue;
+
+	std::cout << std::setw(20) << channel_name + " (data)";
+	std::vector<double>& bins = itr->second;
 	for(unsigned int i = 0; i < bins.size(); ++i) {
 	  std::cout << std::setw(10) << bins.at(i);
 	}
@@ -130,6 +137,23 @@ namespace RooStats {
 
       }
     }
+
+
+    void HistFactoryNavigation::PrintModelAndData(RooDataSet* data) {
+      // Loop over all channels and print model
+      // (including all samples) and compare
+      // it to the supplied dataset
+
+      for( unsigned int i = 0; i < fChannelNameVec.size(); ++i) {
+	std::string channel = fChannelNameVec.at(i);
+	PrintState(channel);
+	PrintDataSet(data, channel);
+      }
+      
+      std::cout << std::endl;
+
+    }
+
 
     void HistFactoryNavigation::PrintParameters(bool IncludeConstantParams) {
 
