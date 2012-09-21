@@ -25,6 +25,7 @@ namespace RooStats {
   namespace HistFactory { 
 
     class HistFactoryNavigation {
+
   
     public:
 
@@ -48,6 +49,9 @@ namespace RooStats {
       void PrintState();
       // Should pretty print this and the current values
       void PrintState(const std::string& channel);
+
+      // Print the current values and errors of pdf parameters
+      void PrintParameters(bool IncludeConstantParams=false);
 
       // Print a "HistFactory style" RooDataSet in a readable way
       static void PrintDataSet(RooDataSet* data);

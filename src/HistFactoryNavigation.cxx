@@ -131,6 +131,9 @@ namespace RooStats {
       }
     }
 
+    void HistFactoryNavigation::PrintParameters(bool IcludeConstantParams=false) {
+      return;
+    }
 
     double HistFactoryNavigation::GetBinValue(int bin, const std::string& channel) {
       // Get the total bin height for the ith bin (ROOT indexing convention)
