@@ -70,7 +70,7 @@ namespace RooStats {
       void _GetNodes(RooAbsPdf* model, const RooArgSet* observables);
 
       // Print a histogram's contents to the screen
-      void PrettyPrintHistogram(TH1* hist);
+      // void PrettyPrintHistogram(TH1* hist);
 
       // Make a histogram from a funciton
       // Edit so it can take a RooArgSet of parameters

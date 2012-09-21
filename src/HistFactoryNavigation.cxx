@@ -122,7 +122,7 @@ namespace RooStats {
 	std::string channel_name = itr->first;
 	std::vector<double>& bins = itr->second;
 
-	std::cout << std::setw(15) << channel_name;
+	std::cout << std::setw(15) << channel_name + " (data)";
 	for(unsigned int i = 0; i < bins.size(); ++i) {
 	  std::cout << std::setw(10) << bins.at(i);
 	}
@@ -136,6 +136,8 @@ namespace RooStats {
       // Get the list of parameters
       RooArgSet* params = fModel->getParameters(*fObservables);
       
+      std::cout << std::endl;
+
       // Create the title row
       std::cout << std::setw(30) << "Parameter";
       std::cout << std::setw(15) << "Value"
@@ -157,6 +159,9 @@ namespace RooStats {
 	}
 	std::cout<< std::endl;
       }
+      
+      std::cout << std::endl;
+
       return;
     }
 
@@ -476,6 +481,8 @@ namespace RooStats {
       _GetNodes(modelPdf, observables);
     }
 
+
+    /*
     void HistFactoryNavigation::PrettyPrintHistogram(TH1* hist) {
       // Just print a histogram's contents to std::cout
       // For now, it's designed for a 1-d histogram, but
@@ -486,7 +493,7 @@ namespace RooStats {
       }
       std::cout << std::endl;
     }
-
+    */
 
   } // namespace HistFactory
 } // namespace RooStats
