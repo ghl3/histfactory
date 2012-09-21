@@ -22,28 +22,43 @@ namespace RooStats {
 
     void HistFactoryNavigation::PrintState(const std::string& channel) {
 
-      int label_print_width = 10;
+      int label_print_width = 15;
+      int bin_print_width = 10;
       std::cout << std::endl << channel << ":" << std::endl;
 
       // Loop over the SampleFunctionMap and print the individual histograms
       // to get the total histogram for the channel
+      int num_bins = 0;
       std::map< std::string, RooAbsReal*> SampleFunctionMap = GetSampleFunctionMap(channel);
       std::map< std::string, RooAbsReal*>::iterator itr = SampleFunctionMap.begin();
       for( ; itr != SampleFunctionMap.end(); ++itr) {
 	std::string sample_name = itr->first;
 	std::string tmp_name = sample_name + channel + "_pretty_tmp";
 	TH1* sample_hist = GetSampleHist(channel, sample_name, tmp_name);
+	num_bins = sample_hist->GetNbinsX();
 	std::cout << std::setw(label_print_width) << sample_name;
-	PrettyPrintHistogram(sample_hist);
+	for(int i = 0; i < num_bins; ++i) {
+	  std::cout << std::setw(bin_print_width) << sample_hist->GetBinContent(i+1);
+	}
+	std::cout << std::endl;
 	delete sample_hist;
       }
 
-      std::cout << "=================================" << std::endl;
+      std::string line_break;
+      for(unsigned int i = 0; i < label_print_width + num_bins*bin_print_width; ++i) {
+	line_break += "=";
+      }
+
+      //std::cout << "=================================" << std::endl;
+      std::cout << line_break << std::endl;
 
       std::string tmp_name = channel + "_pretty_tmp";
       TH1* channel_hist = GetChannelHist(channel, tmp_name);
       std::cout << std::setw(label_print_width) << "TOTAL:";
-      PrettyPrintHistogram(channel_hist);
+      for(int i = 0; i < channel_hist->GetNbinsX(); ++i) {
+	std::cout << std::setw(bin_print_width) << channel_hist->GetBinContent(i+1);
+      }
+      std::cout << std::endl;
       delete channel_hist;
 
       return;
@@ -107,7 +122,7 @@ namespace RooStats {
 	std::string channel_name = itr->first;
 	std::vector<double>& bins = itr->second;
 
-	std::cout << std::setw(10) << channel_name;
+	std::cout << std::setw(15) << channel_name;
 	for(unsigned int i = 0; i < bins.size(); ++i) {
 	  std::cout << std::setw(10) << bins.at(i);
 	}
