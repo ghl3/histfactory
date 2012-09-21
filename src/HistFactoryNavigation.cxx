@@ -116,6 +116,31 @@ namespace RooStats {
       }
     }
 
+    double HistFactoryNavigation::GetBinValue(int bin, const std::string& channel) {
+      // Get the total bin height for the ith bin (ROOT indexing convention)
+      // in channel 'channel'
+      // (Could be optimized, it uses an intermediate histogram for now...)
+      
+      // Get the histogram, fetch the bin content, and return
+      TH1* channel_hist_tmp = GetChannelHist(channel, (channel+"_tmp").c_str());
+      double val = channel_hist_tmp->GetBinContent(bin);
+      delete channel_hist_tmp;
+      return val;
+    }
+
+    double HistFactoryNavigation::GetBinValue(int bin, const std::string& channel, const std::string& sample){  
+      // Get the total bin height for the ith bin (ROOT indexing convention)
+      // in channel 'channel'
+      // (This will be slow if you plan on looping over it.
+      //  Could be optimized, it uses an intermediate histogram for now...)
+
+      // Get the histogram, fetch the bin content, and return
+      TH1* sample_hist_tmp = GetSampleHist(channel, sample,  (channel+"_tmp").c_str());
+      double val = sample_hist_tmp->GetBinContent(bin);
+      delete sample_hist_tmp;
+      return val;
+    }
+
 
     std::map< std::string, RooAbsReal*> HistFactoryNavigation::GetSampleFunctionMap(const std::string& channel) {
     

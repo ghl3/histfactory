@@ -49,15 +49,6 @@ namespace RooStats {
       // This is found by summing over the sample histograms
       TH1* GetChannelHist(const std::string& channel, const std::string& name="");
 
-      // The value of the ith bin for the total in that channel
-      // double GetBinValue(int bin, const std::string& channel);  
-      // The value of the ith bin for that sample and channel 
-      // double GetBinValue(int bin, const std::string& sample, const std::string& channel);  
-
-      // Get the nuisance parameters for this channell
-      // TO BE IMPLEMENTED
-      // RooArgSet* GetNuisanceParameters(const std::string& channel);
-
       // Should pretty print all channels and the current values 
       void PrintState();
       // Should pretty print this and the current values
@@ -65,7 +56,17 @@ namespace RooStats {
 
       // Print a "HistFactory style" RooDataSet in a readable way
       static void PrintDataSet(RooDataSet* data);
-  
+
+      // The value of the ith bin for the total in that channel
+      double GetBinValue(int bin, const std::string& channel);  
+      // The value of the ith bin for that sample and channel 
+      double GetBinValue(int bin, const std::string& channel, const std::string& sample);  
+
+      // Get the nuisance parameters for this channell
+      // TO BE IMPLEMENTED
+      // RooArgSet* GetNuisanceParameters(const std::string& channel);
+
+
     private:
 
       // Internal Methods
