@@ -1,4 +1,5 @@
 
+#include <iomanip>
 
 #include "RooStats/HistFactory/HistFactoryNavigation.h"
 #include "RooStats/HistFactory/HistFactoryException.h"
@@ -19,6 +20,9 @@ namespace RooStats {
 
     void HistFactoryNavigation::PrintState(const std::string& channel) {
 
+      int label_print_width = 10;
+      std::cout << std::endl << channel << ":" << std::endl;
+
       // Loop over the SampleFunctionMap and print the individual histograms
       // to get the total histogram for the channel
       std::map< std::string, RooAbsReal*> SampleFunctionMap = GetSampleFunctionMap(channel);
@@ -27,22 +31,16 @@ namespace RooStats {
 	std::string sample_name = itr->first;
 	std::string tmp_name = sample_name + channel + "_pretty_tmp";
 	TH1* sample_hist = GetSampleHist(channel, sample_name, tmp_name);
-	/*
-	std::string hist_name = sample_name + "_hist_tmp";
-	RooAbsReal* sample_function = itr->second;
-	TH1* sample_hist = MakeHistFromRooFunction(sample_function, observable_list, hist_name);
-	*/
-	std::cout << sample_name << " ";;
+	std::cout << std::setw(label_print_width) << sample_name;
 	PrettyPrintHistogram(sample_hist);
 	delete sample_hist;
       }
 
-      std::cout << "=============== TOTAL ==================" << std::endl;
-
+      std::cout << "=================================" << std::endl;
 
       std::string tmp_name = channel + "_pretty_tmp";
       TH1* channel_hist = GetChannelHist(channel, tmp_name);
-      std::cout << channel << " ";
+      std::cout << std::setw(label_print_width) << "TOTAL:";
       PrettyPrintHistogram(channel_hist);
       delete channel_hist;
 
@@ -139,6 +137,8 @@ namespace RooStats {
 	delete sample_hist;
 	break;
       }
+      total_hist->Reset();
+
 
       // Loop over the SampleFunctionMap and add up all the histograms
       // to get the total histogram for the channel
@@ -345,8 +345,9 @@ namespace RooStats {
       // Just print a histogram's contents to std::cout
       // For now, it's designed for a 1-d histogram, but
       // should work for n-d.  It just won't be as pretty
-      for( unsigned int i = 0; i < hist->GetNbinsX(); ++i) {
-	std::cout << hist->GetBinContent(i+1) << " ";
+      int bin_print_width = 10;
+      for(int i = 0; i < hist->GetNbinsX(); ++i) {
+	std::cout << std::setw(bin_print_width) << hist->GetBinContent(i+1);
       }
       std::cout << std::endl;
     }
