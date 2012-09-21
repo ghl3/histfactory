@@ -30,6 +30,7 @@ END_HTML
 #include "RooMinimizer.h"
 #include "RooSimultaneous.h"
 #include "RooCategory.h"
+#include "RooFitResult.h"
 
 using namespace std; 
 
@@ -470,8 +471,14 @@ namespace RooStats {
       // Set the parameter of interest
       // to the 'background' value
       RooRealVar* mu = (RooRealVar*) mcInWs->GetParametersOfInterest()->first();
-      if(signalInjection) mu->setVal(0);
-      else mu->setVal(muVal);
+      if(signalInjection){
+	std::cout << "Asimov: Setting " << mu->GetName() << " value to 0 for fit" << std::endl;
+	mu->setVal(0);
+      }
+      else {
+	std::cout << "Asimov: Setting " << mu->GetName() << " value to " << muVal << " for fit" << std::endl;
+	mu->setVal(muVal);
+      }
 
       // Get necessary info from the ModelConfig
       RooArgSet mc_obs = *mcInWs->GetObservables();
@@ -575,8 +582,14 @@ namespace RooStats {
       RooArgSet nuiSet_tmp(nui_list);
 
       // Interesting line here:
-      if(!doMuHat) mu->setConstant(true);
-      else mu->setRange(-10,100);
+      if(!doMuHat) {
+	std::cout << "Asimov: Setting mu constant in fit" << std::endl;
+	mu->setConstant(true);
+      }
+      else {
+	std::cout << "Asimov: Letting mu float in fit (muHat)" << std::endl;
+	mu->setRange(-10,100);
+      }
 
       // Conditional: "Minimize the parameters"
       if(doConditional) {
@@ -585,6 +598,7 @@ namespace RooStats {
 
 	// Consider removing this option:
 	if(!doNuisPro) {
+	  std::cout << "Asimov: Setting nuisance parameters constant in the fit (ARE YOU SURE YOU WANT THIS)" << std::endl;
 	  TIterator* nIter = nuiSet_tmp.createIterator();
 	  RooRealVar* thisNui = NULL;
 	  while((thisNui = (RooRealVar*) nIter->Next())) {
@@ -608,14 +622,19 @@ namespace RooStats {
 	// Do the minimization
 	std::cout << "Minimizing to make Asimov dataset:" << std::endl;
 	int status = minim.minimize(ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), "migrad");
-	std::cout << "Successfully minimized to make Asimov dataset:" << std::endl;
-	if (status != 0) {
+	if (status == 0) {
+	  // status==0 means fit was successful
+	std::cout << "Successfully minimized to make Asimov dataset:" << std::endl;	  
+	RooFitResult* fit_result = minim.lastMinuitFit();
+	std::cout << "Asimov: Final Fitted Parameters" << std::endl;
+	fit_result->Print("V");
+	} else{
 	  std::cout << "Fit failed for mu = " << mu->getVal() << " with status " << status << std::endl;
 	  std::cout << "Trying minuit..." << std::endl;
 	  status = minim.minimize("Minuit", "migrad");
 	  if (status != 0) {
 	    cout << "Fit failed for mu = " << mu->getVal() << " with status " << status << std::endl;
-	    exit(1);
+	    throw hf_exc();
 	  }
 	}
     
