@@ -132,6 +132,31 @@ namespace RooStats {
     }
 
     void HistFactoryNavigation::PrintParameters(bool IncludeConstantParams) {
+
+      // Get the list of parameters
+      RooArgSet* params = fModel->getParameters(*fObservables);
+      
+      // Create the title row
+      std::cout << std::setw(30) << "Parameter";
+      std::cout << std::setw(15) << "Value"
+		<< std::setw(15) << "Error Low" 
+		<< std::setw(15) << "Error High"
+		<< std::endl;
+      
+      // Loop over the parameters and print their values, etc
+      TIterator* paramItr = params->createIterator();
+      RooRealVar* param = NULL;
+      while( (param=(RooRealVar*)paramItr->Next()) ) {
+
+	if( !IncludeConstantParams && param->isConstant() ) continue;
+
+	std::cout << std::setw(30) << param->GetName();
+	std::cout << std::setw(15) << param->getVal();
+	if( !param->isConstant() ) {
+	  std::cout << std::setw(15) << param->getErrorLo() << std::setw(15) << param->getErrorHi();
+	}
+	std::cout<< std::endl;
+      }
       return;
     }
 

@@ -79,7 +79,6 @@ namespace RooStats {
       // Get a map of sample names to their functions for a particular channel
       std::map< std::string, RooAbsReal*> GetSampleFunctionMap(const std::string& channel);
 
-
     private:
       
       // The HistFactory Pdf Pointer
