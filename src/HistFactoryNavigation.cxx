@@ -45,7 +45,7 @@ namespace RooStats {
       }
 
       std::string line_break;
-      for(unsigned int i = 0; i < label_print_width + num_bins*bin_print_width; ++i) {
+      for(int i = 0; i < label_print_width + num_bins*bin_print_width; ++i) {
 	line_break += "=";
       }
 
@@ -131,7 +131,7 @@ namespace RooStats {
       }
     }
 
-    void HistFactoryNavigation::PrintParameters(bool IcludeConstantParams=false) {
+    void HistFactoryNavigation::PrintParameters(bool IncludeConstantParams) {
       return;
     }
 
