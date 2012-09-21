@@ -116,6 +116,7 @@ namespace RooStats {
       }
     }
 
+
     double HistFactoryNavigation::GetBinValue(int bin, const std::string& channel) {
       // Get the total bin height for the ith bin (ROOT indexing convention)
       // in channel 'channel'
@@ -127,6 +128,7 @@ namespace RooStats {
       delete channel_hist_tmp;
       return val;
     }
+
 
     double HistFactoryNavigation::GetBinValue(int bin, const std::string& channel, const std::string& sample){  
       // Get the total bin height for the ith bin (ROOT indexing convention)
@@ -400,19 +402,19 @@ namespace RooStats {
 
       if( dim==1 ) {
 	RooRealVar* varX = (RooRealVar*) vars.at(0);
-	hist = func->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()) );
+	hist = func->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()), RooFit::Scaling(false) );
       }
       else if( dim==2 ) {
 	RooRealVar* varX = (RooRealVar*) vars.at(0);
 	RooRealVar* varY = (RooRealVar*) vars.at(1);
-	hist = func->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()), 
+	hist = func->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()), RooFit::Scaling(false),
 				      RooFit::YVar(*varY, RooFit::Binning(varY->getBinning())) );
       }
       else if( dim==3 ) {
 	RooRealVar* varX = (RooRealVar*) vars.at(0);
 	RooRealVar* varY = (RooRealVar*) vars.at(1);
 	RooRealVar* varZ = (RooRealVar*) vars.at(2);
-	hist = func->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()), 
+	hist = func->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()), RooFit::Scaling(false),
 				      RooFit::YVar(*varY, RooFit::Binning(varY->getBinning())),
 				      RooFit::YVar(*varZ, RooFit::Binning(varZ->getBinning())) );
       }
