@@ -18,9 +18,35 @@ namespace RooStats {
     }
 
     void HistFactoryNavigation::PrintState(const std::string& channel) {
+
+      // Loop over the SampleFunctionMap and print the individual histograms
+      // to get the total histogram for the channel
+      std::map< std::string, RooAbsReal*> SampleFunctionMap = GetSampleFunctionMap(channel);
+      std::map< std::string, RooAbsReal*>::iterator itr = SampleFunctionMap.begin();
+      for( ; itr != SampleFunctionMap.end(); ++itr) {
+	std::string sample_name = itr->first;
+	std::string tmp_name = sample_name + channel + "_pretty_tmp";
+	TH1* sample_hist = GetSampleHist(channel, sample_name, tmp_name);
+	/*
+	std::string hist_name = sample_name + "_hist_tmp";
+	RooAbsReal* sample_function = itr->second;
+	TH1* sample_hist = MakeHistFromRooFunction(sample_function, observable_list, hist_name);
+	*/
+	std::cout << sample_name << " ";;
+	PrettyPrintHistogram(sample_hist);
+	delete sample_hist;
+      }
+
+      std::cout << "=============== TOTAL ==================" << std::endl;
+
+
+      std::string tmp_name = channel + "_pretty_tmp";
+      TH1* channel_hist = GetChannelHist(channel, tmp_name);
+      std::cout << channel << " ";
+      PrettyPrintHistogram(channel_hist);
+      delete channel_hist;
+
       return;
-      // Print the current state of this channel
-      
 
     }
 
@@ -74,23 +100,25 @@ namespace RooStats {
     }
 
 
-    TH1* HistFactoryNavigation::GetSampleHist(const std::string& channel, const std::string& sample) {
+    TH1* HistFactoryNavigation::GetSampleHist(const std::string& channel, const std::string& sample,
+					      const std::string& hist_name) {
 
       // Convert the ArgSet to an ArgList
       // This is temporary!
       RooArgList observable_list( *GetObservableSet(channel) );
       //RooRealVar* observable = (RooRealVar*) observable_list.at(0);
       
-      std::string HistName = channel + "_" + sample + "_hist";
+      std::string name = hist_name;
+      if(hist_name=="") name = channel + "_" + sample + "_hist";
 
       RooAbsReal* sample_function = SampleFunction(channel, sample);
 
-      return MakeHistFromRooFunction( sample_function, observable_list, HistName );
+      return MakeHistFromRooFunction( sample_function, observable_list, name );
 				     
     }
 
 
-    TH1* HistFactoryNavigation::GetChannelHist(const std::string& channel) {
+    TH1* HistFactoryNavigation::GetChannelHist(const std::string& channel, const std::string& hist_name) {
 
       // Convert the ArgSet to an ArgList
       // This is temporary!
@@ -104,9 +132,9 @@ namespace RooStats {
       std::map< std::string, RooAbsReal*>::iterator itr = SampleFunctionMap.begin();
       for( ; itr != SampleFunctionMap.end(); ++itr) {
 	std::string sample_name = itr->first;
-	std::string hist_name = sample_name + "_hist_tmp";
+	std::string tmp_hist_name = sample_name + "_hist_tmp";
 	RooAbsReal* sample_function = itr->second;
-	TH1* sample_hist = MakeHistFromRooFunction(sample_function, observable_list, hist_name);
+	TH1* sample_hist = MakeHistFromRooFunction(sample_function, observable_list, tmp_hist_name);
 	total_hist = (TH1*) sample_hist->Clone("TotalHist");
 	delete sample_hist;
 	break;
@@ -117,11 +145,15 @@ namespace RooStats {
       itr = SampleFunctionMap.begin();
       for( ; itr != SampleFunctionMap.end(); ++itr) {
 	std::string sample_name = itr->first;
-	std::string hist_name = sample_name + "_hist_tmp";
+	std::string tmp_hist_name = sample_name + "_hist_tmp";
 	RooAbsReal* sample_function = itr->second;
-	TH1* sample_hist = MakeHistFromRooFunction(sample_function, observable_list, hist_name);
+	TH1* sample_hist = MakeHistFromRooFunction(sample_function, observable_list, tmp_hist_name);
 	total_hist->Add(sample_hist);
+	delete sample_hist;
       }
+
+      if(hist_name=="") total_hist->SetName(hist_name.c_str());
+      else total_hist->SetName( (channel + "_hist").c_str() ); 
 
       return total_hist;
 
@@ -309,8 +341,18 @@ namespace RooStats {
       _GetNodes(modelPdf, observables);
     }
 
-  }
-}
+    void HistFactoryNavigation::PrettyPrintHistogram(TH1* hist) {
+      // Just print a histogram's contents to std::cout
+      // For now, it's designed for a 1-d histogram, but
+      // should work for n-d.  It just won't be as pretty
+      for( unsigned int i = 0; i < hist->GetNbinsX(); ++i) {
+	std::cout << hist->GetBinContent(i+1);
+      }
+      std::cout << std::endl;
+    }
+
+  } // namespace HistFactory
+} // namespace RooStats
 
 
 

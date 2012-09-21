@@ -43,11 +43,11 @@ namespace RooStats {
 
       // The (current) histogram for that sample 
       // This includes all parameters and interpolation
-      TH1* GetSampleHist(const std::string& channel, const std::string& sample);  
+      TH1* GetSampleHist(const std::string& channel, const std::string& sample, const std::string& name="");  
 
       // Get the total channel histogram for this channel
       // This is found by summing over the sample histograms
-      TH1* GetChannelHist(const std::string& channel);
+      TH1* GetChannelHist(const std::string& channel, const std::string& name="");
 
       // The value of the ith bin for the total in that channel
       // double GetBinValue(int bin, const std::string& channel);  
@@ -75,6 +75,8 @@ namespace RooStats {
       // pointers for the pdf objects)
       void _GetNodes(ModelConfig* mc);
       void _GetNodes(RooAbsPdf* model, const RooArgSet* observables);
+      
+      void PrettyPrintHistogram(TH1* hist);
 
       // Make a histogram from a funciton
       // Edit so it can take a RooArgSet of parameters
