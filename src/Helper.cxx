@@ -199,7 +199,7 @@ namespace HistFactory{
   }*/
 
 
-
+  // Looking to deprecate this function and convert entirely to Measurements
 std::vector<EstimateSummary> GetChannelEstimateSummaries(Measurement& measurement, Channel& channel) {
 
   // Convert a "Channel" into a list of "Estimate Summaries"
