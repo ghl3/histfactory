@@ -17,6 +17,13 @@ namespace RooStats {
 
     }
 
+    void HistFactoryNavigation::Print(const std::string& channel) {
+      
+      // Print the current state of this channel
+      
+
+    }
+
 
     std::map< std::string, RooAbsReal*> HistFactoryNavigation::GetSampleFunctionMap(const std::string& channel) {
     
@@ -92,7 +99,6 @@ namespace RooStats {
 
       std::map< std::string, RooAbsReal*> SampleFunctionMap = GetSampleFunctionMap(channel);
 
-
       // Okay, 'loop' once 
       TH1* total_hist=NULL;
       std::map< std::string, RooAbsReal*>::iterator itr = SampleFunctionMap.begin();
@@ -110,7 +116,6 @@ namespace RooStats {
       // to get the total histogram for the channel
       itr = SampleFunctionMap.begin();
       for( ; itr != SampleFunctionMap.end(); ++itr) {
-	
 	std::string sample_name = itr->first;
 	std::string hist_name = sample_name + "_hist_tmp";
 	RooAbsReal* sample_function = itr->second;
@@ -252,52 +257,48 @@ namespace RooStats {
 
 
 
-    TH1* HistFactoryNavigation::MakeHistFromRooFunction( RooAbsReal* func, RooRealVar* var, std::string name ) {
+    TH1* HistFactoryNavigation::MakeHistFromRooFunction( RooAbsReal* func, RooArgList* vars, std::string name ) {
 
       // Turn a RooAbsReal* into a TH1* based 
       // on a template histogram.  
+      // The 'vars' arg list defines the x (and y and z variables)
       // Loop over the bins of the Template,
       // find the bin centers, 
       // Scan the input Var over those bin centers,
       // and use the value of the function
       // to make the new histogram
 
-
       // Make the new histogram
       // Cone and empty the template
       //      TH1* hist = (TH1*) histTemplate.Clone( name.c_str() );
 
-      TH1* hist = (TH1*) var->createHistogram( name.c_str(), RooFit::Binning(var->getBinning()) );
-      hist->Reset();
+      int dim = vars->getSize();
 
-      std::cout << "Created histogram: " << hist->GetName() 
-		<< " with binning: " 
-		<< "n=" << hist->GetNbinsX()
-		<< " [" << hist->GetXaxis()->GetXmin() 
-		<< ", " << hist->GetXaxis()->GetXmax() 
-		<< "] " << std::endl;
+      TH1* hist=NULL;
 
-      int nBins = hist->GetNbinsX();
-
-      //std::vector< double > binCenters;
-
-      for( int i = 0; i < nBins; ++i ) {
-
-	double binCenter = hist->GetBinCenter(i+1);
-	var->setVal( binCenter );
-
-	double val = func->getVal();
-
-	// double binWidth = var->getBinWidth( i );
-	// hist->Fill( binCenter, val*binWidth );
-
-	hist->Fill( binCenter, val );
-	
-	std::cout << "Filling: " << func->GetName() << " "
-		  << " (" << binCenter << "," << val << ")"
-		  << std::endl;
-
+      if( dim==1 ) {
+	RooRealVar& varX = vars->at(0);
+	hist = func->createHistogram( name.c_str(),varX, RooFit::Binning(varX->getBinning()) );
       }
+      else if( dim==2 ) {
+	RooRealVar& varX = vars->at(0);
+	RooRealVar& varY = vars->at(1);
+	hist = func->createHistogram( name.c_str(),varX, RooFit::Binning(varX->getBinning()), 
+				      RooFit::YVar(varY, RooFit::Binning(varY->getBinning())) );
+      }
+      else if( dim==3 ) {
+	RooRealVar& varX = vars->at(0);
+	RooRealVar& varY = vars->at(1);
+	RooRealVar& varZ = vars->at(2);
+	hist = func->createHistogram( name.c_str(),varX, RooFit::Binning(varX->getBinning()), 
+				      RooFit::YVar(varY, RooFit::Binning(varY->getBinning())),
+				      RooFit::YVar(varZ, RooFit::Binning(varZ->getBinning())) );
+      }
+      else {
+	std::cout << "Error: To Create Histogram from RooAbsReal function, Dimension must be 1, 2, or 3" << std::endl;
+	throw hf_exc();
+      }
+
       return hist;
     }
 
