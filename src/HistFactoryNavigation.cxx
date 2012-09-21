@@ -7,6 +7,7 @@
 namespace RooStats {
   namespace HistFactory {
 
+
     HistFactoryNavigation::HistFactoryNavigation(ModelConfig* mc) {
 
       // Save the model pointer
@@ -17,6 +18,7 @@ namespace RooStats {
       _GetNodes(fModel, fObservables);
 
     }
+
 
     void HistFactoryNavigation::PrintState(const std::string& channel) {
 
@@ -47,6 +49,7 @@ namespace RooStats {
       return;
 
     }
+
 
     void HistFactoryNavigation::PrintState() {
       for(unsigned int i = 0; i < fChannelNameVec.size(); ++i) {
@@ -111,27 +114,6 @@ namespace RooStats {
 	std::cout << std::endl;
 
       }
-
-      /*
-      os << "[" ;
-      TIterator* iter = _varsNoWgt.createIterator() ;
-      RooAbsArg* arg ;
-      Bool_t first(kTRUE) ;
-      while((arg=(RooAbsArg*)iter->Next())) {
-	if (first) {
-	  first=kFALSE ;
-	} else {
-	  os << "," ;
-	}
-	os << arg->GetName() ;
-      }
-      if (_wgtVar) {
-	os << ",weight:" << _wgtVar->GetName() ;
-      }
-      os << "]" ;
-      delete iter ;
-      */
-      
     }
 
 
@@ -224,7 +206,6 @@ namespace RooStats {
 	break;
       }
       total_hist->Reset();
-
 
       // Loop over the SampleFunctionMap and add up all the histograms
       // to get the total histogram for the channel
@@ -370,9 +351,7 @@ namespace RooStats {
 
       }
 
-
     }
-
 
 
     TH1* HistFactoryNavigation::MakeHistFromRooFunction( RooAbsReal* func, RooArgList vars, std::string name ) {
@@ -437,6 +416,7 @@ namespace RooStats {
       }
       std::cout << std::endl;
     }
+
 
   } // namespace HistFactory
 } // namespace RooStats
