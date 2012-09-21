@@ -61,7 +61,7 @@ namespace RooStats {
       // <-- Should pretty print all channels and the current values 
       void PrintState() { return; } 
       // <-- Should pretty print this and the current values
-      void PrintState(const std::string& channel) { return; }
+      void PrintState(const std::string& channel);
   
     private:
 
@@ -78,7 +78,7 @@ namespace RooStats {
 
       // Make a histogram from a funciton
       // Edit so it can take a RooArgSet of parameters
-      TH1* MakeHistFromRooFunction( RooAbsReal* func, RooRealVar* var, std::string name="Hist" );
+      TH1* MakeHistFromRooFunction( RooAbsReal* func, RooArgList vars, std::string name="Hist" );
 
       std::map< std::string, RooAbsReal*> GetSampleFunctionMap(const std::string& channel);
       

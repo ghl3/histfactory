@@ -17,8 +17,8 @@ namespace RooStats {
 
     }
 
-    void HistFactoryNavigation::Print(const std::string& channel) {
-      
+    void HistFactoryNavigation::PrintState(const std::string& channel) {
+      return;
       // Print the current state of this channel
       
 
@@ -79,13 +79,13 @@ namespace RooStats {
       // Convert the ArgSet to an ArgList
       // This is temporary!
       RooArgList observable_list( *GetObservableSet(channel) );
-      RooRealVar* observable = (RooRealVar*) observable_list.at(0);
+      //RooRealVar* observable = (RooRealVar*) observable_list.at(0);
       
       std::string HistName = channel + "_" + sample + "_hist";
 
       RooAbsReal* sample_function = SampleFunction(channel, sample);
 
-      return MakeHistFromRooFunction( sample_function, observable, HistName );
+      return MakeHistFromRooFunction( sample_function, observable_list, HistName );
 				     
     }
 
@@ -95,7 +95,7 @@ namespace RooStats {
       // Convert the ArgSet to an ArgList
       // This is temporary!
       RooArgList observable_list( *GetObservableSet(channel) );
-      RooRealVar* observable = (RooRealVar*) observable_list.at(0);
+      //RooRealVar* observable = (RooRealVar*) observable_list.at(0);
 
       std::map< std::string, RooAbsReal*> SampleFunctionMap = GetSampleFunctionMap(channel);
 
@@ -106,7 +106,7 @@ namespace RooStats {
 	std::string sample_name = itr->first;
 	std::string hist_name = sample_name + "_hist_tmp";
 	RooAbsReal* sample_function = itr->second;
-	TH1* sample_hist = MakeHistFromRooFunction(sample_function, observable, hist_name);
+	TH1* sample_hist = MakeHistFromRooFunction(sample_function, observable_list, hist_name);
 	total_hist = (TH1*) sample_hist->Clone("TotalHist");
 	delete sample_hist;
 	break;
@@ -119,7 +119,7 @@ namespace RooStats {
 	std::string sample_name = itr->first;
 	std::string hist_name = sample_name + "_hist_tmp";
 	RooAbsReal* sample_function = itr->second;
-	TH1* sample_hist = MakeHistFromRooFunction(sample_function, observable, hist_name);
+	TH1* sample_hist = MakeHistFromRooFunction(sample_function, observable_list, hist_name);
 	total_hist->Add(sample_hist);
       }
 
@@ -257,7 +257,7 @@ namespace RooStats {
 
 
 
-    TH1* HistFactoryNavigation::MakeHistFromRooFunction( RooAbsReal* func, RooArgList* vars, std::string name ) {
+    TH1* HistFactoryNavigation::MakeHistFromRooFunction( RooAbsReal* func, RooArgList vars, std::string name ) {
 
       // Turn a RooAbsReal* into a TH1* based 
       // on a template histogram.  
@@ -272,27 +272,27 @@ namespace RooStats {
       // Cone and empty the template
       //      TH1* hist = (TH1*) histTemplate.Clone( name.c_str() );
 
-      int dim = vars->getSize();
+      int dim = vars.getSize();
 
       TH1* hist=NULL;
 
       if( dim==1 ) {
-	RooRealVar& varX = vars->at(0);
-	hist = func->createHistogram( name.c_str(),varX, RooFit::Binning(varX->getBinning()) );
+	RooRealVar* varX = (RooRealVar*) vars.at(0);
+	hist = func->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()) );
       }
       else if( dim==2 ) {
-	RooRealVar& varX = vars->at(0);
-	RooRealVar& varY = vars->at(1);
-	hist = func->createHistogram( name.c_str(),varX, RooFit::Binning(varX->getBinning()), 
-				      RooFit::YVar(varY, RooFit::Binning(varY->getBinning())) );
+	RooRealVar* varX = (RooRealVar*) vars.at(0);
+	RooRealVar* varY = (RooRealVar*) vars.at(1);
+	hist = func->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()), 
+				      RooFit::YVar(*varY, RooFit::Binning(varY->getBinning())) );
       }
       else if( dim==3 ) {
-	RooRealVar& varX = vars->at(0);
-	RooRealVar& varY = vars->at(1);
-	RooRealVar& varZ = vars->at(2);
-	hist = func->createHistogram( name.c_str(),varX, RooFit::Binning(varX->getBinning()), 
-				      RooFit::YVar(varY, RooFit::Binning(varY->getBinning())),
-				      RooFit::YVar(varZ, RooFit::Binning(varZ->getBinning())) );
+	RooRealVar* varX = (RooRealVar*) vars.at(0);
+	RooRealVar* varY = (RooRealVar*) vars.at(1);
+	RooRealVar* varZ = (RooRealVar*) vars.at(2);
+	hist = func->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()), 
+				      RooFit::YVar(*varY, RooFit::Binning(varY->getBinning())),
+				      RooFit::YVar(*varZ, RooFit::Binning(varZ->getBinning())) );
       }
       else {
 	std::cout << "Error: To Create Histogram from RooAbsReal function, Dimension must be 1, 2, or 3" << std::endl;
