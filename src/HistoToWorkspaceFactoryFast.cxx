@@ -730,10 +730,19 @@ namespace HistFactory{
     proto->defineSet("shapeList",shapeList.c_str());
     //    proto->factory(command.c_str());
     RooRealSumPdf tot(totName.c_str(),totName.c_str(),*proto->set("shapeList"),*proto->set("coefList"),kTRUE);
+
+    /*
+      GHL: Previously, to deal with ParamHistFuncs (shape factors, stat uncertainty),
+           we declared the RooRealSumPdf node to use the bin integrator by default.
+	   However, many analyses don't use these nodes, so it can be faster to turn
+	   on binned integration only for those sub-nodes that are products
+	   of ParamHistFuncs.
+	   Therefore, the following is now commented out:
     tot.specialIntegratorConfig(kTRUE)->method1D().setLabel("RooBinIntegrator")  ;
     tot.specialIntegratorConfig(kTRUE)->method2D().setLabel("RooBinIntegrator")  ;
     tot.specialIntegratorConfig(kTRUE)->methodND().setLabel("RooBinIntegrator")  ;
     tot.forceNumInt();
+    */
 
     // for mixed generation in RooSimultaneous
     tot.setAttribute("GenerateBinned"); // for use with RooSimultaneous::generate in mixed mode
@@ -1415,6 +1424,8 @@ namespace HistFactory{
 	  ParamHistFunc* paramHist = (ParamHistFunc*) proto->function( statFuncName.c_str() );
 	  if( paramHist == NULL ) {
 
+	    //	    RooRealVar* var = (RooRealVar*) observables.first();
+
 	    // Get a RooArgSet of the observables:
 	    // Names in the lsit fObsNameVec:
 	    RooArgList observables;
@@ -1423,14 +1434,15 @@ namespace HistFactory{
 	      observables.add( *proto->var(itr->c_str()) );
 	    }
 	  
-	    //	    RooRealVar* var = (RooRealVar*) observables.first();
-	  
 	    // Create the list of terms to
 	    // control the bin heights:
 	    std::string ParamSetPrefix  = "gamma_stat_" + channel_name;
 	    Double_t gammaMin = 0.0;
 	    Double_t gammaMax = 10.0;
-	    RooArgList statFactorParams = ParamHistFunc::createParamSet(*proto, ParamSetPrefix.c_str(), observables, gammaMin, gammaMax);
+	    RooArgList statFactorParams = ParamHistFunc::createParamSet(*proto, 
+									ParamSetPrefix.c_str(), 
+									observables, 
+									gammaMin, gammaMax);
 
 	    ParamHistFunc statUncertFunc(statFuncName.c_str(), statFuncName.c_str(), 
 				       observables, statFactorParams );
@@ -1452,6 +1464,15 @@ namespace HistFactory{
 	  RooProduct nodeWithMcStat(statNodeName.c_str(), statNodeName.c_str(),
 				    RooArgSet(*paramHist, *expFunc) );
 	
+	  // GHL: This node (StatUncert) should always
+	  //      use binned integration, since
+	  //      the "dot-product" with the paramHistFunc
+	  //      isn't analytically computed
+	  nodeWithMcStat.specialIntegratorConfig(kTRUE)->method1D().setLabel("RooBinIntegrator");
+	  nodeWithMcStat.specialIntegratorConfig(kTRUE)->method2D().setLabel("RooBinIntegrator");
+	  nodeWithMcStat.specialIntegratorConfig(kTRUE)->methodND().setLabel("RooBinIntegrator");
+	  nodeWithMcStat.forceNumInt();
+
 	  proto->import( nodeWithMcStat, RecycleConflictNodes() );
 	
 	  // Push back the final name of the node 
@@ -1489,6 +1510,7 @@ namespace HistFactory{
 	  std::cout << "Sample: "     << sample.GetName() << " in channel: " << channel_name
 	  	    << " to be include a ShapeFactor."
 	  	    << std::endl;
+
 	  
 	  ShapeFactor& shapeFactor = sample.GetShapeFactorList().at(0);
 
@@ -1496,14 +1518,16 @@ namespace HistFactory{
 	  std::string funcName = channel_name + "_" + shapeFactor.GetName() + "_shapeFactor";
 	  ParamHistFunc* paramHist = (ParamHistFunc*) proto->function( funcName.c_str() );
 	  if( paramHist == NULL ) {
+	  
+	    //	    RooRealVar* var = (RooRealVar*) observables.first();
+
 
 	    RooArgList observables;
 	    std::vector<std::string>::iterator itr = fObsNameVec.begin();
 	    for (int idx=0; itr!=fObsNameVec.end(); ++itr, ++idx ) {
 	      observables.add( *proto->var(itr->c_str()) );
 	    }
-	  
-	    //	    RooRealVar* var = (RooRealVar*) observables.first();
+
 
 	    // Create the Parameters
 	    //ES//std::string funcParams = "gamma_" + it->shapeFactorName;
@@ -1529,7 +1553,17 @@ namespace HistFactory{
 	  RooAbsReal* expFunc = (RooAbsReal*) proto->function( syst_x_expectedPrefix.c_str() );
 	  RooProduct nodeWithShapeFactor(shapeFactorNodeName.c_str(), shapeFactorNodeName.c_str(),
 					 RooArgSet(*paramHist, *expFunc) );
+
 	
+	  // GHL: This node (StatUncert) should always
+	  //      use binned integration, since
+	  //      the "dot-product" with the paramHistFunc
+	  //      isn't analytically computed
+	  nodeWithShapeFactor.specialIntegratorConfig(kTRUE)->method1D().setLabel("RooBinIntegrator");
+	  nodeWithShapeFactor.specialIntegratorConfig(kTRUE)->method2D().setLabel("RooBinIntegrator");
+	  nodeWithShapeFactor.specialIntegratorConfig(kTRUE)->methodND().setLabel("RooBinIntegrator");
+	  nodeWithShapeFactor.forceNumInt();
+
 	  proto->import( nodeWithShapeFactor, RecycleConflictNodes() );
 
 	  // Push back the final name of the node 
@@ -1592,28 +1626,30 @@ namespace HistFactory{
 		observables.add( *proto->var(itr->c_str()) );
 	      }
 	      */
+
+	      //	      RooRealVar* var = (RooRealVar*) observables.first();
+
 	      RooArgList observables;
 	      std::vector<std::string>::iterator itr = fObsNameVec.begin();
 	      for(; itr!=fObsNameVec.end(); ++itr ) {
 		observables.add( *proto->var(itr->c_str()) );
 	      }
 
-	      //	      RooRealVar* var = (RooRealVar*) observables.first();
-
 	      // Create the Parameters
 	      //ES// std::string funcParams = "gamma_" + Sys.name;
 	      std::string funcParams = "gamma_" + shapeSys.GetName();
-	      RooArgList shapeFactorParams = ParamHistFunc::createParamSet(*proto, funcParams.c_str(), 
+	      RooArgList shapeSysParams = ParamHistFunc::createParamSet(*proto, 
+									   funcParams.c_str(), 
 									   observables, 0, 10);
 
 	      // Create the Function
-	      ParamHistFunc shapeFactorFunc( funcName.c_str(), funcName.c_str(),
-					     observables, shapeFactorParams );
-
-	      proto->import( shapeFactorFunc, RecycleConflictNodes() );
+	      ParamHistFunc shapeSysFunc( funcName.c_str(), funcName.c_str(),
+					  observables, shapeSysParams );
+	      
+	      proto->import( shapeSysFunc, RecycleConflictNodes() );
 	      paramHist = (ParamHistFunc*) proto->function( funcName.c_str() );	      
 	      
-	    } // End: Create ShapeFactor ParamHistFunc
+	    } // End: Create ShapeSys ParamHistFunc
 
 	    // Create the constraint terms and add
 	    // them to the workspace (proto)
@@ -1622,7 +1658,6 @@ namespace HistFactory{
 	    // The syst should be a fractional error
 	    //ES// TH1* shapeErrorHist = Sys.hist;
 	    TH1* shapeErrorHist = shapeSys.GetErrorHist();
-
 
 	    // Set the EstimateSummary style constraint type
 	    // To be updated later
@@ -1637,9 +1672,11 @@ namespace HistFactory{
 	    }
 
 	    Double_t minShapeUncertainty = 0.0;
-	    RooArgList shapeConstraints = createStatConstraintTerms(proto, constraintTermNames, *paramHist, shapeErrorHist, 
-								    shapeConstraintType, minShapeUncertainty);
-
+	    RooArgList shapeConstraints = createStatConstraintTerms(proto, constraintTermNames, 
+								    *paramHist, shapeErrorHist, 
+								    shapeConstraintType, 
+								    minShapeUncertainty);
+	    
 	  } // End: Loop over ShapeSys vector in this EstimateSummary
 	  
 	    // Now that we have the list of ShapeSys ParamHistFunc names,
@@ -1657,13 +1694,23 @@ namespace HistFactory{
 	  }
 
 	  // Create the name for this NEW Node
-	  RooProduct nodeWithShapeFactor(NodeName.c_str(), NodeName.c_str(), ShapeSysForNode );
-	  proto->import( nodeWithShapeFactor, RecycleConflictNodes() );
+	  RooProduct nodeWithShapeSys(NodeName.c_str(), NodeName.c_str(), ShapeSysForNode );
+
+	  // GHL: This node (StatUncert) should always
+	  //      use binned integration, since
+	  //      the "dot-product" with the paramHistFunc
+	  //      isn't analytically computed
+	  nodeWithShapeSys.specialIntegratorConfig(kTRUE)->method1D().setLabel("RooBinIntegrator");
+	  nodeWithShapeSys.specialIntegratorConfig(kTRUE)->method2D().setLabel("RooBinIntegrator");
+	  nodeWithShapeSys.specialIntegratorConfig(kTRUE)->methodND().setLabel("RooBinIntegrator");
+	  nodeWithShapeSys.forceNumInt();
+
+	  proto->import( nodeWithShapeSys, RecycleConflictNodes() );
 
 	  // Push back the final name of the node 
 	  // to be used in the RooRealSumPdf 
 	  // (node to be created later)
-	  syst_x_expectedPrefix = nodeWithShapeFactor.GetName();
+	  syst_x_expectedPrefix = nodeWithShapeSys.GetName();
 
 	} // End: NumObsVar == 1
 
