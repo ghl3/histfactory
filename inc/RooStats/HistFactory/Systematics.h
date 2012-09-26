@@ -86,9 +86,8 @@ namespace HistFactory {
   public:
     //friend class Channel;
 
-
-    HistoSys() : fhLow(NULL), fhHigh(NULL ) {;}
-    HistoSys( const std::string& Name ) { fName=Name; }
+    HistoSys() : fhLow(NULL), fhHigh(NULL) {;}
+    HistoSys(const std::string& Name) : fName(Name), fhLow(NULL), fhHigh(NULL) {;}
 
     void Print(std::ostream& = std::cout);  
     void writeToFile( std::string FileName, std::string DirName );
