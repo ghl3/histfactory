@@ -88,7 +88,7 @@ namespace HistFactory {
 
 
     HistoSys() : fhLow(NULL), fhHigh(NULL ) {;}
-
+    HistoSys( const std::string& Name ) { fName=Name; }
 
     void Print(std::ostream& = std::cout);  
     void writeToFile( std::string FileName, std::string DirName );
