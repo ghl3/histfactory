@@ -417,9 +417,9 @@ namespace RooStats {
     }
 
 
-    RooAbsData*makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combWS, 
-			      RooAbsPdf* combPdf, RooDataSet* combData, bool b_only, double doMuHat, 
-			      double muVal, bool signalInjection, bool doNuisPro) {
+    RooAbsData* makeAsimovData(ModelConfig* mcInWs, bool doConditional, RooWorkspace* combWS, 
+			       RooAbsPdf* combPdf, RooDataSet* combData, bool b_only, double doMuHat, 
+			       double muVal, bool signalInjection, bool doNuisPro) {
       ////////////////////
       //make asimov data//
       ////////////////////
@@ -445,13 +445,6 @@ namespace RooStats {
       // bool signalInjection = false 
       // bool doNuisPro = true
 
-      // ( What the hell )
-      // Okay, let's reason this out
-      // I'm guessing that -999 is the 'default' mu val
-      // So, if we don't set it, but we set b_only to be true,
-      // then muVal becomes !(true) = false = 0 as a float
-      // Not sure why it was so hard to write that...
-      //if (muVal == -999) muVal = !b_only;
       if( b_only ) muVal = 0.0;
 
       int _printLevel = 0;
@@ -489,8 +482,6 @@ namespace RooStats {
       // is stored in 'constraint_set'
       // Make some temporary variables and use the
       // unfoldConstrants function to do this.
-      // (Really, there should be a wrapper to unfoldConstraints
-      // that just gives you what you really want)
       RooArgSet constraint_set;
       int counter_tmp = 0;
       RooArgSet mc_nuis_tmp = mc_nuis;
@@ -717,7 +708,6 @@ namespace RooStats {
       // MAKE ASIMOV DATA FOR OBSERVABLES
 
       // dummy var can just have one bin since it's a dummy
-      // Not sure what this does
       if(combWS->var("ATLAS_dummyX"))  combWS->var("ATLAS_dummyX")->setBins(1);
 
       if (_printLevel >= 1) std::cout << " check expectedData by category" << std::endl;
