@@ -613,6 +613,9 @@ namespace RooStats {
 
 	// Get the name of the 'sigma' for the gaussian
 	// (I don't know of a way of doing RooGaussian::GetSigma() )
+	// For alpha's, the sigma points to a global RooConstVar
+	// with the name "1"
+	// For gamma_stat_*, the sigma is named *_sigma
 	std::string sigmaName = "";
 	if( parameter.find("alpha_")!=std::string::npos ) {
 	  sigmaName = "1";;
@@ -635,7 +638,7 @@ namespace RooStats {
       else if( ConstraintType == "RooPoisson" ){
 	// Poisson errors are given by inverting: tau = 1 / (sigma*sigma)
 	std::string tauName = "nom_" + parameter;
-	RooAbsReal* tauVar = (RooAbsReal*) constraintTerm->findServer( tauName.c_str() );
+	RooAbsReal* tauVar = dynamic_cast<RooAbsReal*>( constraintTerm->findServer(tauName.c_str()) );
 	if( tauVar==NULL ) {
 	  std::cout << "Error: Failed to find the nominal 'tau' node: " << tauName
 		    << " for the RooPoisson: " << constraintTerm->GetName() << std::endl;
