@@ -4,6 +4,10 @@
 #include "RooStats/HistFactory/HistFactoryNavigation.h"
 #include "RooStats/HistFactory/HistFactoryException.h"
 
+
+ClassImp(RooStats::HistFactory::HistFactoryNavigation);
+
+
 namespace RooStats {
   namespace HistFactory {
 
@@ -22,28 +26,43 @@ namespace RooStats {
 
     void HistFactoryNavigation::PrintState(const std::string& channel) {
 
-      int label_print_width = 10;
+      int label_print_width = 20;
+      int bin_print_width = 10;
       std::cout << std::endl << channel << ":" << std::endl;
 
       // Loop over the SampleFunctionMap and print the individual histograms
       // to get the total histogram for the channel
+      int num_bins = 0;
       std::map< std::string, RooAbsReal*> SampleFunctionMap = GetSampleFunctionMap(channel);
       std::map< std::string, RooAbsReal*>::iterator itr = SampleFunctionMap.begin();
       for( ; itr != SampleFunctionMap.end(); ++itr) {
 	std::string sample_name = itr->first;
 	std::string tmp_name = sample_name + channel + "_pretty_tmp";
 	TH1* sample_hist = GetSampleHist(channel, sample_name, tmp_name);
+	num_bins = sample_hist->GetNbinsX();
 	std::cout << std::setw(label_print_width) << sample_name;
-	PrettyPrintHistogram(sample_hist);
+	for(int i = 0; i < num_bins; ++i) {
+	  std::cout << std::setw(bin_print_width) << sample_hist->GetBinContent(i+1);
+	}
+	std::cout << std::endl;
 	delete sample_hist;
       }
 
-      std::cout << "=================================" << std::endl;
+      std::string line_break;
+      for(int i = 0; i < label_print_width + num_bins*bin_print_width; ++i) {
+	line_break += "=";
+      }
+
+      //std::cout << "=================================" << std::endl;
+      std::cout << line_break << std::endl;
 
       std::string tmp_name = channel + "_pretty_tmp";
       TH1* channel_hist = GetChannelHist(channel, tmp_name);
       std::cout << std::setw(label_print_width) << "TOTAL:";
-      PrettyPrintHistogram(channel_hist);
+      for(int i = 0; i < channel_hist->GetNbinsX(); ++i) {
+	std::cout << std::setw(bin_print_width) << channel_hist->GetBinContent(i+1);
+      }
+      std::cout << std::endl;
       delete channel_hist;
 
       return;
@@ -52,13 +71,14 @@ namespace RooStats {
 
 
     void HistFactoryNavigation::PrintState() {
+      // Loop over channels and print their states, one after another
       for(unsigned int i = 0; i < fChannelNameVec.size(); ++i) {
 	PrintState(fChannelNameVec.at(i));
       }
     }
 
 
-    void HistFactoryNavigation::PrintDataSet(RooDataSet* data) {
+    void HistFactoryNavigation::PrintDataSet(RooDataSet* data, const std::string& channel_to_print) {
 
       // Print the contents of a 'HistFactory' RooDataset
       // These are stored in a somewhat odd way that makes
@@ -74,11 +94,10 @@ namespace RooStats {
       //                        ...etc...
       // =====================================================
 
-      // Get some preliminary information
-      // from the RooDataSet
-
+      // Create a map of channel names to the channel's bin values
       std::map< std::string, std::vector<double> > ChannelBinsMap;
-      
+
+      // Then loop and fill these vectors for each channel      
       for(int i = 0; i < data->numEntries(); ++i) {
 
 	// Get the row
@@ -100,20 +119,75 @@ namespace RooStats {
 
       }
 
+      // Now that we have the information, we loop over
+      // our newly created object and pretty print the info
       std::map< std::string, std::vector<double> >::iterator itr = ChannelBinsMap.begin();
-
       for( ; itr != ChannelBinsMap.end(); ++itr) {
 
 	std::string channel_name = itr->first;
-	std::vector<double>& bins = itr->second;
 
-	std::cout << std::setw(10) << channel_name;
+	// If we pass a channel string, we only print that one channel
+	if( channel_to_print != "" && channel_name != channel_to_print) continue;
+
+	std::cout << std::setw(20) << channel_name + " (data)";
+	std::vector<double>& bins = itr->second;
 	for(unsigned int i = 0; i < bins.size(); ++i) {
 	  std::cout << std::setw(10) << bins.at(i);
 	}
 	std::cout << std::endl;
 
       }
+    }
+
+
+    void HistFactoryNavigation::PrintModelAndData(RooDataSet* data) {
+      // Loop over all channels and print model
+      // (including all samples) and compare
+      // it to the supplied dataset
+
+      for( unsigned int i = 0; i < fChannelNameVec.size(); ++i) {
+	std::string channel = fChannelNameVec.at(i);
+	PrintState(channel);
+	PrintDataSet(data, channel);
+      }
+      
+      std::cout << std::endl;
+
+    }
+
+
+    void HistFactoryNavigation::PrintParameters(bool IncludeConstantParams) {
+
+      // Get the list of parameters
+      RooArgSet* params = fModel->getParameters(*fObservables);
+      
+      std::cout << std::endl;
+
+      // Create the title row
+      std::cout << std::setw(30) << "Parameter";
+      std::cout << std::setw(15) << "Value"
+		<< std::setw(15) << "Error Low" 
+		<< std::setw(15) << "Error High"
+		<< std::endl;
+      
+      // Loop over the parameters and print their values, etc
+      TIterator* paramItr = params->createIterator();
+      RooRealVar* param = NULL;
+      while( (param=(RooRealVar*)paramItr->Next()) ) {
+
+	if( !IncludeConstantParams && param->isConstant() ) continue;
+
+	std::cout << std::setw(30) << param->GetName();
+	std::cout << std::setw(15) << param->getVal();
+	if( !param->isConstant() ) {
+	  std::cout << std::setw(15) << param->getErrorLo() << std::setw(15) << param->getErrorHi();
+	}
+	std::cout<< std::endl;
+      }
+      
+      std::cout << std::endl;
+
+      return;
     }
 
     double HistFactoryNavigation::GetBinValue(int bin, const std::string& channel) {
@@ -127,6 +201,7 @@ namespace RooStats {
       delete channel_hist_tmp;
       return val;
     }
+
 
     double HistFactoryNavigation::GetBinValue(int bin, const std::string& channel, const std::string& sample){  
       // Get the total bin height for the ith bin (ROOT indexing convention)
@@ -143,7 +218,9 @@ namespace RooStats {
 
 
     std::map< std::string, RooAbsReal*> HistFactoryNavigation::GetSampleFunctionMap(const std::string& channel) {
-    
+      // Get a map of strings to function pointers, 
+      // which each function cooresponds to a sample
+
       std::map< std::string, std::map< std::string, RooAbsReal*> >::iterator channel_itr;
       channel_itr = fChannelSampleFunctionMap.find(channel);
       if( channel_itr==fChannelSampleFunctionMap.end() ){
@@ -156,6 +233,8 @@ namespace RooStats {
 
 
     RooAbsReal* HistFactoryNavigation::SampleFunction(const std::string& channel, const std::string& sample){
+      // Return the function object pointer cooresponding
+      // to a particular sample in a particular channel
 
       std::map< std::string, std::map< std::string, RooAbsReal*> >::iterator channel_itr;
       channel_itr = fChannelSampleFunctionMap.find(channel);
@@ -178,6 +257,7 @@ namespace RooStats {
 
 
     RooArgSet* HistFactoryNavigation::GetObservableSet(const std::string& channel) {
+      // Get the observables for a particular channel
 
       std::map< std::string, RooArgSet*>::iterator channel_itr;
       channel_itr = fChannelObservMap.find(channel);
@@ -193,11 +273,11 @@ namespace RooStats {
 
     TH1* HistFactoryNavigation::GetSampleHist(const std::string& channel, const std::string& sample,
 					      const std::string& hist_name) {
+      // Get a histogram of the expected values for
+      // a particular sample in a particular channel
+      // Give a name, or a default one will be used
 
-      // Convert the ArgSet to an ArgList
-      // This is temporary!
       RooArgList observable_list( *GetObservableSet(channel) );
-      //RooRealVar* observable = (RooRealVar*) observable_list.at(0);
       
       std::string name = hist_name;
       if(hist_name=="") name = channel + "_" + sample + "_hist";
@@ -210,11 +290,11 @@ namespace RooStats {
 
 
     TH1* HistFactoryNavigation::GetChannelHist(const std::string& channel, const std::string& hist_name) {
+      // Get a histogram of the total expected value
+      // per bin for this channel
+      // Give a name, or a default one will be used
 
-      // Convert the ArgSet to an ArgList
-      // This is temporary!
       RooArgList observable_list( *GetObservableSet(channel) );
-      //RooRealVar* observable = (RooRealVar*) observable_list.at(0);
 
       std::map< std::string, RooAbsReal*> SampleFunctionMap = GetSampleFunctionMap(channel);
 
@@ -253,7 +333,7 @@ namespace RooStats {
 
 
     void HistFactoryNavigation::_GetNodes(RooAbsPdf* modelPdf, const RooArgSet* observables) {
-      
+
       // Get the pdf from the ModelConfig
       //RooAbsPdf* modelPdf = mc->GetPdf();
       //RooArgSet* observables = mc->GetObservables();
@@ -379,6 +459,205 @@ namespace RooStats {
     }
 
 
+    RooAbsReal* HistFactoryNavigation::findChild(const std::string& name, RooAbsReal* parent) {
+      
+      RooAbsReal* term=NULL;
+
+      // Some RooFit boilerplate...
+      RooArgSet* components = parent->getComponents();
+      TIterator* argItr = components->createIterator();
+      RooAbsArg* arg = NULL;
+      while( (arg=(RooAbsArg*)argItr->Next()) ) {
+	std::string ArgName = arg->GetName();
+	if( ArgName == name ) {
+	  term = dynamic_cast<RooAbsReal*>(arg);
+	  break;
+	}
+      }
+      delete components;
+
+      return term;
+
+    }
+
+
+    RooAbsReal* HistFactoryNavigation::GetConstraintTerm(const std::string& parameter) {
+     
+      std::string ConstraintTermName = parameter + "Constraint";
+
+      // The "gamma"'s use a different constraint term name
+      if( parameter.find("gamma_stat_") != std::string::npos ) { 
+	ConstraintTermName = parameter + "_constraint";
+      }
+      // RooAbsReal* term = NULL;
+      // RooAbsReal* term = dynamic_cast<RooAbsReal*>(fModel->findServer(ConstraintTermName.c_str()));
+
+      RooAbsReal* term = findChild(ConstraintTermName, fModel);
+
+      if( term==NULL ) {
+	std::cout << "Error: Couldn't Find constraint term for parameter: " << parameter
+		  << " (Looked for '" << ConstraintTermName << "')" << std::endl;
+	return NULL;
+      }
+
+      return term;
+
+      /*
+      // Get the set of all variables
+      RooArgSet all_vars = wspace->allVars();
+
+      // Loop over all variables (boilerplate...)
+      TIterator* iter = all_vars.createIterator() ;
+      RooAbsArg* arg ;
+      while((arg=(RooAbsArg*)iter->Next())) {
+
+	// Get the variable, ensuring that it's valid
+	RooRealVar* var = dynamic_cast<RooRealVar*>(arg) ;
+	if( !var ) {
+	  std::cout << "Error: Failed to obtain pointer to variable: " << arg->GetName() << std::endl;
+	  throw runtime_error("fixStatError");
+	}
+
+	std::string VarName = var->GetName();
+
+	if( VarName == "" ) {
+	  std::cout << "Error: Invalid variable name encountered" << std::endl;
+	  throw runtime_error("fixStatError");
+	}
+
+	// Skip if it's not a "gamma_stat_* variable"
+	if( string(VarName).find("gamma_stat_")==string::npos ) continue;
+
+	// Skip if it's not "nominal" parameter
+	if( string(VarName).find("nom_")!=string::npos ) continue;
+    
+
+
+	// Get the constraint and check its type:
+	RooAbsReal* constraint = (RooAbsReal*) wspace->obj( (VarName+"_constraint").c_str() );
+	std::string ConstraintType = constraint->IsA()->GetName();
+
+	double sigma = 0.0;
+
+	if( ConstraintType == "" ) {
+	  std::cout << "Error: Strange constraint type for Stat Uncertainties" << std::endl;
+	  throw runtime_error("fixStatError");
+	}
+	else if( ConstraintType == "RooGaussian" ){
+	  RooAbsReal* sigmaVar = (RooAbsReal*) wspace->obj( (VarName+"_sigma").c_str() );
+	  sigma = sigmaVar->getVal();
+	}
+	else if( ConstraintType == "RooPoisson" ){
+	  RooAbsReal* nom_gamma = (RooAbsReal*) wspace->obj( ("nom_" + VarName).c_str() );
+	  double nom_gamma_val = nom_gamma->getVal();
+	  sigma = 1.0 / TMath::Sqrt( nom_gamma_val );
+	} 
+	else {
+	  std::cout << "Error: Strange constraint type for Stat Uncertainties: " << ConstraintType << std::endl;
+	  throw runtime_error("fixStatError");
+	}
+
+	std::cout << "Encountered a statistical uncertainty variable: " << VarName
+		  << " Error is: " << sigma;
+
+	// Now, fix the parameter if it
+	// is less than some value
+	if( sigma < error_min ) {
+	  if( var->isConstant() ) std::cout << ". Keepting this variable Constant";
+	  else std::cout << ". Setting this variable Constant";
+
+	  var->setConstant(true);
+	}
+	else {
+	  if( var->isConstant() ) std::cout << ". Setting this variable NOT Constant";
+	  else std::cout << ". Keepting this variable NOT Constant";
+
+	  var->setConstant(false);
+	}
+
+	std::cout << std::endl;
+
+      }
+
+      // Done :)
+      return;
+
+*/
+
+    }
+
+
+    double HistFactoryNavigation::GetConstraintUncertainty(const std::string& parameter) {
+      
+      RooAbsReal* constraintTerm = GetConstraintTerm(parameter);
+      if( constraintTerm==NULL ) {
+	std::cout << "Error: Cannot get uncertainty because parameter: " << parameter
+		  << " has no constraint term" << std::endl;
+	throw hf_exc();
+      }
+
+      // Get the type of constraint
+      std::string ConstraintType = constraintTerm->IsA()->GetName();
+
+      // Find its value
+      double sigma = 0.0;
+
+      if( ConstraintType == "" ) {
+	std::cout << "Error: Constraint type is an empty string."  
+		  << " This simply should not be." << std::endl;
+	throw hf_exc();
+      }
+      else if( ConstraintType == "RooGaussian" ){
+	
+	// Gaussian errors are the 'sigma' in the constraint term
+
+	// Get the name of the 'sigma' for the gaussian
+	// (I don't know of a way of doing RooGaussian::GetSigma() )
+	// For alpha's, the sigma points to a global RooConstVar
+	// with the name "1"
+	// For gamma_stat_*, the sigma is named *_sigma
+	std::string sigmaName = "";
+	if( parameter.find("alpha_")!=std::string::npos ) {
+	  sigmaName = "1";;
+	}
+	else if( parameter.find("gamma_stat_")!=std::string::npos ) {
+	  sigmaName = parameter + "_sigma";
+	}
+
+	// Get the sigma and its value
+	//RooAbsReal* sigmaVar = findChild(sigmaName, constraintTerm);
+	RooAbsReal* sigmaVar = dynamic_cast<RooAbsReal*>(constraintTerm->findServer(sigmaName.c_str()));
+	if( sigmaVar==NULL ) {
+	  std::cout << "Error: Failed to find the 'sigma' node: " << sigmaName
+		    << " in the RooGaussian: " << constraintTerm->GetName() << std::endl;
+	  throw hf_exc();
+	}
+	// If we find the uncertainty:
+	sigma = sigmaVar->getVal();
+      }
+      else if( ConstraintType == "RooPoisson" ){
+	// Poisson errors are given by inverting: tau = 1 / (sigma*sigma)
+	std::string tauName = "nom_" + parameter;
+	RooAbsReal* tauVar = dynamic_cast<RooAbsReal*>( constraintTerm->findServer(tauName.c_str()) );
+	if( tauVar==NULL ) {
+	  std::cout << "Error: Failed to find the nominal 'tau' node: " << tauName
+		    << " for the RooPoisson: " << constraintTerm->GetName() << std::endl;
+	  throw hf_exc();
+	}
+	double tau_val = tauVar->getVal();
+	sigma = 1.0 / TMath::Sqrt( tau_val );
+      } 
+      else {
+	std::cout << "Error: Encountered unknown constraint type for Stat Uncertainties: " 
+		  << ConstraintType << std::endl;
+	throw hf_exc();
+      }
+
+      return sigma;
+
+    }
+
+
     TH1* HistFactoryNavigation::MakeHistFromRooFunction( RooAbsReal* func, RooArgList vars, std::string name ) {
 
       // Turn a RooAbsReal* into a TH1* based 
@@ -400,19 +679,19 @@ namespace RooStats {
 
       if( dim==1 ) {
 	RooRealVar* varX = (RooRealVar*) vars.at(0);
-	hist = func->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()) );
+	hist = func->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()), RooFit::Scaling(false) );
       }
       else if( dim==2 ) {
 	RooRealVar* varX = (RooRealVar*) vars.at(0);
 	RooRealVar* varY = (RooRealVar*) vars.at(1);
-	hist = func->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()), 
+	hist = func->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()), RooFit::Scaling(false),
 				      RooFit::YVar(*varY, RooFit::Binning(varY->getBinning())) );
       }
       else if( dim==3 ) {
 	RooRealVar* varX = (RooRealVar*) vars.at(0);
 	RooRealVar* varY = (RooRealVar*) vars.at(1);
 	RooRealVar* varZ = (RooRealVar*) vars.at(2);
-	hist = func->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()), 
+	hist = func->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()), RooFit::Scaling(false),
 				      RooFit::YVar(*varY, RooFit::Binning(varY->getBinning())),
 				      RooFit::YVar(*varZ, RooFit::Binning(varZ->getBinning())) );
       }
@@ -429,17 +708,6 @@ namespace RooStats {
       RooAbsPdf* modelPdf = mc->GetPdf();
       const RooArgSet* observables = mc->GetObservables();
       _GetNodes(modelPdf, observables);
-    }
-
-    void HistFactoryNavigation::PrettyPrintHistogram(TH1* hist) {
-      // Just print a histogram's contents to std::cout
-      // For now, it's designed for a 1-d histogram, but
-      // should work for n-d.  It just won't be as pretty
-      int bin_print_width = 10;
-      for(int i = 0; i < hist->GetNbinsX(); ++i) {
-	std::cout << std::setw(bin_print_width) << hist->GetBinContent(i+1);
-      }
-      std::cout << std::endl;
     }
 
 
