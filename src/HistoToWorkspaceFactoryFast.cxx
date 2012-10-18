@@ -1471,11 +1471,11 @@ namespace HistFactory{
       // GHL: I belive this is logically what we want
       if( sample.GetShapeFactorList().size() > 0 ) {
 
-	// For now, only one shape factor per channel
-	if( sample.GetShapeFactorList().size() > 1 ) {
-	  std::cout << "Error: Only One Shape Factor currently supported" << std::endl;
-	  throw hf_exc();
-	}
+	// // For now, only one shape factor per channel
+	// if( sample.GetShapeFactorList().size() > 1 ) {
+	//   std::cout << "Error: Only One Shape Factor currently supported" << std::endl;
+	//   throw hf_exc();
+	// }
 
 	if( fObsNameVec.size() > 3 ) {
 	  std::cout << "Cannot include Stat Error for histograms of more than 3 dimensions." << std::endl; 
@@ -1490,45 +1490,68 @@ namespace HistFactory{
 	  	    << " to be include a ShapeFactor."
 	  	    << std::endl;
 	  
-	  ShapeFactor& shapeFactor = sample.GetShapeFactorList().at(0);
+	  std::vector<ParamHistFunc*> paramHistFuncList;
+	  std::vector<std::string> shapeFactorNameList;
 
-	  //ES// std::string funcName = it->channel + "_" + it->shapeFactorName + "_shapeFactor";
-	  std::string funcName = channel_name + "_" + shapeFactor.GetName() + "_shapeFactor";
-	  ParamHistFunc* paramHist = (ParamHistFunc*) proto->function( funcName.c_str() );
-	  if( paramHist == NULL ) {
+	  for(unsigned int i=0; i < sample.GetShapeFactorList().size(); ++i) {
 
-	    RooArgList observables;
-	    std::vector<std::string>::iterator itr = fObsNameVec.begin();
-	    for (int idx=0; itr!=fObsNameVec.end(); ++itr, ++idx ) {
-	      observables.add( *proto->var(itr->c_str()) );
-	    }
-	  
-	    //	    RooRealVar* var = (RooRealVar*) observables.first();
+	    ShapeFactor& shapeFactor = sample.GetShapeFactorList().at(i);
 
-	    // Create the Parameters
-	    //ES//std::string funcParams = "gamma_" + it->shapeFactorName;
-	    std::string funcParams = "gamma_" + shapeFactor.GetName();
-	    // GHL: Again, we are putting hard ranges on the gamma's
-	    //      We should change this to range from 0 to /inf
-	    RooArgList shapeFactorParams = ParamHistFunc::createParamSet(*proto, funcParams.c_str(), observables, 0, 1000);
-
+	    //ES// std::string funcName = it->channel + "_" + it->shapeFactorName + "_shapeFactor";
+	    std::string funcName = channel_name + "_" + shapeFactor.GetName() + "_shapeFactor";
+	    ParamHistFunc* paramHist = (ParamHistFunc*) proto->function( funcName.c_str() );
+	    if( paramHist == NULL ) {
+	      
+	      RooArgList observables;
+	      std::vector<std::string>::iterator itr = fObsNameVec.begin();
+	      for (int idx=0; itr!=fObsNameVec.end(); ++itr, ++idx ) {
+		observables.add( *proto->var(itr->c_str()) );
+	      }
+	      
+	      //	    RooRealVar* var = (RooRealVar*) observables.first();
+	      
+	      // Create the Parameters
+	      //ES//std::string funcParams = "gamma_" + it->shapeFactorName;
+	      std::string funcParams = "gamma_" + shapeFactor.GetName();
+	      // GHL: Again, we are putting hard ranges on the gamma's
+	      //      We should change this to range from 0 to /inf
+	      RooArgList shapeFactorParams = ParamHistFunc::createParamSet(*proto, funcParams.c_str(), observables, 0, 1000);
+	      
 	    // Create the Function
-	    ParamHistFunc shapeFactorFunc( funcName.c_str(), funcName.c_str(),
+	      ParamHistFunc shapeFactorFunc( funcName.c_str(), funcName.c_str(),
 					   observables, shapeFactorParams );
-
-	    proto->import( shapeFactorFunc, RecycleConflictNodes() );
-	    paramHist = (ParamHistFunc*) proto->function( funcName.c_str() );
+	      
+	      proto->import( shapeFactorFunc, RecycleConflictNodes() );
+	      paramHist = (ParamHistFunc*) proto->function( funcName.c_str() );
 	  
-	  } // End: Create ShapeFactor ParamHistFunc
+	    } // End: Create ShapeFactor ParamHistFunc
+
+	    paramHistFuncList.push_back(paramHist);
+	    shapeFactorNameList.push_back(funcName);
+
+	  } // End loop over ShapeFactor Systematics
 
 	  // Now that we have the right ShapeFactor, 
 	  // we multiply the expected function
 	
-	  std::string shapeFactorNodeName = syst_x_expectedPrefix + "_x_" + funcName;
+	  //std::string shapeFactorNodeName = syst_x_expectedPrefix + "_x_" + funcName;
+	  // Dynamically build the name as a long product
+	  std::string shapeFactorNodeName = syst_x_expectedPrefix;
+	  for( unsigned int i=0; i < shapeFactorNameList.size(); ++i) {
+	    shapeFactorNodeName += "_x_" + shapeFactorNameList.at(i);
+	  }
 
 	  RooAbsReal* expFunc = (RooAbsReal*) proto->function( syst_x_expectedPrefix.c_str() );
-	  RooProduct nodeWithShapeFactor(shapeFactorNodeName.c_str(), shapeFactorNodeName.c_str(),
-					 RooArgSet(*paramHist, *expFunc) );
+	  RooArgSet nodesForProduct(*expFunc);
+	  for( unsigned int i=0; i < paramHistFuncList.size(); ++i) {
+	    nodesForProduct.add( *paramHistFuncList.at(i) );
+	  }
+	  //RooProduct nodeWithShapeFactor(shapeFactorNodeName.c_str(), 
+	  //                               shapeFactorNodeName.c_str(),
+	  //RooArgSet(*paramHist, *expFunc) );
+	  RooProduct nodeWithShapeFactor(shapeFactorNodeName.c_str(), 
+	                                 shapeFactorNodeName.c_str(),
+					 nodesForProduct );
 	
 	  proto->import( nodeWithShapeFactor, RecycleConflictNodes() );
 
