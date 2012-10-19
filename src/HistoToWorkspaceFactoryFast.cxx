@@ -1927,6 +1927,57 @@ namespace HistFactory{
   }
 
 
+  void HistoToWorkspaceFactoryFast::ConfigureHistFactoryDataset( RooDataSet* obsDataUnbinned, 
+								 TH1* mnominal, 
+								 RooWorkspace* proto,
+								 std::vector<std::string> ObsNameVec) {
+
+    // Take a RooDataSet and fill it with the entries
+    // from a TH1*, using the observable names to
+    // determine the columns
+
+    
+    //ES// TH1* mnominal = summary.at(0).nominal;
+    // TH1* mnominal = data.GetHisto(); 
+    TAxis* ax = mnominal->GetXaxis(); 
+    TAxis* ay = mnominal->GetYaxis(); 
+    TAxis* az = mnominal->GetZaxis(); 	
+
+    for (int i=1; i<=ax->GetNbins(); ++i) { // 1 or more dimension
+
+      Double_t xval = ax->GetBinCenter(i);
+      proto->var( ObsNameVec[0].c_str() )->setVal( xval );
+
+      if(ObsNameVec.size()==1) {
+	Double_t fval = mnominal->GetBinContent(i);
+	obsDataUnbinned->add( *proto->set("obsAndWeight"), fval );
+      } else { // 2 or more dimensions
+
+	for(int j=1; j<=ay->GetNbins(); ++j) {
+	  Double_t yval = ay->GetBinCenter(j);
+	  proto->var( ObsNameVec[1].c_str() )->setVal( yval );
+
+	  if(ObsNameVec.size()==2) { 
+	    Double_t fval = mnominal->GetBinContent(i,j);
+	    obsDataUnbinned->add( *proto->set("obsAndWeight"), fval );
+	  } else { // 3 dimensions 
+
+	    for(int k=1; k<=az->GetNbins(); ++k) {
+	      Double_t zval = az->GetBinCenter(k);
+	      proto->var( ObsNameVec[2].c_str() )->setVal( zval );
+	      Double_t fval = mnominal->GetBinContent(i,j,k);
+	      obsDataUnbinned->add( *proto->set("obsAndWeight"), fval );
+	    }
+	  }
+	}
+      }
+    }
+
+
+
+  }
+
+
   void HistoToWorkspaceFactoryFast::GuessObsNameVec(TH1* hist)
   {
     fObsNameVec.clear();

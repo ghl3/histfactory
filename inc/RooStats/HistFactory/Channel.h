@@ -64,6 +64,8 @@ protected:
 
   HistFactory::Data fData;
 
+  // One can add additional datasets
+  // These are simply added to the xml under a different name
   std::vector<RooStats::HistFactory::Data> fAdditionalData;
 
   HistFactory::StatErrorConfig fStatErrorConfig;

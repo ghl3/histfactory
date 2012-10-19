@@ -116,6 +116,10 @@ namespace HistFactory{
     inline void SetObsNameVec(const std::vector<std::string>& obsNameVec) { fObsNameVec = obsNameVec; }
     inline void SetObsName(const std::string& obsName) { fObsNameVec.clear(); fObsNameVec.push_back(obsName); fObsName = obsName; }
     inline void AddObsName(const std::string& obsName) { fObsNameVec.push_back(obsName); }
+
+    void ConfigureHistFactoryDataset(RooDataSet* obsData, TH1* nominal, RooWorkspace* proto,
+				     std::vector<std::string> obsNameVec);
+    
     
     //string fFileNamePrefix;
     //string fRowTitle;
