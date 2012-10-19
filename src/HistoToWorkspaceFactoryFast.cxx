@@ -2059,7 +2059,7 @@ namespace HistFactory{
 
     // now with weighted datasets
     // First Asimov
-    RooDataSet * simData=NULL;
+    //RooDataSet * simData=NULL;
     combined->factory("weightVar[0,-1e10,1e10]");
     obsList.add(*combined->var("weightVar"));
 
@@ -2080,7 +2080,8 @@ namespace HistFactory{
     
     if (simData) combined->import(*simData,Rename("asimovData"));
     */
-    RooDataSet* asimov_combined = (RooDataSet*) AsymptoticCalculator::GenerateAsimovData(*simPdf, obsList);
+    RooDataSet* asimov_combined = (RooDataSet*) AsymptoticCalculator::GenerateAsimovData(*simPdf, 
+											 obsList);
     if( asimov_combined ) {
       combined->import( *asimov_combined, Rename("asimovData"));
     }
@@ -2089,24 +2090,41 @@ namespace HistFactory{
       throw hf_exc();
     }
 
-    // now obs
-    if(chs[0]->data("obsData")){
-      simData=NULL;
+    // Now merge the observable datasets across the channels
+    if(chs[0]->data("obsData") != NULL){
+      RooDataSet * simData=NULL;
+      //simData=NULL;
+
+      // Loop through channels, get their individual datasets,
+      // and add them to the combined dataset
       for(unsigned int i = 0; i< ch_names.size(); ++i){
 	cout << "merging data for channel " << ch_names[i].c_str() << endl;
-	RooDataSet * tempData=new RooDataSet(ch_names[i].c_str(),"", obsList, Index(*channelCat),
-					     WeightVar("weightVar"),
-					     Import(ch_names[i].c_str(),*(RooDataSet*)chs[i]->data("obsData")));
-	if(simData){
+
+	RooDataSet* obsDataInChannel = (RooDataSet*) chs[i]->data("obsData");
+	RooDataSet * tempData = new RooDataSet(ch_names[i].c_str(),"", obsList, Index(*channelCat),
+					       WeightVar("weightVar"),
+					       Import(ch_names[i].c_str(),*obsDataInChannel)); 
+	//*(RooDataSet*)chs[i]->data("obsData")));
+	if(simData) {
 	  simData->append(*tempData);
 	  delete tempData;
-	}else{
+	}
+	else {
 	  simData = tempData;
 	}
-      }
+      } // End Loop Over Channels
       
-      if (simData) combined->import(*simData,Rename("obsData"));
-    }
+      // Check that we successfully created the dataset
+      // and import it into the workspace
+      if(simData) {
+	combined->import(*simData, Rename("obsData"));
+      }
+      else {
+	std::cout << "Error: Unable to merge observable datasets" << std::endl;
+	throw hf_exc();
+      }
+
+    } // End 'if' on data != NULL
     
 
 
@@ -2117,7 +2135,6 @@ namespace HistFactory{
     combined->defineSet("observables",obsList);
     combined_config->SetObservables(*combined->set("observables"));
 
-
     combined->Print();
 
     cout << "\n\n----------------\n Importing combined model" << endl;
@@ -2125,7 +2142,6 @@ namespace HistFactory{
     //combined->import(*simPdf, RenameVariable("SigXsecOverSM","SigXsecOverSM_comb"));
     // cout << "check pointer " << simPdf << endl;
     //    cout << "check val " << simPdf->getVal() << endl;
-
 
     std::map< std::string, double>::iterator param_itr = fParamValues.begin();
     for( ; param_itr != fParamValues.end(); ++param_itr ){
@@ -2531,7 +2547,6 @@ namespace HistFactory{
   return ConstraintTerms;
   
 }
-
 
 
   TDirectory * HistoToWorkspaceFactoryFast::Makedirs( TDirectory * file, vector<string> names ){
