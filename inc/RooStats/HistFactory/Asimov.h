@@ -6,6 +6,7 @@
 #include <vector>
 #include <map>
 
+#include "RooWorkspace.h"
 
 namespace RooStats{
   namespace HistFactory {
@@ -16,6 +17,9 @@ namespace RooStats{
       
       Asimov() {;}
       Asimov(std::string Name) : fName(Name) {;}
+
+      void ConfigureWorkspace( RooWorkspace* );
+
 
       void SetFixedParam(const std::string& param, bool constant=true) { fParamsToFix[param] = constant; }
       void SetParamValue(const std::string& param, double value) { fParamValsToSet[param] = value; }

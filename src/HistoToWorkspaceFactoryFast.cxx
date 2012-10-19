@@ -1904,9 +1904,23 @@ namespace HistFactory{
 
     // Now, let's loop over any additional asimov datasets
     // that we need to make
+
+    // Create a SnapShot of the nominal values 
+    std::string SnapShotName = "NominalParamValues";
+    proto->saveSnapshot(SnapShotName.c_str(), proto->allVars());
+
     for( unsigned int i=0; i<measurement.GetAsimovDatasets().size(); ++i) {
-      ;
+
+      // Set the variable values and "const" ness with the workspace
+      RooStats::HistFactory::Asimov& asimov = measurement.GetAsimovDatasets().at(i);
+      asimov.ConfigureWorkspace(proto);
+
+      // Do stuff...
+
     }
+
+    // Load all values after the snapshot
+    proto->loadSnapshot(SnapShotName.c_str());
 
     proto->Print();
     return proto;
