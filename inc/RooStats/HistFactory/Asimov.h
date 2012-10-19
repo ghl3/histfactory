@@ -20,6 +20,7 @@ namespace RooStats{
 
       void ConfigureWorkspace( RooWorkspace* );
 
+      std::string GetName() { return fName; }
 
       void SetFixedParam(const std::string& param, bool constant=true) { fParamsToFix[param] = constant; }
       void SetParamValue(const std::string& param, double value) { fParamValsToSet[param] = value; }

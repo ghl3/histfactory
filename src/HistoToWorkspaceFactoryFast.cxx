@@ -196,11 +196,13 @@ namespace HistFactory{
     }
     proto_config->SetParametersOfInterest(*params);
 
+    std::string NewModelName = "newSimPdf"; // <- This name is hard-coded in HistoToWorkspaceFactoryFast::EditSyt.  Probably should be changed to : std::string("new") + ModelName;
+
     // Activate Additional Constraint Terms
     if( measurement.GetGammaSyst().size()>0 || measurement.GetUniformSyst().size()>0 || measurement.GetLogNormSyst().size()>0 || measurement.GetNoSyst().size()>0) {
       //factory.EditSyst( ws_single, ("model_"+ch_name).c_str(), measurement.GetGammaSyst(), measurement.GetUniformSyst(), measurement.GetLogNormSyst(), measurement.GetNoSyst());
       HistoToWorkspaceFactoryFast::EditSyst( ws_single, (ModelName).c_str(), measurement.GetGammaSyst(), measurement.GetUniformSyst(), measurement.GetLogNormSyst(), measurement.GetNoSyst());
-      std::string NewModelName = "newSimPdf"; // <- This name is hard-coded in HistoToWorkspaceFactoryFast::EditSyt.  Probably should be changed to : std::string("new") + ModelName;
+
       proto_config->SetPdf( *ws_single->pdf( "newSimPdf" ) );
     }
   
@@ -208,6 +210,39 @@ namespace HistFactory{
     RooAbsData* expData = ws_single->data("asimovData");
     if(poi_list.size()!=0){
       proto_config->GuessObsAndNuisance(*expData);
+    }
+
+    // Now, let's loop over any additional asimov datasets
+    // that we need to make
+
+
+    // Get the pdf
+    // Notice that we get the "new" pdf, this is the one that is
+    // used in the creation of these asimov datasets since they
+    // are fitted (or may be, at least).
+    RooAbsPdf* newPdf = ws_single->pdf(NewModelName.c_str());
+    const RooArgSet* observables = ws_single->set("observables");
+
+    // Create a SnapShot of the nominal values 
+    std::string SnapShotName = "NominalParamValues";
+    ws_single->saveSnapshot(SnapShotName.c_str(), ws_single->allVars());
+
+    for( unsigned int i=0; i<measurement.GetAsimovDatasets().size(); ++i) {
+
+      // Set the variable values and "const" ness with the workspace
+      RooStats::HistFactory::Asimov& asimov = measurement.GetAsimovDatasets().at(i);
+      asimov.ConfigureWorkspace(ws_single);
+      RooDataSet* asimov_dataset = 
+	(RooDataSet*) AsymptoticCalculator::GenerateAsimovData(*newPdf, *observables);
+      std::string AsimovName = asimov.GetName();
+      ws_single->import(*asimov_dataset, Rename(AsimovName.c_str()));
+
+      // Do stuff...
+
+      // Load the snapshot at the end of every loop iteration
+      // so we start each loop with a "clean" snapshot
+      ws_single->loadSnapshot(SnapShotName.c_str());
+
     }
 
     // Cool, we're done
@@ -1809,8 +1844,13 @@ namespace HistFactory{
       if (!observablesStr.empty()) { observablesStr += ","; }
       observablesStr += *itr;
     }
+    // We create two sets, one for backwards compatability
+    // The other to make a consistent naming convention
+    // between individual channels and the combined workspace
+    proto->defineSet("observables", Form("%s",observablesStr.c_str()));
     proto->defineSet("observablesSet", Form("%s",observablesStr.c_str()));
 
+    
     // Create the ParamHistFunc
     // after observables have been made
 
@@ -1901,26 +1941,6 @@ namespace HistFactory{
       proto->import(*obsDataUnbinned);
     } // End: Has non-null 'data' entry
 
-
-    // Now, let's loop over any additional asimov datasets
-    // that we need to make
-
-    // Create a SnapShot of the nominal values 
-    std::string SnapShotName = "NominalParamValues";
-    proto->saveSnapshot(SnapShotName.c_str(), proto->allVars());
-
-    for( unsigned int i=0; i<measurement.GetAsimovDatasets().size(); ++i) {
-
-      // Set the variable values and "const" ness with the workspace
-      RooStats::HistFactory::Asimov& asimov = measurement.GetAsimovDatasets().at(i);
-      asimov.ConfigureWorkspace(proto);
-
-      // Do stuff...
-
-    }
-
-    // Load all values after the snapshot
-    proto->loadSnapshot(SnapShotName.c_str());
 
     proto->Print();
     return proto;
@@ -2126,6 +2146,9 @@ namespace HistFactory{
 
     } // End 'if' on data != NULL
     
+
+    // Now, create any additional Asimov datasets that
+    // are configured in the measurement
 
 
     //    obsList.Print();
