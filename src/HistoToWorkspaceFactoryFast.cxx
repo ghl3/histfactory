@@ -1901,6 +1901,13 @@ namespace HistFactory{
       proto->import(*obsDataUnbinned);
     } // End: Has non-null 'data' entry
 
+
+    // Now, let's loop over any additional asimov datasets
+    // that we need to make
+    for( unsigned int i=0; i<measurement.GetAsimovDatasets().size(); ++i) {
+      ;
+    }
+
     proto->Print();
     return proto;
   }
