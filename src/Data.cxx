@@ -3,6 +3,10 @@
 #include "RooStats/HistFactory/Data.h"
 
 
+RooStats::HistFactory::Data::Data() : fName("Data") {
+  ;
+}
+
 RooStats::HistFactory::Data::Data( std::string HistoName, std::string InputFile, std::string HistoPath ) :
   fInputFile( InputFile ), fHistoName( HistoName ), fHistoPath( HistoPath ) {;}
 

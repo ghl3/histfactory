@@ -17,7 +17,7 @@ class Data {
 public:
   //friend class Channel;
 
-  Data() {;}
+  Data();
   Data( std::string HistoName, std::string InputFile, std::string HistoPath="" );
   
   void SetInputFile(const std::string& InputFile) { fInputFile = InputFile; }
@@ -37,6 +37,8 @@ public:
   void SetHisto(TH1* Hist) { fhData = Hist; fHistoName=Hist->GetName(); }
   
 protected:
+
+  std::string fName;
   
   std::string fInputFile;
   std::string fHistoName;
