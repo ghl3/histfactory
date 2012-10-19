@@ -30,10 +30,20 @@ namespace RooStats {
       int bin_print_width = 10;
       std::cout << std::endl << channel << ":" << std::endl;
 
+
+      // Get the map of Samples for this channel
+      std::map< std::string, RooAbsReal*> SampleFunctionMap = GetSampleFunctionMap(channel);      
+
+      // Set the size of the print width if necessary
+      for( std::map< std::string, RooAbsReal*>::iterator itr = SampleFunctionMap.begin(); 
+	   itr != SampleFunctionMap.end(); ++itr) {
+	std::string sample_name = itr->first;
+	label_print_width = TMath::Max(label_print_width, (int)sample_name.size()+4);
+      }
+
       // Loop over the SampleFunctionMap and print the individual histograms
       // to get the total histogram for the channel
       int num_bins = 0;
-      std::map< std::string, RooAbsReal*> SampleFunctionMap = GetSampleFunctionMap(channel);
       std::map< std::string, RooAbsReal*>::iterator itr = SampleFunctionMap.begin();
       for( ; itr != SampleFunctionMap.end(); ++itr) {
 	std::string sample_name = itr->first;
@@ -48,12 +58,11 @@ namespace RooStats {
 	delete sample_hist;
       }
 
+      // Make the line break as a set of "===============" ...
       std::string line_break;
       for(int i = 0; i < label_print_width + num_bins*bin_print_width; ++i) {
 	line_break += "=";
       }
-
-      //std::cout << "=================================" << std::endl;
       std::cout << line_break << std::endl;
 
       std::string tmp_name = channel + "_pretty_tmp";
