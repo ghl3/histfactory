@@ -55,6 +55,7 @@ END_HTML
 #include "RooStats/ModelConfig.h"
 #include "RooStats/HistFactory/PiecewiseInterpolation.h"
 #include "RooStats/HistFactory/ParamHistFunc.h"
+#include "RooStats/AsymptoticCalculator.h"
 
 #include "TH2F.h"
 #include "TH3F.h"
@@ -1836,24 +1837,26 @@ namespace HistFactory{
     const char* weightName="weightVar";
     proto->factory(Form("%s[0,-1e10,1e10]",weightName));
     proto->defineSet("obsAndWeight",Form("%s,%s",weightName,observablesStr.c_str()));
+
+    /* Old code for generating the asimov
+       Asimov generation is now done later...
+       
     RooAbsData* asimov_data = model->generateBinned(observables,ExpectedData());
 
     /// Asimov dataset
     RooDataSet* asimovDataUnbinned = new RooDataSet("asimovData","",*proto->set("obsAndWeight"),weightName);
-    /*
-    double binWidthW(1.0);
-    itr = fObsNameVec.begin();
-    for (; itr!=fObsNameVec.end(); ++itr) {
-      std::string obsName = *itr;
-      binWidthW *= proto->var(obsName.c_str())->numBins()/(proto->var(obsName.c_str())->getMax() - proto->var(obsName.c_str())->getMin()) ; 
-    }
-    */
     for(int i=0; i<asimov_data->numEntries(); ++i){
       asimov_data->get(i)->Print("v");
       //cout << "GREPME : " << i << " " << data->weight() <<endl;
       asimovDataUnbinned->add( *asimov_data->get(i), asimov_data->weight() );
     }
     proto->import(*asimovDataUnbinned);
+    */
+
+    // New Asimov Generation: Use the code in the Asymptotic calculator 
+    // Need to get the ModelConfig...
+    RooDataSet* asimov_dataset = (RooDataSet*) AsymptoticCalculator::GenerateAsimovData(*model, observables);
+    proto->import(*asimov_dataset, Rename("asimovData"));
 
     //ES// if(summary.at(0).name=="Data") { 
     // GHL: Determine to use data if the hist isn't 'NULL'
@@ -1896,7 +1899,7 @@ namespace HistFactory{
       }
       
       proto->import(*obsDataUnbinned);
-    }
+    } // End: Has non-null 'data' entry
 
     proto->Print();
     return proto;
@@ -1987,6 +1990,9 @@ namespace HistFactory{
     RooDataSet * simData=NULL;
     combined->factory("weightVar[0,-1e10,1e10]");
     obsList.add(*combined->var("weightVar"));
+
+    // Loop over channels and create the asimov
+    /*
     for(unsigned int i = 0; i< ch_names.size(); ++i){
       cout << "merging data for channel " << ch_names[i].c_str() << endl;
       RooDataSet * tempData=new RooDataSet(ch_names[i].c_str(),"", obsList, Index(*channelCat),
@@ -2001,6 +2007,15 @@ namespace HistFactory{
     }
     
     if (simData) combined->import(*simData,Rename("asimovData"));
+    */
+    RooDataSet* asimov_combined = (RooDataSet*) AsymptoticCalculator::GenerateAsimovData(*simPdf, obsList);
+    if( asimov_combined ) {
+      combined->import( *asimov_combined, Rename("asimovData"));
+    }
+    else {
+      std::cout << "Error: Failed to create combined asimov dataset" << std::endl;
+      throw hf_exc();
+    }
 
     // now obs
     if(chs[0]->data("obsData")){
