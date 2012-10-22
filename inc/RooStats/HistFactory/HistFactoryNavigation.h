@@ -15,6 +15,7 @@
 #include "RooWorkspace.h"
 #include "RooSimultaneous.h"
 #include "RooCategory.h"
+#include "RooProduct.h"
 #include "RooRealSumPdf.h"
 #include "RooStats/HistFactory/Measurement.h"
 
@@ -77,6 +78,10 @@ namespace RooStats {
       // Will do minimial checking to make sure the replacement makes sense
       void ReplaceNode(const std::string& ToReplace, RooAbsArg* ReplaceWith);
 
+      // Print the different components that make up a sample
+      // (NormFactors, Statistical Uncertainties, Interpolation, etc)
+      void PrintSampleComponents(const std::string& channel, const std::string& sample);
+
 
       /*
       // Add a constraint term to the pdf
@@ -133,6 +138,9 @@ namespace RooStats {
       // Internal method implementation of finding a daughter node
       // from a parent node (looping over all generations)
       RooAbsArg* findChild(const std::string& name, RooAbsReal* parent);
+
+      // Recursively get all products of products
+      RooArgSet _GetAllProducts(RooProduct* node);
       
 
     protected:

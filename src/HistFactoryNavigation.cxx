@@ -1,6 +1,8 @@
 
 #include <iomanip>
 
+#include "RooProduct.h"
+
 #include "RooStats/HistFactory/HistFactoryNavigation.h"
 #include "RooStats/HistFactory/HistFactoryException.h"
 
@@ -340,6 +342,38 @@ namespace RooStats {
 
     }
 
+    RooArgSet HistFactoryNavigation::_GetAllProducts(RooProduct* node) {
+
+      // An internal method to recursively get all products,
+      // including if a RooProduct is a Product of RooProducts
+      // etc
+
+      RooArgSet allTerms;
+
+      // Get All Subnodes of this product
+      RooArgSet productComponents = node->components();
+      
+      // Loop over the subnodes and add
+      TIterator* itr = productComponents.createIterator();
+      RooAbsArg* arg = NULL;
+      while( (arg=(RooAbsArg*)itr->Next()) ) {
+	std::string ClassName = arg->ClassName();
+	if( ClassName == "RooProduct" ) {
+	  RooProduct* prod = dynamic_cast<RooProduct*>(arg);
+	  allTerms.add( _GetAllProducts(prod) );
+	}
+	else {
+	  allTerms.add(*arg);
+	}
+      }
+      delete itr;
+
+      return allTerms;
+
+    }
+
+
+
 
     void HistFactoryNavigation::_GetNodes(RooAbsPdf* modelPdf, const RooArgSet* observables) {
 
@@ -379,7 +413,9 @@ namespace RooStats {
 
       } else { 
 	RooArgSet* obstmp = modelPdf->getObservables(*observables) ;	
+	// The channel name is model_CHANNEL
 	std::string ChannelName = modelPdf->GetName();
+	ChannelName = ChannelName.replace(0, 6, "");
 	fChannelNameVec.push_back(ChannelName);
 	fChannelPdfMap[ChannelName] = modelPdf;
 	fChannelObservMap[ChannelName] = obstmp;
@@ -765,8 +801,61 @@ namespace RooStats {
       // ADD CODE TO TAKE THE RooProdPdf term
       // and add an additional constraint
 
-    }
+      }
     */
+
+    void HistFactoryNavigation::PrintSampleComponents(const std::string& channel, 
+						      const std::string& sample) {
+      
+      // Get the Sample Node
+      RooAbsReal* sampleNode = SampleFunction(channel, sample);
+
+      RooArgSet components;
+      
+      // Let's see what it is...
+      if( strcmp(sampleNode->ClassName(),"RooProduct")==0){
+
+	RooProduct* prod = dynamic_cast<RooProduct*>(sampleNode);
+	components.add( _GetAllProducts(prod) );
+	  
+      }
+      else {
+	components.add(*sampleNode);
+      }
+
+      // Now, loop over the components and print them out:
+
+      std::cout << std::endl;
+      std::cout << std::setw(30) << "Factor";
+      std::cout << std::setw(15) << "Value"
+		<< std::endl;
+
+      TIterator* itr = components.createIterator();
+      RooAbsArg* arg = NULL;
+      while( (arg=(RooAbsArg*)itr->Next()) ) {
+	RooAbsReal* component = dynamic_cast<RooAbsReal*>(arg);
+	std::string NodeName = component->GetName();
+	double NodeVal = component->getVal();
+
+	std::cout << std::setw(30) << NodeName;
+	std::cout << std::setw(15) << NodeVal
+		  << std::endl;
+	
+      }
+      std::cout << std::endl;
+
+      //components.Print("V");      
+
+      // LATER: Loop over the observables, set their values
+      // to the center of bins, and print out the components
+      // (Or, maybe easier, make TH1's out of each node
+      // and print those...)
+
+      
+      return;
+
+    }
+
 
     TH1* HistFactoryNavigation::MakeHistFromRooFunction( RooAbsReal* func, RooArgList vars, std::string name ) {
 
