@@ -78,6 +78,17 @@ namespace RooStats {
       void ReplaceNode(const std::string& ToReplace, RooAbsArg* ReplaceWith);
 
 
+      /*
+      // Add a constraint term to the pdf
+      // This method requires that the pdf NOT be simultaneous
+      void AddConstraintTerm(RooAbsArg* constraintTerm);
+
+      // Add a constraint term to the pdf of a particular channel
+      // This method requires that the pdf be simultaneous 
+      // OR that the channel string match the channel that the pdf represents
+      void AddConstraintTerm(RooAbsArg* constraintTerm, const std::string& channel);
+      */
+
     protected:
 
       // Fetch the node information for the pdf in question, and

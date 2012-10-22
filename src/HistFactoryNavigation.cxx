@@ -749,6 +749,24 @@ namespace RooStats {
 
     }
 
+    /*
+    void AddConstraintTerm(RooAbsArg* constraintTerm) {
+      
+      // Add a constraint term to the pdf
+      // This method requires that the pdf NOT be simultaneous
+      
+      if(strcmp(modelPdf->ClassName(),"RooSimultaneous")==0){
+	std::cout << "Error: The pdf for this navigation is a RooSimultaneous, "
+		  << " to add a constraint term, you must supply an explicit channel"
+		  << std::endl;
+	throw hf_exc();
+      }
+      
+      // ADD CODE TO TAKE THE RooProdPdf term
+      // and add an additional constraint
+
+    }
+    */
 
     TH1* HistFactoryNavigation::MakeHistFromRooFunction( RooAbsReal* func, RooArgList vars, std::string name ) {
 
