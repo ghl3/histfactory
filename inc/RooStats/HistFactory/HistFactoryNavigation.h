@@ -82,6 +82,10 @@ namespace RooStats {
       // (NormFactors, Statistical Uncertainties, Interpolation, etc)
       void PrintSampleComponents(const std::string& channel, const std::string& sample);
 
+      // Set any RooRealVar's const (or not const) if they match
+      // the supplied regular expression
+      void SetConstant(const std::string& regExpr=".*", bool constant=true);
+
 
       /*
       // Add a constraint term to the pdf

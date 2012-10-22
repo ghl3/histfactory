@@ -1,8 +1,11 @@
 
 #include <iomanip>
 
+#include "TRegexp.h"
+
 #include "RooProduct.h"
 #include "RooMsgService.h"
+
 
 #include "RooStats/HistFactory/HistFactoryNavigation.h"
 #include "RooStats/HistFactory/HistFactoryException.h"
@@ -935,6 +938,48 @@ namespace RooStats {
     }
 
 
+    void HistFactoryNavigation::SetConstant(const std::string& regExpr, bool constant) {
+
+      // Regex FTW
+      
+      TString RegexTString(regExpr);
+      TRegexp theRegExpr(RegexTString);
+
+      // Now, loop over all variables and 
+      // set the constant as 
+
+      // Get the list of parameters
+      RooArgSet* params = fModel->getParameters(*fObservables);
+      
+      std::cout << std::endl;
+
+      // Create the title row
+      std::cout << std::setw(30) << "Parameter";
+      std::cout << std::setw(15) << "Value"
+		<< std::setw(15) << "Error Low" 
+		<< std::setw(15) << "Error High"
+		<< std::endl;
+      
+      // Loop over the parameters and print their values, etc
+      TIterator* paramItr = params->createIterator();
+      RooRealVar* param = NULL;
+      while( (param=(RooRealVar*)paramItr->Next()) ) {
+
+	std::string ParamName = param->GetName();
+	TString ParamNameTString(ParamName);
+
+	// Use the Regex to skip all parameters that don't match
+	//if( theRegExpr.Index(ParamNameTString, ParamName.size()) == -1 ) continue;
+	Ssiz_t dummy;
+	if( theRegExpr.Index(ParamNameTString, &dummy) == -1 ) continue;
+	
+	param->setConstant( constant );
+	std::cout << "Setting param: " << ParamName << " constant" 
+		  << " (matches regex: " << regExpr << ")" << std::endl;
+      }
+    }
+
+    
   } // namespace HistFactory
 } // namespace RooStats
 
