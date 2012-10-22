@@ -72,6 +72,11 @@ namespace RooStats {
       // The value of the ith bin for that sample and channel 
       double GetBinValue(int bin, const std::string& channel, const std::string& sample);  
 
+      // Find a node in the pdf and replace it with a new node
+      // These nodes can be functions, pdf's, RooRealVar's, etc
+      // Will do minimial checking to make sure the replacement makes sense
+      void ReplaceNode(const std::string& ToReplace, RooAbsArg* ReplaceWith);
+
 
     protected:
 

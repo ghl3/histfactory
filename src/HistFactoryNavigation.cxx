@@ -507,11 +507,17 @@ namespace RooStats {
       delete paramSet;
       delete paramItr;
 
+      /* Not sure if we want to be silent
+	 But since we're returning a pointer which can be NULL,
+	 I think it's the user's job to do checks on it.
+	 A dereference will always cause a crash, so it won't
+	 be silent for long...
       if( term==NULL ) {
 	std::cout << "Error: Failed to find node: " << name
 		  << " as a child of: " << parent->GetName()
 		  << std::endl;
       }
+      */
 
       return term;
 
@@ -700,6 +706,46 @@ namespace RooStats {
       }
 
       return sigma;
+
+    }
+
+    void HistFactoryNavigation::ReplaceNode(const std::string& ToReplace, RooAbsArg* ReplaceWith) {
+
+      // First, check that the node to replace is actually a node:
+      RooAbsArg* nodeToReplace = findChild(ToReplace, fModel);
+      if( nodeToReplace==NULL ) {
+	std::cout << "Error: Cannot replace node: " << ToReplace
+		  << " because this node wasn't found in: " << fModel->GetName()
+		  << std::endl;
+	throw hf_exc();
+      }
+
+      // Now that we have the node we want to replace, we have to 
+      // get its parent node
+      
+      // Do this by looping over the clients and replacing their servers
+      // (NOTE: This happens for ALL clients across the pdf)
+      TIterator* clientItr = nodeToReplace->clientIterator();
+      RooAbsArg* client=NULL;
+      while((client=(RooAbsArg*)clientItr->Next())) {
+	
+	// Check if this client is a member of our pdf
+	// (We probably don't want to mess with clients
+	// if they aren't...)
+	//std::cout << "Checking Client: " << client->GetName() << std::endl; //
+	if( findChild(client->GetName(), fModel)==NULL ) continue;
+	
+	// Now, do the replacement:
+	bool valueProp=false;
+	bool shapeProp=false;
+	client->replaceServer( *nodeToReplace, *ReplaceWith, valueProp, shapeProp );
+	std::cout << "Replaced: " << ToReplace << " with: " << ReplaceWith->GetName()
+		  << " in node: " << client->GetName() << std::endl;
+
+      }
+      delete clientItr;
+
+      return;
 
     }
 
