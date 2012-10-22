@@ -116,7 +116,7 @@ namespace RooStats {
 
       // Internal method implementation of finding a daughter node
       // from a parent node (looping over all generations)
-      RooAbsReal* findChild(const std::string& name, RooAbsReal* parent);
+      RooAbsArg* findChild(const std::string& name, RooAbsReal* parent);
       
 
     protected:

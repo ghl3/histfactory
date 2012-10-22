@@ -16,7 +16,7 @@ namespace RooStats {
 
       // Save the model pointer
       fModel = mc->GetPdf();
-      fObservables = (RooArgSet*) mc->GetObservables();
+      fObservables = const_cast<RooArgSet*>(mc->GetObservables());
       
       // Initialize the rest of the members
       _GetNodes(fModel, fObservables);
@@ -419,7 +419,7 @@ namespace RooStats {
       for( unsigned int i = 0; i < fChannelNameVec.size(); ++i ) {
 
 	std::string ChannelName = fChannelNameVec.at(i);
-	RooRealSumPdf* sumPdf = (RooRealSumPdf*) fChannelSumNodeMap[ChannelName];
+	RooRealSumPdf* sumPdf = dynamic_cast<RooRealSumPdf*>(fChannelSumNodeMap[ChannelName]);
 	
 	// We now take the RooRealSumPdf and loop over
 	// its component functions.  The RooRealSumPdf turns
@@ -468,22 +468,50 @@ namespace RooStats {
     }
 
 
-    RooAbsReal* HistFactoryNavigation::findChild(const std::string& name, RooAbsReal* parent) {
+    RooAbsArg* HistFactoryNavigation::findChild(const std::string& name, RooAbsReal* parent) {
       
-      RooAbsReal* term=NULL;
+      RooAbsArg* term=NULL;
 
-      // Some RooFit boilerplate...
+      // Check if it is a "component",
+      // ie a sub node:
       RooArgSet* components = parent->getComponents();
       TIterator* argItr = components->createIterator();
       RooAbsArg* arg = NULL;
       while( (arg=(RooAbsArg*)argItr->Next()) ) {
 	std::string ArgName = arg->GetName();
 	if( ArgName == name ) {
-	  term = dynamic_cast<RooAbsReal*>(arg);
+	  term = arg; //dynamic_cast<RooAbsReal*>(arg);
 	  break;
 	}
       }
       delete components;
+      delete argItr;
+
+      if( term != NULL ) return term;
+
+      // If that failed, 
+      // Check if it's a Parameter
+      // (ie a RooRealVar)
+      RooArgSet* args = new RooArgSet();
+      RooArgSet* paramSet = fModel->getParameters(args);
+      TIterator* paramItr = paramSet->createIterator();
+      RooAbsArg* param = NULL;
+      while( (param=(RooAbsArg*)paramItr->Next()) ) {
+	std::string ParamName = param->GetName();
+	if( ParamName == name ) {
+	  term = param; //dynamic_cast<RooAbsReal*>(arg);
+	  break;
+	}
+      }
+      delete args;
+      delete paramSet;
+      delete paramItr;
+
+      if( term==NULL ) {
+	std::cout << "Error: Failed to find node: " << name
+		  << " as a child of: " << parent->GetName()
+		  << std::endl;
+      }
 
       return term;
 
@@ -494,6 +522,15 @@ namespace RooStats {
      
       std::string ConstraintTermName = parameter + "Constraint";
 
+      // First, as a sanity check, let's see if the parameter
+      // itself actually exists and if the model depends on it:
+      RooRealVar* param = dynamic_cast<RooRealVar*>(findChild(parameter, fModel));
+      if( param==NULL ) {
+	std::cout << "Error: Couldn't Find parameter: " << parameter << " in model."
+		  << std::endl;
+	return NULL;
+      }
+
       // The "gamma"'s use a different constraint term name
       if( parameter.find("gamma_stat_") != std::string::npos ) { 
 	ConstraintTermName = parameter + "_constraint";
@@ -501,7 +538,7 @@ namespace RooStats {
       // RooAbsReal* term = NULL;
       // RooAbsReal* term = dynamic_cast<RooAbsReal*>(fModel->findServer(ConstraintTermName.c_str()));
 
-      RooAbsReal* term = findChild(ConstraintTermName, fModel);
+      RooAbsReal* term = dynamic_cast<RooAbsReal*>(findChild(ConstraintTermName, fModel));
 
       if( term==NULL ) {
 	std::cout << "Error: Couldn't Find constraint term for parameter: " << parameter
