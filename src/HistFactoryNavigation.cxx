@@ -823,10 +823,8 @@ namespace RooStats {
       
       // Let's see what it is...
       if( strcmp(sampleNode->ClassName(),"RooProduct")==0){
-
 	RooProduct* prod = dynamic_cast<RooProduct*>(sampleNode);
 	components.add( _GetAllProducts(prod) );
-	  
       }
       else {
 	components.add(*sampleNode);
@@ -863,17 +861,11 @@ namespace RooStats {
 
 	// Print the hist
 	std::cout << std::setw(30) << NodeName;
-	//int num_bins = hist->GetNbinsX();
 	for(unsigned int i = 0; i < num_bins; ++i) {
 	  std::cout << std::setw(15) << hist->GetBinContent(i+1);
 	}
 	std::cout << std::endl;
 	delete hist;
-
-	// double NodeVal = component->getVal();
-	// std::cout << std::setw(15) << NodeVal
-	// << std::endl;
-	
       }
       
       for(unsigned int i=0; i<30 + 15*num_bins; ++i) { std::cout << "="; }
@@ -884,22 +876,6 @@ namespace RooStats {
       std::cout << std::endl << std::endl;
 
       delete total_hist;
-
-
-      /*
-      std::cout << std::setw(30) << "TOTAL:";
-      std::cout << std::setw(15) << sampleNode->getVal()
-		<< std::endl;
-      */
-
-      
-      //components.Print("V");      
-
-      // LATER: Loop over the observables, set their values
-      // to the center of bins, and print out the components
-      // (Or, maybe easier, make TH1's out of each node
-      // and print those...)
-
       
       return;
 
