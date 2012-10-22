@@ -2,6 +2,7 @@
 #include <iomanip>
 
 #include "RooProduct.h"
+#include "RooMsgService.h"
 
 #include "RooStats/HistFactory/HistFactoryNavigation.h"
 #include "RooStats/HistFactory/HistFactoryException.h"
@@ -810,6 +811,14 @@ namespace RooStats {
       // Get the Sample Node
       RooAbsReal* sampleNode = SampleFunction(channel, sample);
 
+      // Get the observables for this channel
+      RooArgList observable_list( *GetObservableSet(channel) );
+
+      // Make the total histogram for this sample
+      std::string total_Name = sampleNode->GetName();
+      TH1* total_hist= MakeHistFromRooFunction( sampleNode, observable_list, total_Name + "_tmp");
+      unsigned int num_bins = total_hist->GetNbinsX();
+
       RooArgSet components;
       
       // Let's see what it is...
@@ -827,23 +836,63 @@ namespace RooStats {
 
       std::cout << std::endl;
       std::cout << std::setw(30) << "Factor";
-      std::cout << std::setw(15) << "Value"
-		<< std::endl;
+      for(unsigned int i=0; i < num_bins; ++i) {
+	std::cout << std::setw(15) << "Bin " << i;
+      }
+      std::cout << std::endl;
 
       TIterator* itr = components.createIterator();
       RooAbsArg* arg = NULL;
       while( (arg=(RooAbsArg*)itr->Next()) ) {
 	RooAbsReal* component = dynamic_cast<RooAbsReal*>(arg);
 	std::string NodeName = component->GetName();
-	double NodeVal = component->getVal();
 
+	// Make a histogram for this node	
+	// Do some horrible things to prevent some really
+	// annoying messages from being printed
+	RooFit::MsgLevel levelBefore = RooMsgService::instance().globalKillBelow();
+	RooMsgService::instance().setGlobalKillBelow(RooFit::FATAL);
+	TH1* hist=NULL;
+	try {
+	  hist = MakeHistFromRooFunction( component, observable_list, NodeName+"_tmp");
+	} catch(...) {
+	  RooMsgService::instance().setGlobalKillBelow(levelBefore);
+	  throw;
+	}
+	RooMsgService::instance().setGlobalKillBelow(levelBefore);
+
+	// Print the hist
 	std::cout << std::setw(30) << NodeName;
-	std::cout << std::setw(15) << NodeVal
-		  << std::endl;
+	//int num_bins = hist->GetNbinsX();
+	for(unsigned int i = 0; i < num_bins; ++i) {
+	  std::cout << std::setw(15) << hist->GetBinContent(i+1);
+	}
+	std::cout << std::endl;
+	delete hist;
+
+	// double NodeVal = component->getVal();
+	// std::cout << std::setw(15) << NodeVal
+	// << std::endl;
 	
       }
-      std::cout << std::endl;
+      
+      for(unsigned int i=0; i<30 + 15*num_bins; ++i) { std::cout << "="; }
+      std::cout << std::endl << std::setw(30) << "TOTAL:";
+      for(unsigned int i = 0; i < num_bins; ++i) {
+	std::cout << std::setw(15) << total_hist->GetBinContent(i+1);
+      }
+      std::cout << std::endl << std::endl;
 
+      delete total_hist;
+
+
+      /*
+      std::cout << std::setw(30) << "TOTAL:";
+      std::cout << std::setw(15) << sampleNode->getVal()
+		<< std::endl;
+      */
+
+      
       //components.Print("V");      
 
       // LATER: Loop over the observables, set their values
