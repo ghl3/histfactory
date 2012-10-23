@@ -2241,6 +2241,7 @@ namespace HistFactory{
     //    obsList.Print();
     //    combined->import(obsList);
     //    combined->Print();
+
     obsList.add(*channelCat);
     combined->defineSet("observables",obsList);
     combined_config->SetObservables(*combined->set("observables"));
