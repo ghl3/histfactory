@@ -639,6 +639,8 @@ HistFactory::Channel ConfigParser::ParseChannelXMLFile( string filen ) {
 
   TXMLNode* node = rootNode->GetChildren();
 
+  bool firstData=true;
+
   while( node != 0 ) {
 
     // Restore the Channel-Wide Defaults
@@ -651,7 +653,13 @@ HistFactory::Channel ConfigParser::ParseChannelXMLFile( string filen ) {
     }
 
     else if( node->GetNodeName() == TString( "Data" ) ) {
-      channel.SetData( CreateDataElement(node) );
+      if( firstData ) {
+	channel.SetData( CreateDataElement(node) );
+	firstData=false;
+      }
+      else {
+	channel.AddAdditionalData( CreateDataElement(node) );
+      }
     }
 
     else if( node->GetNodeName() == TString( "StatErrorConfig" ) ) {
