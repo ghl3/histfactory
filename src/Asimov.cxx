@@ -5,10 +5,13 @@
 #include "RooStats/HistFactory/Asimov.h"
 
 void RooStats::HistFactory::Asimov::ConfigureWorkspace(RooWorkspace* wspace) {
-  
+
   // Here is where we set the values, and constantness
   // of all parameters in the workspace before creating
   // an asimov dataset
+
+  std::cout << "Configuring workspace: " << wspace->GetName()
+	    << " for asimov dataset: " << GetName() << std::endl;
 
   /*
   // Okay, y'all, first we're going to create a snapshot
@@ -92,6 +95,8 @@ void RooStats::HistFactory::Asimov::ConfigureWorkspace(RooWorkspace* wspace) {
 
   }
 
+  std::cout << "Configured workspace: " << wspace->GetName()
+	    << " for asimov dataset: " << GetName() << std::endl;
 
   //wspace->loadSnapshot(SnapShotName.c_str());
   

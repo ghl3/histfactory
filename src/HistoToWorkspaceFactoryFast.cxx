@@ -169,7 +169,6 @@ namespace HistFactory{
       throw hf_exc();
     }
 
-
     std::vector<std::string> poi_list = measurement.GetPOIList();
     if( poi_list.size()==0 ) {
       std::cout << "Warining: No Parametetrs of interest are set" << std::endl;
@@ -196,6 +195,7 @@ namespace HistFactory{
     }
     proto_config->SetParametersOfInterest(*params);
 
+    // Name of an 'edited' model, if necessary
     std::string NewModelName = "newSimPdf"; // <- This name is hard-coded in HistoToWorkspaceFactoryFast::EditSyt.  Probably should be changed to : std::string("new") + ModelName;
 
     // Activate Additional Constraint Terms
@@ -208,6 +208,11 @@ namespace HistFactory{
   
     // Set the ModelConfig's Params of Interest
     RooAbsData* expData = ws_single->data("asimovData");
+    if( !expData ) {
+      std::cout << "Error: Failed to find dataset: " << expData
+		<< " in workspace" << std::endl;
+      throw hf_exc();
+    }
     if(poi_list.size()!=0){
       proto_config->GuessObsAndNuisance(*expData);
     }
@@ -220,7 +225,8 @@ namespace HistFactory{
     // Notice that we get the "new" pdf, this is the one that is
     // used in the creation of these asimov datasets since they
     // are fitted (or may be, at least).
-    RooAbsPdf* newPdf = ws_single->pdf(NewModelName.c_str());
+    RooAbsPdf* pdf = ws_single->pdf(NewModelName.c_str());
+    if( !pdf ) pdf = ws_single->pdf( ModelName.c_str() );
     const RooArgSet* observables = ws_single->set("observables");
 
     // Create a SnapShot of the nominal values 
@@ -231,13 +237,20 @@ namespace HistFactory{
 
       // Set the variable values and "const" ness with the workspace
       RooStats::HistFactory::Asimov& asimov = measurement.GetAsimovDatasets().at(i);
+      std::string AsimovName = asimov.GetName();
+
+      std::cout << "Generating additional Asimov Dataset: " << AsimovName << std::endl;
       asimov.ConfigureWorkspace(ws_single);
       RooDataSet* asimov_dataset = 
-	(RooDataSet*) AsymptoticCalculator::GenerateAsimovData(*newPdf, *observables);
-      std::string AsimovName = asimov.GetName();
-      ws_single->import(*asimov_dataset, Rename(AsimovName.c_str()));
+	(RooDataSet*) AsymptoticCalculator::GenerateAsimovData(*pdf, *observables);
 
-      // Do stuff...
+      std::cout << "Importing Asimov dataset" << std::endl;
+      double failure = ws_single->import(*asimov_dataset, Rename(AsimovName.c_str()));
+      if( failure ) {
+	std::cout << "Error: Failed to import Asimov dataset: " << AsimovName
+		  << std::endl;
+	throw hf_exc();
+      }
 
       // Load the snapshot at the end of every loop iteration
       // so we start each loop with a "clean" snapshot
@@ -876,7 +889,10 @@ namespace HistFactory{
 
   //_____________________________________________________________
   void HistoToWorkspaceFactoryFast::EditSyst(RooWorkspace* proto, const char* pdfNameChar, 
-					     map<string,double> gammaSyst, map<string,double> uniformSyst, map<string,double> logNormSyst, map<string,double> noSyst) {
+					     map<string,double> gammaSyst, 
+					     map<string,double> uniformSyst, 
+					     map<string,double> logNormSyst, 
+					     map<string,double> noSyst) {
     string pdfName(pdfNameChar);
 
     //cout << "HistoToWorkspaceFactoryFast::EditSyst() : gamma = " << gammaSyst.size() << ", uniform = " << uniformSyst.size() << ", noconst = " << noSyst.size() << endl;
