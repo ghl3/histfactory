@@ -2193,6 +2193,11 @@ namespace HistFactory{
     }
 
     // Now merge the observable datasets across the channels
+    if(chs[0]->data("obsData") != NULL) { 
+      MergeDataSets(combined, chs, ch_names, "obsData", obsList, channelCat);
+    }
+
+    /*
     if(chs[0]->data("obsData") != NULL){
       RooDataSet * simData=NULL;
       //simData=NULL;
@@ -2206,7 +2211,7 @@ namespace HistFactory{
 	RooDataSet * tempData = new RooDataSet(ch_names[i].c_str(),"", obsList, Index(*channelCat),
 					       WeightVar("weightVar"),
 					       Import(ch_names[i].c_str(),*obsDataInChannel)); 
-	//*(RooDataSet*)chs[i]->data("obsData")));
+	// *(RooDataSet*) chs[i]->data("obsData")));
 	if(simData) {
 	  simData->append(*tempData);
 	  delete tempData;
@@ -2227,7 +2232,7 @@ namespace HistFactory{
       }
 
     } // End 'if' on data != NULL
-    
+    */
 
     // Now, create any additional Asimov datasets that
     // are configured in the measurement
@@ -2287,6 +2292,60 @@ namespace HistFactory{
 
     return combined;
   }
+
+
+  RooDataSet* HistoToWorkspaceFactoryFast::MergeDataSets(RooWorkspace* combined,
+							 std::vector<RooWorkspace*> wspace_vec, 
+							 std::vector<std::string> channel_names, 
+							 std::string dataSetName,
+							 RooArgList obsList,
+							 RooCategory* channelCat) {
+
+    // Create the total dataset
+    RooDataSet* simData=NULL;
+
+    // Loop through channels, get their individual datasets,
+    // and add them to the combined dataset
+    for(unsigned int i = 0; i< channel_names.size(); ++i){
+
+      // Grab the dataset for the existing channel
+      std::cout << "Merging data for channel " << channel_names[i].c_str() << std::endl;
+      RooDataSet* obsDataInChannel = (RooDataSet*) wspace_vec[i]->data(dataSetName.c_str());
+      if( !obsDataInChannel ) {
+	std::cout << "Error: Can't find DataSet: " << dataSetName
+		  << " in channel: " << channel_names.at(i)
+		  << std::endl;
+	throw hf_exc();
+      }
+
+      // Create the new Dataset
+      RooDataSet * tempData = new RooDataSet(channel_names[i].c_str(),"", 
+					     obsList, Index(*channelCat),
+					     WeightVar("weightVar"),
+					     Import(channel_names[i].c_str(),*obsDataInChannel)); 
+      if(simData) {
+	simData->append(*tempData);
+	delete tempData;
+      }
+      else {
+	simData = tempData;
+      }
+    } // End Loop Over Channels
+      
+    // Check that we successfully created the dataset
+    // and import it into the workspace
+    if(simData) {
+      combined->import(*simData, Rename(dataSetName.c_str()));
+    }
+    else {
+      std::cout << "Error: Unable to merge observable datasets" << std::endl;
+      throw hf_exc();
+    }
+
+    return simData;
+
+  }
+    
 
 
   TH1* HistoToWorkspaceFactoryFast::MakeAbsolUncertaintyHist( const std::string& Name, const TH1* Nominal ) {
