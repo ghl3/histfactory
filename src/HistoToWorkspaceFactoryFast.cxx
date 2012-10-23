@@ -1922,7 +1922,12 @@ namespace HistFactory{
 
       // THis works and is natural, but the memory size of the simultaneous dataset grows exponentially with channels
       RooDataSet* obsDataUnbinned = new RooDataSet("obsData","",*proto->set("obsAndWeight"),weightName);
+      TH1* mnominal = data.GetHisto(); 
 
+      ConfigureHistFactoryDataset( obsDataUnbinned, mnominal, 
+				   proto, fObsNameVec );
+      
+      /*
       //ES// TH1* mnominal = summary.at(0).nominal;
       TH1* mnominal = data.GetHisto(); 
       TAxis* ax = mnominal->GetXaxis(); 
@@ -1953,7 +1958,8 @@ namespace HistFactory{
 	  }
 	}
       }
-      
+      */
+
       proto->import(*obsDataUnbinned);
     } // End: Has non-null 'data' entry
 
@@ -1971,7 +1977,7 @@ namespace HistFactory{
     // Take a RooDataSet and fill it with the entries
     // from a TH1*, using the observable names to
     // determine the columns
-
+    
     
     //ES// TH1* mnominal = summary.at(0).nominal;
     // TH1* mnominal = data.GetHisto(); 
@@ -2009,7 +2015,7 @@ namespace HistFactory{
       }
     }
 
-
+    
 
   }
 
