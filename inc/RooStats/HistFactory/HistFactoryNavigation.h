@@ -63,7 +63,7 @@ namespace RooStats {
       void PrintParameters(bool IncludeConstantParams=false);
 
       // Print a "HistFactory style" RooDataSet in a readable way
-      static void PrintDataSet(RooDataSet* data, const std::string& channel="");
+      static void PrintDataSet(RooDataSet* data, const std::string& channel="", int max=-1);
 
       // Print the model and the data, comparing channel by channel
       void PrintModelAndData(RooDataSet* data);
@@ -103,6 +103,9 @@ namespace RooStats {
       void AddConstraintTerm(RooAbsArg* constraintTerm, const std::string& channel);
       */
 
+      void SetNumBinsToPrint(int num) { _numBinsToPrint = num; }
+      int GetNumBinsToPrint() { return _numBinsToPrint; }
+
     protected:
 
       // Fetch the node information for the pdf in question, and
@@ -127,6 +130,8 @@ namespace RooStats {
 
       // The observables
       RooArgSet* fObservables;
+
+      int _numBinsToPrint;
 
       // The list of channels
       std::vector<std::string> fChannelNameVec;

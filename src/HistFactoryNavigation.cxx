@@ -18,8 +18,8 @@ namespace RooStats {
   namespace HistFactory {
 
 
-    HistFactoryNavigation::HistFactoryNavigation(ModelConfig* mc) {
-
+    HistFactoryNavigation::HistFactoryNavigation(ModelConfig* mc) : _numBinsToPrint(-1) {
+      
       // Save the model pointer
       fModel = mc->GetPdf();
       fObservables = const_cast<RooArgSet*>(mc->GetObservables());
@@ -33,9 +33,8 @@ namespace RooStats {
     void HistFactoryNavigation::PrintState(const std::string& channel) {
 
       int label_print_width = 20;
-      int bin_print_width = 10;
+      int bin_print_width = 15;
       std::cout << std::endl << channel << ":" << std::endl;
-
 
       // Get the map of Samples for this channel
       std::map< std::string, RooAbsReal*> SampleFunctionMap = GetSampleFunctionMap(channel);      
@@ -52,12 +51,18 @@ namespace RooStats {
       int num_bins = 0;
       std::map< std::string, RooAbsReal*>::iterator itr = SampleFunctionMap.begin();
       for( ; itr != SampleFunctionMap.end(); ++itr) {
+
+
 	std::string sample_name = itr->first;
 	std::string tmp_name = sample_name + channel + "_pretty_tmp";
 	TH1* sample_hist = GetSampleHist(channel, sample_name, tmp_name);
 	num_bins = sample_hist->GetNbinsX();
 	std::cout << std::setw(label_print_width) << sample_name;
+
+	// Check that we should print this bin
+
 	for(int i = 0; i < num_bins; ++i) {
+	  if( _numBinsToPrint != -1 && i >= _numBinsToPrint) break;
 	  std::cout << std::setw(bin_print_width) << sample_hist->GetBinContent(i+1);
 	}
 	std::cout << std::endl;
@@ -66,7 +71,8 @@ namespace RooStats {
 
       // Make the line break as a set of "===============" ...
       std::string line_break;
-      for(int i = 0; i < label_print_width + num_bins*bin_print_width; ++i) {
+      for(int i = 0; i < label_print_width + (_numBinsToPrint == -1 ? num_bins : _numBinsToPrint)*bin_print_width; ++i) {
+	if( _numBinsToPrint != -1 && i >= _numBinsToPrint) break;
 	line_break += "=";
       }
       std::cout << line_break << std::endl;
@@ -75,6 +81,7 @@ namespace RooStats {
       TH1* channel_hist = GetChannelHist(channel, tmp_name);
       std::cout << std::setw(label_print_width) << "TOTAL:";
       for(int i = 0; i < channel_hist->GetNbinsX(); ++i) {
+	if( _numBinsToPrint != -1 && i >= _numBinsToPrint) break;
 	std::cout << std::setw(bin_print_width) << channel_hist->GetBinContent(i+1);
       }
       std::cout << std::endl;
@@ -93,7 +100,9 @@ namespace RooStats {
     }
 
 
-    void HistFactoryNavigation::PrintDataSet(RooDataSet* data, const std::string& channel_to_print) {
+    void HistFactoryNavigation::PrintDataSet(RooDataSet* data, 
+					     const std::string& channel_to_print,
+					     int max_bins) {
 
       // Print the contents of a 'HistFactory' RooDataset
       // These are stored in a somewhat odd way that makes
@@ -147,7 +156,8 @@ namespace RooStats {
 	std::cout << std::setw(20) << channel_name + " (data)";
 	std::vector<double>& bins = itr->second;
 	for(unsigned int i = 0; i < bins.size(); ++i) {
-	  std::cout << std::setw(10) << bins.at(i);
+	  if( max_bins != -1 && (int)i >= max_bins) break;
+	  std::cout << std::setw(15) << bins.at(i);
 	}
 	std::cout << std::endl;
 
@@ -163,7 +173,7 @@ namespace RooStats {
       for( unsigned int i = 0; i < fChannelNameVec.size(); ++i) {
 	std::string channel = fChannelNameVec.at(i);
 	PrintState(channel);
-	PrintDataSet(data, channel);
+	PrintDataSet(data, channel, _numBinsToPrint);
       }
       
       std::cout << std::endl;
@@ -825,19 +835,23 @@ namespace RooStats {
       RooArgSet components;
       
       // Let's see what it is...
+      int label_print_width = 30;  
       if( strcmp(sampleNode->ClassName(),"RooProduct")==0){
 	RooProduct* prod = dynamic_cast<RooProduct*>(sampleNode);
 	components.add( _GetAllProducts(prod) );
+	std::string node_name = prod->GetName();
+	label_print_width = TMath::Max(label_print_width, (int)node_name.size()+4);
       }
       else {
 	components.add(*sampleNode);
       }
-
+      
       // Now, loop over the components and print them out:
-
+      
       std::cout << std::endl;
-      std::cout << std::setw(30) << "Factor";
+      std::cout << std::setw(label_print_width) << "Factor";
       for(unsigned int i=0; i < num_bins; ++i) {
+	if( _numBinsToPrint != -1 && (int)i >= _numBinsToPrint) break;
 	std::cout << std::setw(15) << "Bin " << i;
       }
       std::cout << std::endl;
@@ -863,17 +877,19 @@ namespace RooStats {
 	RooMsgService::instance().setGlobalKillBelow(levelBefore);
 
 	// Print the hist
-	std::cout << std::setw(30) << NodeName;
+	std::cout << std::setw(label_print_width) << NodeName;
 	for(unsigned int i = 0; i < num_bins; ++i) {
+	  if( _numBinsToPrint != -1 && (int)i >= _numBinsToPrint) break;
 	  std::cout << std::setw(15) << hist->GetBinContent(i+1);
 	}
 	std::cout << std::endl;
 	delete hist;
       }
       
-      for(unsigned int i=0; i<30 + 15*num_bins; ++i) { std::cout << "="; }
-      std::cout << std::endl << std::setw(30) << "TOTAL:";
+      for(unsigned int i=0; i<label_print_width + 15*num_bins; ++i) { std::cout << "="; }
+      std::cout << std::endl << std::setw(label_print_width) << "TOTAL:";
       for(unsigned int i = 0; i < num_bins; ++i) {
+	if( _numBinsToPrint != -1 && (int)i >= _numBinsToPrint) break;
 	std::cout << std::setw(15) << total_hist->GetBinContent(i+1);
       }
       std::cout << std::endl << std::endl;
