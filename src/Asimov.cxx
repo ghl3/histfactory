@@ -10,9 +10,6 @@ void RooStats::HistFactory::Asimov::ConfigureWorkspace(RooWorkspace* wspace) {
   // of all parameters in the workspace before creating
   // an asimov dataset
 
-  std::cout << "Configuring workspace: " << wspace->GetName()
-	    << " for asimov dataset: " << GetName() << std::endl;
-
   /*
   // Okay, y'all, first we're going to create a snapshot
   // of the current state of the variables in the workspace
@@ -67,6 +64,8 @@ void RooStats::HistFactory::Asimov::ConfigureWorkspace(RooWorkspace* wspace) {
     }
 
     // Set its value
+    std::cout << "Configuring Asimov Dataset: Setting " << param
+	      << " = " << val << std::endl;
     var->setVal( val );
   }
 
@@ -91,14 +90,11 @@ void RooStats::HistFactory::Asimov::ConfigureWorkspace(RooWorkspace* wspace) {
       throw hf_exc();
     }
 
+    std::cout << "Configuring Asimov Dataset: Setting " << param
+	      << " to constant " << std::endl;
     var->setConstant( isConstant );
-
+    
   }
-
-  std::cout << "Configured workspace: " << wspace->GetName()
-	    << " for asimov dataset: " << GetName() << std::endl;
-
-  //wspace->loadSnapshot(SnapShotName.c_str());
   
   return;
 

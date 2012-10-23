@@ -222,12 +222,15 @@ namespace RooStats {
 	  asimov.SetFixedParam(param);
 	}
 	else {
-
+	  
 	  std::string param_name = param.substr(0,eql_location);
 	  double param_val = atof( param.substr(eql_location+1, param.size()).c_str() );
 	  
 	  std::cout << "ASIMOV - Param Name: " << param_name
 		    << " Param Val: " << param_val << std::endl;
+	  // Give the params a value AND set them constant
+	  asimov.SetParamValue(param_name, param_val);
+	  asimov.SetFixedParam(param_name);
 	}
 	  
       }
