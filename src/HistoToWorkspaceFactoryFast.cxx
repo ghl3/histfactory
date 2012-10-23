@@ -1919,10 +1919,16 @@ namespace HistFactory{
     if(channel.GetData().GetHisto() != NULL) { 
 
       Data& data = channel.GetData();
+      TH1* mnominal = data.GetHisto(); 
+      if( !mnominal ) {
+	std::cout << "Error: Data histogram for channel: " << channel.GetName()
+		  << " is NULL" << std::endl;
+	throw hf_exc();
+      }
 
       // THis works and is natural, but the memory size of the simultaneous dataset grows exponentially with channels
       RooDataSet* obsDataUnbinned = new RooDataSet("obsData","",*proto->set("obsAndWeight"),weightName);
-      TH1* mnominal = data.GetHisto(); 
+
 
       ConfigureHistFactoryDataset( obsDataUnbinned, mnominal, 
 				   proto, fObsNameVec );
@@ -1963,6 +1969,60 @@ namespace HistFactory{
       proto->import(*obsDataUnbinned);
     } // End: Has non-null 'data' entry
 
+    
+    for(unsigned int i=0; i < channel.GetAdditionalData().size(); ++i) {
+      
+      Data& data = channel.GetAdditionalData().at(i);
+      std::string dataName = data.GetName();
+      TH1* mnominal = data.GetHisto(); 
+      if( !mnominal ) {
+	std::cout << "Error: Additional Data histogram for channel: " << channel.GetName()
+		  << " with name: " << dataName << " is NULL" << std::endl;
+	throw hf_exc();
+      }
+
+      // THis works and is natural, but the memory size of the simultaneous dataset grows exponentially with channels
+      RooDataSet* obsDataUnbinned = new RooDataSet(dataName.c_str(), dataName.c_str(),
+						   *proto->set("obsAndWeight"), weightName);
+      
+      ConfigureHistFactoryDataset( obsDataUnbinned, mnominal, 
+				   proto, fObsNameVec );
+      
+      /*
+      //ES// TH1* mnominal = summary.at(0).nominal;
+      TH1* mnominal = data.GetHisto(); 
+      TAxis* ax = mnominal->GetXaxis(); 
+      TAxis* ay = mnominal->GetYaxis(); 
+      TAxis* az = mnominal->GetZaxis(); 	
+
+      for (int i=1; i<=ax->GetNbins(); ++i) { // 1 or more dimension
+	Double_t xval = ax->GetBinCenter(i);
+	proto->var( fObsNameVec[0].c_str() )->setVal( xval );
+	if        (fObsNameVec.size()==1) {
+	  Double_t fval = mnominal->GetBinContent(i);
+	  obsDataUnbinned->add( *proto->set("obsAndWeight"), fval );
+	} else { // 2 or more dimensions
+	  for (int j=1; j<=ay->GetNbins(); ++j) {
+	    Double_t yval = ay->GetBinCenter(j);
+	    proto->var( fObsNameVec[1].c_str() )->setVal( yval );
+	    if (fObsNameVec.size()==2) { 
+	      Double_t fval = mnominal->GetBinContent(i,j);
+	      obsDataUnbinned->add( *proto->set("obsAndWeight"), fval );
+	    } else { // 3 dimensions 
+	      for (int k=1; k<=az->GetNbins(); ++k) {
+		Double_t zval = az->GetBinCenter(k);
+		proto->var( fObsNameVec[2].c_str() )->setVal( zval );
+		Double_t fval = mnominal->GetBinContent(i,j,k);
+		obsDataUnbinned->add( *proto->set("obsAndWeight"), fval );
+	      }
+	    }
+	  }
+	}
+      }
+      */
+
+      proto->import(*obsDataUnbinned);
+    } // End: Has non-null 'data' entry
 
     proto->Print();
     return proto;

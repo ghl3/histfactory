@@ -19,6 +19,9 @@ public:
 
   Data();
   Data( std::string HistoName, std::string InputFile, std::string HistoPath="" );
+
+  std::string GetName() { return fName; }
+  void SetName(const std::string& name) { fName=name; }
   
   void SetInputFile(const std::string& InputFile) { fInputFile = InputFile; }
   std::string GetInputFile() { return fInputFile; }
