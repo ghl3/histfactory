@@ -378,6 +378,59 @@ HistFactory::Measurement ConfigParser::CreateMeasurementFromDriverNode( TXMLNode
       }
     }
 
+    else if( child->GetNodeName() == TString( "Asimov" ) ) {
+
+      //std::string name;
+      //std::map<string, double> fixedParams;
+
+      // Now, create and configure an asimov object
+      // and add it to the measurement
+      RooStats::HistFactory::Asimov asimov;
+      std::string ParamFixString;
+
+      // Loop over attributes
+      attribIt = child->GetAttributes();
+      curAttr = 0;
+      while( ( curAttr = dynamic_cast< TXMLAttr* >( attribIt() ) ) != 0 ) {
+	
+	if( curAttr->GetName() == TString( "" ) ) {
+	  std::cout << "Error: Found tag attribute with no name in ConstraintTerm" << std::endl;
+	  throw hf_exc();
+	}
+
+	else if( curAttr->GetName() == TString( "Name" ) ) {
+	  std::string name = curAttr->GetValue();
+	  asimov.SetName( name );
+	}
+
+	else if( curAttr->GetName() == TString( "FixParams" ) ) {
+	  ParamFixString = curAttr->GetValue();
+	  //std::map<std::string, double> fixedParams = ExtractParamMapFromString(FixParamList);
+	  //asimov.GetFixedParams() = fixedParams;
+	}
+
+	else {
+	  std::cout << "Found tag attribute with unknown name in ConstraintTerm: "
+		    << curAttr->GetName() << std::endl;
+	  throw hf_exc();
+	}
+
+      }
+
+      // Add any parameters to the asimov dataset
+      // to be fixed during the fitting and dataset generation
+      if( ParamFixString=="" ) {
+	std::cout << "Warning: Asimov Dataset with name: " << asimov.GetName()
+		  << " added, but no parameters are set to be fixed" << std::endl;
+      }
+      else {
+	AddParamsToAsimov( asimov, ParamFixString );
+      }
+      
+      measurement.AddAsimovDataset( asimov );
+
+    }
+
     else if( child->GetNodeName() == TString( "ConstraintTerm" ) ) {
       vector<string> syst; 
       string type = ""; 
