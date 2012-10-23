@@ -979,7 +979,13 @@ namespace RooStats {
       }
     }
 
-    
+    /*
+    void HistFactoryNavigation::AddChannel(const std::string& channel, RooAbsPdf* pdf, 
+					   RooDataSet* data=NULL) {
+
+    }
+    */
+
   } // namespace HistFactory
 } // namespace RooStats
 

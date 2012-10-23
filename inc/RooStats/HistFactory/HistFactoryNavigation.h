@@ -86,6 +86,11 @@ namespace RooStats {
       // the supplied regular expression
       void SetConstant(const std::string& regExpr=".*", bool constant=true);
 
+      /*
+      // Add a channel to the pdf
+      // Combine the data if it is provided
+      void AddChannel(const std::string& channel, RooAbsPdf* pdf, RooDataSet* data=NULL);
+      */
 
       /*
       // Add a constraint term to the pdf
