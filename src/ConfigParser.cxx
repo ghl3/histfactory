@@ -654,7 +654,14 @@ HistFactory::Channel ConfigParser::ParseChannelXMLFile( string filen ) {
 
     else if( node->GetNodeName() == TString( "Data" ) ) {
       if( firstData ) {
-	channel.SetData( CreateDataElement(node) );
+	RooStats::HistFactory::Data data = CreateDataElement(node);
+	if( data.GetName() != "" ) {
+	  std::cout << "Error: You can only rename the datasets of additional data sets.  " 
+		    << "  Remove the 'Name=" << data.GetName() << "' tag"
+		    << " from channel: " << channel.GetName() << std::endl;
+	  throw hf_exc();
+	}
+	channel.SetData( data );
 	firstData=false;
       }
       else {
@@ -715,6 +722,10 @@ HistFactory::Data ConfigParser::CreateDataElement( TXMLNode* node ) {
 	throw hf_exc();
       }
 
+      else if( attrName == TString( "Name" ) ) {
+	data.SetName( attrVal );
+      }
+
       else if( attrName == TString( "InputFile" ) ) {
 	data.SetInputFile( attrVal );
       }
@@ -749,8 +760,9 @@ HistFactory::Data ConfigParser::CreateDataElement( TXMLNode* node ) {
     std::cout << "Created Data Node with"
 	      << " InputFile: " << data.GetInputFile()
 	      << " HistoName: " << data.GetHistoName()
-	      << " HistoPath: " << data.GetHistoPath()
-	      << std::endl;
+	      << " HistoPath: " << data.GetHistoPath();
+    if( data.GetName() != "") std::cout << " Name: " << data.GetName();
+    std::cout  << std::endl;
 
     // data.hist = GetHisto(data.FileName, data.HistoPath, data.HistoName);
 
