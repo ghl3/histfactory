@@ -94,6 +94,8 @@ void RooStats::HistFactory::HistoSys::writeToFile( std::string FileName, std::st
 	      << std::endl;
     throw hf_exc();
   }
+  std::string hLowName = histLow->GetName() + "_" + GetName() + "_low";
+  histLow->SetName( hLowName.c_str() );
   histLow->Write();
   fInputFileLow = FileName;
   fHistoPathLow = DirName;
@@ -107,6 +109,8 @@ void RooStats::HistFactory::HistoSys::writeToFile( std::string FileName, std::st
 	      << std::endl;
     throw hf_exc();
   }
+  std::string hHighName = histHigh->GetName() + "_" + GetName() + "_high";
+  histHigh->SetName( hHighName.c_str() );
   histHigh->Write();
   fInputFileHigh = FileName;
   fHistoPathHigh = DirName;
@@ -145,6 +149,8 @@ void RooStats::HistFactory::ShapeSys::writeToFile( std::string FileName, std::st
 	      << std::endl;
     throw hf_exc();
   }
+  std::string hShapeName = histLow->GetName() + "_" + GetName() + "_error";
+  histLow->SetName( hLowName.c_str() );
   histError->Write();
   fInputFile = FileName;
   fHistoPath = DirName;

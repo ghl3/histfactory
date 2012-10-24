@@ -98,7 +98,6 @@ namespace HistFactory {
     
     TH1* GetHistoLow();
     TH1* GetHistoHigh();
-
     
     void SetName( const std::string& Name ) { fName = Name; }
     std::string GetName() { return fName; }
