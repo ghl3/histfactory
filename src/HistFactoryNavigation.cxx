@@ -20,11 +20,132 @@ namespace RooStats {
 
 
     HistFactoryNavigation::HistFactoryNavigation(ModelConfig* mc) : _numBinsToPrint(-1) {
-      
+
+      if( !mc ) {
+	std::cout << "Error: The supplied ModelConfig is NULL " << std::endl;
+	throw hf_exc();
+      }
+
       // Save the model pointer
+      RooAbsPdf* pdf_in_mc = mc->GetPdf();
+      if( !pdf_in_mc ) {
+	std::cout << "Error: The pdf found in the ModelConfig: " << mc->GetName()
+		  << " is NULL" << std::endl;
+	throw hf_exc();
+      }
+
+      // Set the PDF member
       fModel = mc->GetPdf();
-      fObservables = const_cast<RooArgSet*>(mc->GetObservables());
+
+      // Get the observables
+      RooArgSet* observables_in_mc = const_cast<RooArgSet*>(mc->GetObservables());
+      if( !observables_in_mc ) {
+	std::cout << "Error: Observable set in the ModelConfig: " << mc->GetName()
+		  << " is NULL" << std::endl;
+	throw hf_exc();
+      }
+      if( observables_in_mc->getSize() == 0 ) {
+	std::cout << "Error: Observable list: " << observables_in_mc->GetName()
+		  << " found in ModelConfig: " << mc->GetName()
+		  << " has no entries." << std::endl;
+	throw hf_exc();
+      }
+
+      // Set the observables member
+      fObservables = observables_in_mc;
       
+      // Initialize the rest of the members
+      _GetNodes(fModel, fObservables);
+
+    }
+
+
+    HistFactoryNavigation::HistFactoryNavigation(const std::string& FileName,
+						 const std::string& WorkspaceName,
+						 const std::string& ModelConfigName) :
+      _numBinsToPrint(-1) {
+      
+      // Open the File
+      TFile* file = new TFile(FileName.c_str());
+      if( !file ) {
+	std::cout << "Error: Failed to open file: " << FileName << std::endl;
+	throw hf_exc();
+      }
+
+      // Get the workspace
+      RooWorkspace* wspace = (RooWorkspace*) file->Get(WorkspaceName.c_str());
+      if( !wspace ) {
+	std::cout << "Error: Failed to get workspace: " << WorkspaceName
+		  << " from file: " << FileName << std::endl;
+	throw hf_exc();
+      }
+
+      // Get the ModelConfig
+      ModelConfig* mc = (ModelConfig*) wspace->obj(ModelConfigName.c_str());
+      if( !mc ) {
+	std::cout << "Error: Failed to find ModelConfig: " << ModelConfigName
+		  << " from workspace: " << WorkspaceName
+		  << " in file: " << FileName << std::endl;
+	throw hf_exc();
+      }
+
+      // Save the model pointer
+      RooAbsPdf* pdf_in_mc = mc->GetPdf();
+      if( !pdf_in_mc ) {
+	std::cout << "Error: The pdf found in the ModelConfig: " << ModelConfigName
+		  << " is NULL" << std::endl;
+	throw hf_exc();
+      }
+
+      // Set the PDF member
+      fModel = pdf_in_mc;
+
+      // Get the observables
+      RooArgSet* observables_in_mc = const_cast<RooArgSet*>(mc->GetObservables());
+      if( !observables_in_mc ) {
+	std::cout << "Error: Observable set in the ModelConfig: " << ModelConfigName
+		  << " is NULL" << std::endl;
+	throw hf_exc();
+      }
+      if( observables_in_mc->getSize() == 0 ) {
+	std::cout << "Error: Observable list: " << observables_in_mc->GetName()
+		  << " found in ModelConfig: " << ModelConfigName
+		  << " in file: " << FileName
+		  << " has no entries." << std::endl;
+	throw hf_exc();
+      }
+
+      // Set the observables member
+      fObservables = observables_in_mc;
+      
+      // Initialize the rest of the members
+      _GetNodes(fModel, fObservables);
+
+    }
+
+
+    HistFactoryNavigation::HistFactoryNavigation(RooAbsPdf* model, RooArgSet* observables) {
+
+      // Save the model pointer
+      if( !model ) {
+	std::cout << "Error: The supplied pdf is NULL" << std::endl;
+	throw hf_exc();
+      }
+
+      // Set the PDF member
+      fModel = model;
+
+      // Get the observables
+      if( !observables ) {
+	std::cout << "Error: Supplied Observable set is NULL" << std::endl;
+	throw hf_exc();
+      }
+      if( observables->getSize() == 0 ) {
+	std::cout << "Error: Observable list: " << observables->GetName()
+		  << " has no entries." << std::endl;
+	throw hf_exc();
+      }
+
       // Initialize the rest of the members
       _GetNodes(fModel, fObservables);
 
