@@ -643,7 +643,7 @@ namespace RooStats {
     }
 
 
-    RooAbsArg* HistFactoryNavigation::findChild(const std::string& name, RooAbsReal* parent) {
+    RooAbsArg* HistFactoryNavigation::findChild(const std::string& name, RooAbsReal* parent) const {
       
       RooAbsArg* term=NULL;
 
@@ -1145,6 +1145,16 @@ namespace RooStats {
 	std::cout << "Setting param: " << ParamName << " constant" 
 		  << " (matches regex: " << regExpr << ")" << std::endl;
       }
+    }
+
+    RooRealVar* HistFactoryNavigation::var(const std::string& varName) const {
+      
+      RooAbsArg* arg = findChild(varName, fModel);
+      if( !arg ) return NULL;
+
+      RooRealVar* var_obj = dynamic_cast<RooRealVar*>(arg);
+      return var_obj;
+
     }
 
     /*

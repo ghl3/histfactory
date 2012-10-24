@@ -39,25 +39,6 @@ namespace RooStats {
 
       virtual ~HistFactoryNavigation() {} 
 
-      // Get the RooAbsReal function for a given sample in a given channel
-      RooAbsReal* SampleFunction(const std::string& channel, const std::string& sample);
-
-      // Get the set of observables for a given channel
-      RooArgSet* GetObservableSet(const std::string& channel);
-
-      // The (current) histogram for that sample 
-      // This includes all parameters and interpolation
-      TH1* GetSampleHist(const std::string& channel, const std::string& sample, const std::string& name="");  
-
-      // Get the total channel histogram for this channel
-      TH1* GetChannelHist(const std::string& channel, const std::string& name="");
-
-      // Get the constraint term for a given systematic (alpha or gamma)
-      RooAbsReal* GetConstraintTerm(const std::string& parameter);
-
-      // Get the uncertainty based on the constraint term for a given systematic
-      double GetConstraintUncertainty(const std::string& parameter);
-
       // Should pretty print all channels and the current values 
       void PrintState();
       // Should pretty print this and the current values
@@ -77,6 +58,26 @@ namespace RooStats {
       // The value of the ith bin for that sample and channel 
       double GetBinValue(int bin, const std::string& channel, const std::string& sample);  
 
+      // The (current) histogram for that sample 
+      // This includes all parameters and interpolation
+      TH1* GetSampleHist(const std::string& channel, 
+			 const std::string& sample, const std::string& name="");  
+
+      // Get the total channel histogram for this channel
+      TH1* GetChannelHist(const std::string& channel, const std::string& name="");
+
+      // Get the RooAbsReal function for a given sample in a given channel
+      RooAbsReal* SampleFunction(const std::string& channel, const std::string& sample);
+
+      // Get the set of observables for a given channel
+      RooArgSet* GetObservableSet(const std::string& channel);
+
+      // Get the constraint term for a given systematic (alpha or gamma)
+      RooAbsReal* GetConstraintTerm(const std::string& parameter);
+
+      // Get the uncertainty based on the constraint term for a given systematic
+      double GetConstraintUncertainty(const std::string& parameter);
+
       // Find a node in the pdf and replace it with a new node
       // These nodes can be functions, pdf's, RooRealVar's, etc
       // Will do minimial checking to make sure the replacement makes sense
@@ -90,6 +91,15 @@ namespace RooStats {
       // the supplied regular expression
       void SetConstant(const std::string& regExpr=".*", bool constant=true);
 
+      void SetNumBinsToPrint(int num) { _numBinsToPrint = num; }
+      int GetNumBinsToPrint() const { return _numBinsToPrint; }
+
+      RooAbsPdf* GetModel() const { return fModel; }
+
+      // Return the RooRealVar by the same name used in the model
+      // If not found, return NULL
+      RooRealVar* var(const std::string& varName) const;
+      
       /*
       // Add a channel to the pdf
       // Combine the data if it is provided
@@ -106,9 +116,6 @@ namespace RooStats {
       // OR that the channel string match the channel that the pdf represents
       void AddConstraintTerm(RooAbsArg* constraintTerm, const std::string& channel);
       */
-
-      void SetNumBinsToPrint(int num) { _numBinsToPrint = num; }
-      int GetNumBinsToPrint() { return _numBinsToPrint; }
 
     protected:
 
@@ -155,7 +162,7 @@ namespace RooStats {
 
       // Internal method implementation of finding a daughter node
       // from a parent node (looping over all generations)
-      RooAbsArg* findChild(const std::string& name, RooAbsReal* parent);
+      RooAbsArg* findChild(const std::string& name, RooAbsReal* parent) const;
 
       // Recursively get all products of products
       RooArgSet _GetAllProducts(RooProduct* node);
