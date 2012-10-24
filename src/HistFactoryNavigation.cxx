@@ -1,5 +1,6 @@
 
 #include <iomanip>
+#include <sstream>
 
 #include "TRegexp.h"
 
@@ -33,7 +34,7 @@ namespace RooStats {
     void HistFactoryNavigation::PrintState(const std::string& channel) {
 
       int label_print_width = 20;
-      int bin_print_width = 15;
+      int bin_print_width = 12;
       std::cout << std::endl << channel << ":" << std::endl;
 
       // Get the map of Samples for this channel
@@ -43,7 +44,7 @@ namespace RooStats {
       for( std::map< std::string, RooAbsReal*>::iterator itr = SampleFunctionMap.begin(); 
 	   itr != SampleFunctionMap.end(); ++itr) {
 	std::string sample_name = itr->first;
-	label_print_width = TMath::Max(label_print_width, (int)sample_name.size()+4);
+	label_print_width = TMath::Max(label_print_width, (int)sample_name.size()+2);
       }
 
       // Loop over the SampleFunctionMap and print the individual histograms
@@ -71,8 +72,11 @@ namespace RooStats {
 
       // Make the line break as a set of "===============" ...
       std::string line_break;
-      for(int i = 0; i < label_print_width + (_numBinsToPrint == -1 ? num_bins : _numBinsToPrint)*bin_print_width; ++i) {
-	if( _numBinsToPrint != -1 && i >= _numBinsToPrint) break;
+      int break_length = _numBinsToPrint == -1 ? 
+	num_bins : TMath::Min(_numBinsToPrint, (int)num_bins);
+      break_length *= bin_print_width;
+      break_length += label_print_width;
+      for(int i = 0; i < break_length; ++i) {
 	line_break += "=";
       }
       std::cout << line_break << std::endl;
@@ -836,23 +840,37 @@ namespace RooStats {
       
       // Let's see what it is...
       int label_print_width = 30;  
+      int bin_print_width = 12;
       if( strcmp(sampleNode->ClassName(),"RooProduct")==0){
 	RooProduct* prod = dynamic_cast<RooProduct*>(sampleNode);
 	components.add( _GetAllProducts(prod) );
-	std::string node_name = prod->GetName();
-	label_print_width = TMath::Max(label_print_width, (int)node_name.size()+4);
       }
       else {
 	components.add(*sampleNode);
       }
       
+      /////// NODE SIZE
+      {
+	TIterator* itr = components.createIterator();
+	RooAbsArg* arg = NULL;
+	while( (arg=(RooAbsArg*)itr->Next()) ) {
+	  RooAbsReal* component = dynamic_cast<RooAbsReal*>(arg);
+	  std::string NodeName = component->GetName();
+	  label_print_width = TMath::Max(label_print_width, (int)NodeName.size()+2);
+	}
+      }
+
       // Now, loop over the components and print them out:
       
       std::cout << std::endl;
       std::cout << std::setw(label_print_width) << "Factor";
       for(unsigned int i=0; i < num_bins; ++i) {
 	if( _numBinsToPrint != -1 && (int)i >= _numBinsToPrint) break;
-	std::cout << std::setw(15) << "Bin " << i;
+	std::stringstream sstr;
+	sstr << "Bin" << i;
+	std::cout << std::setw(bin_print_width) << sstr.str();
+	//std::cout << std::setw(bin_print_width) << "Bin ";
+	//std::cout << std::setw(bin_print_width) << i;
       }
       std::cout << std::endl;
 
@@ -880,17 +898,30 @@ namespace RooStats {
 	std::cout << std::setw(label_print_width) << NodeName;
 	for(unsigned int i = 0; i < num_bins; ++i) {
 	  if( _numBinsToPrint != -1 && (int)i >= _numBinsToPrint) break;
-	  std::cout << std::setw(15) << hist->GetBinContent(i+1);
+	  std::cout << std::setw(bin_print_width) << hist->GetBinContent(i+1);
 	}
 	std::cout << std::endl;
 	delete hist;
       }
-      
-      for(unsigned int i=0; i<label_print_width + 15*num_bins; ++i) { std::cout << "="; }
-      std::cout << std::endl << std::setw(label_print_width) << "TOTAL:";
+      /////
+      std::string line_break;
+      int break_length = _numBinsToPrint == -1 ? 
+	num_bins : TMath::Min(_numBinsToPrint, (int)num_bins);
+      break_length *= bin_print_width;
+      break_length += label_print_width;
+      for(int i = 0; i < break_length; ++i) {
+	line_break += "=";
+      }
+      std::cout << line_break << std::endl;
+
+      //for(unsigned int i=0; i<label_print_width + 15*num_bins; ++i) { 
+      //std::cout << "="; 
+      //}
+      //std::cout << std::endl << std::setw(label_print_width) << "TOTAL:";
+      std::cout << std::setw(label_print_width) << "TOTAL:";
       for(unsigned int i = 0; i < num_bins; ++i) {
 	if( _numBinsToPrint != -1 && (int)i >= _numBinsToPrint) break;
-	std::cout << std::setw(15) << total_hist->GetBinContent(i+1);
+	std::cout << std::setw(bin_print_width) << total_hist->GetBinContent(i+1);
       }
       std::cout << std::endl << std::endl;
 
