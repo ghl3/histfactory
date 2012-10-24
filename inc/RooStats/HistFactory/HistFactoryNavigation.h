@@ -47,6 +47,18 @@ namespace RooStats {
       // Print the current values and errors of pdf parameters
       void PrintParameters(bool IncludeConstantParams=false);
 
+      // Print parameters that effect a particular channel
+      void PrintChannelParameters(const std::string& channel, 
+				  bool IncludeConstantParams=false);
+
+      // Print parameters that effect a particular sample
+      void PrintSampleParameters(const std::string& channel, const std::string& sample, 
+				 bool IncludeConstantParams=false);
+
+      // Print the different components that make up a sample
+      // (NormFactors, Statistical Uncertainties, Interpolation, etc)
+      void PrintSampleComponents(const std::string& channel, const std::string& sample);
+
       // Print a "HistFactory style" RooDataSet in a readable way
       static void PrintDataSet(RooDataSet* data, const std::string& channel="", int max=-1);
 
@@ -83,9 +95,6 @@ namespace RooStats {
       // Will do minimial checking to make sure the replacement makes sense
       void ReplaceNode(const std::string& ToReplace, RooAbsArg* ReplaceWith);
 
-      // Print the different components that make up a sample
-      // (NormFactors, Statistical Uncertainties, Interpolation, etc)
-      void PrintSampleComponents(const std::string& channel, const std::string& sample);
 
       // Set any RooRealVar's const (or not const) if they match
       // the supplied regular expression
@@ -94,7 +103,12 @@ namespace RooStats {
       void SetNumBinsToPrint(int num) { _numBinsToPrint = num; }
       int GetNumBinsToPrint() const { return _numBinsToPrint; }
 
+      // Get the model for this channel
       RooAbsPdf* GetModel() const { return fModel; }
+
+      //
+      RooAbsPdf* GetChannelPdf(const std::string& channel);
+      
 
       // Return the RooRealVar by the same name used in the model
       // If not found, return NULL

@@ -152,6 +152,28 @@ namespace RooStats {
     }
 
 
+    RooAbsPdf* HistFactoryNavigation::GetChannelPdf(const std::string& channel) {
+
+      std::map< std::string, RooAbsPdf* >::iterator itr;
+      itr = fChannelPdfMap.find(channel);
+      
+      if( itr == fChannelPdfMap.end() ) {
+	std::cout << "Warning: Could not find channel: " << channel
+		  << " in pdf: " << fModel->GetName() << std::endl;
+	return NULL;
+      }
+      
+      RooAbsPdf* pdf = itr->second;
+      if( pdf == NULL ) {
+	std::cout << "Warning: Pdf associated with channel: " << channel
+		  << " is NULL" << std::endl;
+	return NULL;
+      }
+
+      return pdf;
+
+    }
+
     void HistFactoryNavigation::PrintState(const std::string& channel) {
 
       int label_print_width = 20;
@@ -246,6 +268,9 @@ namespace RooStats {
       // Create a map of channel names to the channel's bin values
       std::map< std::string, std::vector<double> > ChannelBinsMap;
 
+      int label_print_width = 20;
+      int bin_print_width = 12;
+
       // Then loop and fill these vectors for each channel      
       for(int i = 0; i < data->numEntries(); ++i) {
 
@@ -278,11 +303,11 @@ namespace RooStats {
 	// If we pass a channel string, we only print that one channel
 	if( channel_to_print != "" && channel_name != channel_to_print) continue;
 
-	std::cout << std::setw(20) << channel_name + " (data)";
+	std::cout << std::setw(label_print_width) << channel_name + " (data)";
 	std::vector<double>& bins = itr->second;
 	for(unsigned int i = 0; i < bins.size(); ++i) {
 	  if( max_bins != -1 && (int)i >= max_bins) break;
-	  std::cout << std::setw(15) << bins.at(i);
+	  std::cout << std::setw(bin_print_width) << bins.at(i);
 	}
 	std::cout << std::endl;
 
@@ -339,6 +364,90 @@ namespace RooStats {
 
       return;
     }
+
+    void HistFactoryNavigation::PrintChannelParameters(const std::string& channel,
+						       bool IncludeConstantParams) {
+
+      // Get the list of parameters
+      RooArgSet* params = fModel->getParameters(*fObservables);
+
+      // Get the pdf for this channel
+      RooAbsPdf* channel_pdf = GetChannelPdf(channel);
+
+      std::cout << std::endl;
+
+      // Create the title row
+      std::cout << std::setw(30) << "Parameter";
+      std::cout << std::setw(15) << "Value"
+		<< std::setw(15) << "Error Low" 
+		<< std::setw(15) << "Error High"
+		<< std::endl;
+      
+      // Loop over the parameters and print their values, etc
+      TIterator* paramItr = params->createIterator();
+      RooRealVar* param = NULL;
+      while( (param=(RooRealVar*)paramItr->Next()) ) {
+
+	if( !IncludeConstantParams && param->isConstant() ) continue;
+
+	if( findChild(param->GetName(), channel_pdf)==NULL ) continue;
+
+	std::cout << std::setw(30) << param->GetName();
+	std::cout << std::setw(15) << param->getVal();
+	if( !param->isConstant() ) {
+	  std::cout << std::setw(15) << param->getErrorLo() << std::setw(15) << param->getErrorHi();
+	}
+	std::cout<< std::endl;
+      }
+      
+      std::cout << std::endl;
+
+      return;
+    }
+
+
+    void HistFactoryNavigation::PrintSampleParameters(const std::string& channel,
+						      const std::string& sample,
+						      bool IncludeConstantParams) {
+
+      // Get the list of parameters
+      RooArgSet* params = fModel->getParameters(*fObservables);
+
+      // Get the pdf for this channel
+      RooAbsReal* sample_func = SampleFunction(channel, sample);
+      
+      std::cout << std::endl;
+
+      // Create the title row
+      std::cout << std::setw(30) << "Parameter";
+      std::cout << std::setw(15) << "Value"
+		<< std::setw(15) << "Error Low" 
+		<< std::setw(15) << "Error High"
+		<< std::endl;
+      
+      // Loop over the parameters and print their values, etc
+      TIterator* paramItr = params->createIterator();
+      RooRealVar* param = NULL;
+      while( (param=(RooRealVar*)paramItr->Next()) ) {
+
+	if( !IncludeConstantParams && param->isConstant() ) continue;
+
+	if( findChild(param->GetName(), sample_func)==NULL ) continue;
+
+	std::cout << std::setw(30) << param->GetName();
+	std::cout << std::setw(15) << param->getVal();
+	if( !param->isConstant() ) {
+	  std::cout << std::setw(15) << param->getErrorLo() << std::setw(15) << param->getErrorHi();
+	}
+	std::cout<< std::endl;
+      }
+      
+      std::cout << std::endl;
+
+      return;
+    }
+
+
 
     double HistFactoryNavigation::GetBinValue(int bin, const std::string& channel) {
       // Get the total bin height for the ith bin (ROOT indexing convention)
@@ -668,7 +777,8 @@ namespace RooStats {
       // Check if it's a Parameter
       // (ie a RooRealVar)
       RooArgSet* args = new RooArgSet();
-      RooArgSet* paramSet = fModel->getParameters(args);
+      //RooArgSet* paramSet = fModel->getParameters(args);
+      RooArgSet* paramSet = parent->getParameters(args);
       TIterator* paramItr = paramSet->createIterator();
       RooAbsArg* param = NULL;
       while( (param=(RooAbsArg*)paramItr->Next()) ) {
