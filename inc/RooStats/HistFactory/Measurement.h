@@ -15,7 +15,6 @@
 #include "RooStats/HistFactory/Channel.h"
 #include "RooStats/HistFactory/Asimov.h"
 
-
 namespace RooStats{
 namespace HistFactory {
 
