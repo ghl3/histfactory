@@ -115,11 +115,19 @@ namespace RooStats{
       //ES// void LinInterpWithConstraint(RooWorkspace* proto, TH1* nominal, std::vector<TH1*> lowHist, std::vector<TH1*> highHist,
       //ES// 				 std::vector<std::string> sourceName, std::string prefix, std::string productPrefix, std::string systTerm,
       //ES// 				 int lowBin, int highBin, std::vector<std::string>& likelihoodTermNames);
+
+      /*
       void LinInterpWithConstraint(RooWorkspace* proto, TH1* nominal, std::vector<HistoSys>,  
 				   std::string prefix, std::string productPrefix, 
 				   std::string systTerm, int lowBin, int highBin, 
 				   std::vector<std::string>& likelihoodTermNames);
-    
+      */
+      void LinInterpWithConstraint(RooWorkspace* proto, TH1* nominal, std::vector<HistoSys>,  
+				   std::string prefix, std::string productPrefix, 
+				   std::string systTerm, 
+				   std::vector<std::string>& likelihoodTermNames);
+
+
       // TDirectory* Makedirs( TDirectory* file, std::vector<std::string> names );
       // TDirectory* Mkdir( TDirectory * file, std::string name );
     
@@ -127,13 +135,12 @@ namespace RooStats{
       // GHL: Renaming to "MakeSingleChannelWorkspace"
       RooWorkspace* MakeSingleChannelWorkspace(Measurement& measurement, Channel& channel);
     
-      void MakeTotalExpected(RooWorkspace* proto, std::string totName, 
-			     std::string /**/, std::string /**/,
-			      int lowBin, int highBin, 
-			     std::vector<std::string>& syst_x_expectedPrefixNames,
-			      std::vector<std::string>& normByNames);
-    
 
+      void MakeTotalExpected(RooWorkspace* proto, std::string totName, 
+			     std::vector<std::string>& syst_x_expectedPrefixNames,
+			     std::vector<std::string>& normByNames);
+
+    
     
       RooDataSet* MergeDataSets(RooWorkspace* combined,
 				std::vector<RooWorkspace*> wspace_vec, 
@@ -142,9 +149,9 @@ namespace RooStats{
 				RooArgList obsList,
 				RooCategory* channelCat);
 
-      void ProcessExpectedHisto(TH1* hist,RooWorkspace* proto, std::string prefix, 
-				std::string productPrefix, std::string systTerm, 
-				double low, double high, int lowBin, int highBin);
+      void ProcessExpectedHisto(TH1* hist, RooWorkspace* proto, std::string prefix, 
+				std::string productPrefix, std::string systTerm );
+      //double low, double high, int lowBin, int highBin);
 
       void SetObsToExpected(RooWorkspace* proto, std::string obsPrefix, std::string expPrefix, 
 			    int lowBin, int highBin);

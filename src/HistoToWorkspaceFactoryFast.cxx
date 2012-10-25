@@ -371,9 +371,9 @@ namespace HistFactory{
   }
   */
 
-  void HistoToWorkspaceFactoryFast::ProcessExpectedHisto(TH1* hist,RooWorkspace* proto, string prefix, string
-						       productPrefix, string systTerm, double /*low*/ , double
-						       /*high*/, int /*lowBin*/, int /*highBin*/ ){
+  void HistoToWorkspaceFactoryFast::ProcessExpectedHisto(TH1* hist,RooWorkspace* proto, 
+							 string prefix, string productPrefix, 
+							 string systTerm ) {
     if(hist) {
       cout << "processing hist " << hist->GetName() << endl;
     } else {
@@ -463,8 +463,9 @@ namespace HistFactory{
   //                                                        int /*lowBin*/, int /*highBin */, vector<string>& constraintTermNames){
   void HistoToWorkspaceFactoryFast::LinInterpWithConstraint(RooWorkspace* proto, TH1* nominal, 
 							    std::vector<HistoSys> histoSysList,
-							    string prefix, string productPrefix, string systTerm, 
-							    int /*lowBin*/, int /*highBin */, vector<string>& constraintTermNames){
+							    string prefix, string productPrefix, 
+							    string systTerm, 
+							    vector<string>& constraintTermNames){
 
     // these are the nominal predictions: eg. the mean of some space of variations
     // later fill these in a loop over histogram bins
@@ -659,9 +660,11 @@ namespace HistFactory{
     map<string,pair<double,double> > systMap, 
     vector<string>& constraintTermNames, vector<string>& totSystTermNames){
   */
-  void HistoToWorkspaceFactoryFast::AddEfficiencyTerms(RooWorkspace* proto, string prefix, string interpName,
+  void HistoToWorkspaceFactoryFast::AddEfficiencyTerms(RooWorkspace* proto, string prefix, 
+						       string interpName,
 						       std::vector<OverallSys>& systList, 
-						       vector<string>& constraintTermNames, vector<string>& totSystTermNames) {
+						       vector<string>& constraintTermNames, 
+						       vector<string>& totSystTermNames) {
 
     // 
     // add variables for all the relative overall uncertainties we expect
@@ -729,8 +732,6 @@ namespace HistFactory{
 
 
   void  HistoToWorkspaceFactoryFast::MakeTotalExpected(RooWorkspace* proto, string totName, 
-						       string /**/, string /**/, 
-                                                       int /*lowBin*/, int /*highBin */, 
 						       vector<string>& syst_x_expectedPrefixNames, 
                                                        vector<string>& normByNames){
 
@@ -1361,9 +1362,14 @@ namespace HistFactory{
         cout << sample.GetName() + "_" + channel_name + " has no variation histograms " << endl;
         string expPrefix = sample.GetName() + "_" + channel_name; //+"_expN";
         syst_x_expectedPrefix = sample.GetName() + "_" + channel_name + "_overallSyst_x_Exp";
+
+        //ProcessExpectedHisto(sample.GetHisto(), proto, expPrefix, syst_x_expectedPrefix, 
+	//		     overallSystName, atoi(NoHistConst_Low), atoi(NoHistConst_High),
+	//		     fLowBin, fHighBin);
         ProcessExpectedHisto(sample.GetHisto(), proto, expPrefix, syst_x_expectedPrefix, 
-			     overallSystName, atoi(NoHistConst_Low), atoi(NoHistConst_High),
-			     fLowBin, fHighBin);
+			     overallSystName);
+
+
         //syst_x_expectedPrefixNames.push_back(syst_x_expectedPrefix);
       } else {
 	// If there ARE HistoSys(s)
@@ -1371,9 +1377,17 @@ namespace HistFactory{
 	syst_x_expectedPrefix = sample.GetName() + "_" + channel_name + "_overallSyst_x_HistSyst";
 	// constraintTermNames are passed by reference and appended to,
 	// overallSystName is a std::string for this sample
+
+
+        //LinInterpWithConstraint(proto, nominal, sample.GetHistoSysList(),
+	//			constraintPrefix, syst_x_expectedPrefix, overallSystName, 
+	//			fLowBin, fHighBin, constraintTermNames);
+
         LinInterpWithConstraint(proto, nominal, sample.GetHistoSysList(),
 				constraintPrefix, syst_x_expectedPrefix, overallSystName, 
-				fLowBin, fHighBin, constraintTermNames);
+				constraintTermNames);
+
+
         //syst_x_expectedPrefixNames.push_back(syst_x_expectedPrefix);
       }
 
@@ -1814,8 +1828,10 @@ namespace HistFactory{
     
     ///////////////////////////////////
     // for ith bin calculate totN_i =  lumi * sum_j expected_j * syst_j 
-    MakeTotalExpected(proto,channel_name+"_model",channel_name,"Lumi",fLowBin,fHighBin, 
-          syst_x_expectedPrefixNames, normalizationNames);
+    //MakeTotalExpected(proto,channel_name+"_model",channel_name,"Lumi",fLowBin,fHighBin, 
+    //      syst_x_expectedPrefixNames, normalizationNames);
+    MakeTotalExpected(proto, channel_name+"_model", //channel_name,"Lumi",fLowBin,fHighBin, 
+		      syst_x_expectedPrefixNames, normalizationNames);
     likelihoodTermNames.push_back(channel_name+"_model");
 
     //////////////////////////////////////
