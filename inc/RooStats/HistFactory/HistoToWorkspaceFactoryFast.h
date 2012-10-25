@@ -27,15 +27,21 @@
 #include <TH1.h>
 #include <TDirectory.h>
 
-#include "RooStats/HistFactory/EstimateSummary.h"
-#include "RooStats/HistFactory/Measurement.h"
-
-
+//#include "RooStats/HistFactory/EstimateSummary.h"
+//#include "RooStats/HistFactory/Measurement.h"
+#include "RooStats/HistFactory/Systematics.h"
 class ParamHistFunc;
 
 
 namespace RooStats{
   namespace HistFactory{
+
+    // Forward Declarations FTW
+    class Measurement;
+    class Channel;
+    class Sample;
+
+
     class HistoToWorkspaceFactoryFast: public TObject {
     
     public:
@@ -118,7 +124,7 @@ namespace RooStats{
       TH1* MakeScaledUncertaintyHist( const std::string& Name, std::vector< std::pair<TH1*,TH1*> > HistVec );
       TH1* MakeAbsolUncertaintyHist( const std::string& Name, const TH1* Hist );
       RooArgList createStatConstraintTerms( RooWorkspace* proto, std::vector<std::string>& constraintTerms, ParamHistFunc& paramHist, TH1* uncertHist, 
-					    EstimateSummary::ConstraintType type, Double_t minSigma );
+					    Constraint::Type type, Double_t minSigma );
     
       inline void SetObsNameVec(const std::vector<std::string>& obsNameVec) { fObsNameVec = obsNameVec; }
       inline void SetObsName(const std::string& obsName) { fObsNameVec.clear(); fObsNameVec.push_back(obsName); fObsName = obsName; }

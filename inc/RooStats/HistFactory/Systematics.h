@@ -16,7 +16,7 @@ namespace RooStats{
 namespace HistFactory {
 
 
-  namespace Constraint{
+  namespace Constraint {
     enum Type{ Gaussian, Poisson };            
     std::string Name( Type type ); 
     Type GetType( std::string Name );

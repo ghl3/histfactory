@@ -75,6 +75,7 @@ END_HTML
 #include "RooStats/HistFactory/LinInterpVar.h"
 #include "RooStats/HistFactory/FlexibleInterpVar.h"
 #include "RooStats/HistFactory/HistoToWorkspaceFactoryFast.h"
+#include "RooStats/HistFactory/Measurement.h"
 #include "Helper.h"
 
 
@@ -1259,7 +1260,8 @@ namespace HistFactory{
     vector< pair<TH1*,TH1*> >       statHistPairs; // <nominal, error>
     std::string                     statFuncName; // the name of the ParamHistFunc
     std::string                     statNodeName; // the name of the McStat Node
-    EstimateSummary::ConstraintType statConstraintType=EstimateSummary::Gaussian;
+    //EstimateSummary::ConstraintType statConstraintType=EstimateSummary::Gaussian;
+    Constraint::Type statConstraintType=Constraint::Gaussian;
     Double_t                        statRelErrorThreshold=0.0;
 
     string prefix, range;
@@ -1402,16 +1404,16 @@ namespace HistFactory{
 	  // For now, convert it to an EstimateSummary constraint
 	  // Will remove this intermediate step later
 	  // EstimateSummary::ConstraintType:
-	  statConstraintType = EstimateSummary::Gaussian;
+	  statConstraintType = Constraint::Gaussian;
 	  if( type == Constraint::Gaussian) {
 	    std::cout << "Using Gaussian StatErrors" << std::endl;
 	    // sample_es.StatConstraintType = EstimateSummary::Gaussian;
-	    statConstraintType = EstimateSummary::Gaussian;
+	    statConstraintType = Constraint::Gaussian;
 	  }
 	  if( type == Constraint::Poisson ) {
 	    std::cout << "Using Poisson StatErrors" << std::endl;
 	    // sample_es.StatConstraintType = EstimateSummary::Poisson;
-	    statConstraintType = EstimateSummary::Poisson;
+	    statConstraintType = Constraint::Poisson;
 	  }
 
 	  statRelErrorThreshold = channel.GetStatErrorConfig().GetRelErrorThreshold();
@@ -1702,13 +1704,14 @@ namespace HistFactory{
 	    // Set the EstimateSummary style constraint type
 	    // To be updated later
 	    //ES// EstimateSummary::ConstraintType shapeConstraintType = Sys.constraint;
-	    EstimateSummary::ConstraintType shapeConstraintType = EstimateSummary::Gaussian;
+	    //EstimateSummary::ConstraintType shapeConstraintType = EstimateSummary::Gaussian;
+	    Constraint::Type shapeConstraintType = Constraint::Gaussian;
 	    Constraint::Type systype = shapeSys.GetConstraintType();
 	    if( systype == Constraint::Gaussian) {
-	      shapeConstraintType = EstimateSummary::Gaussian;
+	      shapeConstraintType = Constraint::Gaussian;
 	    }
 	    if( systype == Constraint::Poisson ) {
-	      shapeConstraintType = EstimateSummary::Poisson;
+	      shapeConstraintType = Constraint::Poisson;
 	    }
 
 	    Double_t minShapeUncertainty = 0.0;
@@ -2570,7 +2573,7 @@ namespace HistFactory{
 
   RooArgList HistoToWorkspaceFactoryFast::createStatConstraintTerms( RooWorkspace* proto, vector<string>& constraintTermNames,
 								     ParamHistFunc& paramHist, TH1* uncertHist, 
-								     EstimateSummary::ConstraintType type, Double_t minSigma ) {
+								     Constraint::Type type, Double_t minSigma ) {
 
 
   // Take a RooArgList of RooAbsReal's and
@@ -2653,7 +2656,7 @@ namespace HistFactory{
   std::string poisMeanName = string(gamma.GetName()) + "_poisMean";
 
 
-  if( type == EstimateSummary::Gaussian ) {
+  if( type == Constraint::Gaussian ) {
 
     // Type 1 : RooGaussian
     
@@ -2675,7 +2678,7 @@ namespace HistFactory{
     proto->import( gauss, RecycleConflictNodes() );
     //proto->import( gauss );
       
-  } else if( type == EstimateSummary::Poisson ) {
+  } else if( type == Constraint::Poisson ) {
     
     Double_t tau = 1/sigma/sigma; // this is correct Poisson equivalent to a Gaussian with mean 1 and stdev sigma
 
