@@ -44,10 +44,11 @@ namespace RooStats{
     class HistoToWorkspaceFactoryFast: public TObject {
     
     public:
-      typedef std::map<std::string, double> param_map;
+
 
       HistoToWorkspaceFactoryFast();
       /*
+      typedef std::map<std::string, double> param_map;
       HistoToWorkspaceFactoryFast(  std::string, std::string, std::vector<std::string>, 
 				    double =200, double =20, int =0, int =6, TFile* =NULL, 
 				    param_map = param_map() );
@@ -60,10 +61,9 @@ namespace RooStats{
 						    Measurement& measurement );
     
       RooWorkspace* MakeSingleChannelModel( Measurement& measurement, Channel& channel );
-      static RooWorkspace* MakeCombinedModel( Measurement& measurement );
       RooWorkspace*  MakeCombinedModel(std::vector<std::string>, std::vector<RooWorkspace*>);
     
-
+      static RooWorkspace* MakeCombinedModel( Measurement& measurement );
       static void PrintCovarianceMatrix(RooFitResult* result, RooArgSet* params, 
 					std::string filename);
 
@@ -139,8 +139,6 @@ namespace RooStats{
       void MakeTotalExpected(RooWorkspace* proto, std::string totName, 
 			     std::vector<std::string>& syst_x_expectedPrefixNames,
 			     std::vector<std::string>& normByNames);
-
-    
     
       RooDataSet* MergeDataSets(RooWorkspace* combined,
 				std::vector<RooWorkspace*> wspace_vec, 
@@ -186,13 +184,14 @@ namespace RooStats{
       void ConfigureHistFactoryDataset(RooDataSet* obsData, TH1* nominal, RooWorkspace* proto,
 				       std::vector<std::string> obsNameVec);
     
-    
       //string fFileNamePrefix;
       //string fRowTitle;
       std::vector<std::string> fSystToFix;
       std::map<std::string, double> fParamValues;
-      double fNomLumi, fLumiError;
-      int fLowBin, fHighBin;    
+      double fNomLumi;
+      double fLumiError;
+      int fLowBin; 
+      int fHighBin;    
       //std::stringstream fResultsPrefixStr;
       //TFile * fOut_f;
       // FILE * pFile;
