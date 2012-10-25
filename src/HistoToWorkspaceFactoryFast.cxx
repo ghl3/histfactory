@@ -100,14 +100,19 @@ namespace RooStats{
 namespace HistFactory{
 
   HistoToWorkspaceFactoryFast::HistoToWorkspaceFactoryFast() : 
-       fNomLumi(0), fLumiError(0),   
+       fNomLumi(1.0), fLumiError(0),   
        fLowBin(0), fHighBin(0)  
   {}
 
   HistoToWorkspaceFactoryFast::~HistoToWorkspaceFactoryFast(){
   }
 
-  HistoToWorkspaceFactoryFast::HistoToWorkspaceFactoryFast(string /*filePrefix*/, string /*row*/, vector<string> syst, double nomL, double lumiE, int low, int high, TFile* /*file*/, std::map<std::string, double> paramValMap):
+  /*
+  HistoToWorkspaceFactoryFast::HistoToWorkspaceFactoryFast(string , string , 
+							vector<string> syst, double nomL, 
+							double lumiE, int low, int high, 
+							TFile*, 
+							std::map<std::string, double> paramValMap):
     //fFileNamePrefix(filePrefix),
     //fRowTitle(row),
       fSystToFix(syst),
@@ -117,16 +122,10 @@ namespace HistFactory{
       fLowBin(low),
       fHighBin(high) {
 
-    /*
-    fResultsPrefixStr<< "_" << fRowTitle;
-    while(fRowTitle.find("\\ ")!=string::npos){
-      int pos=fRowTitle.find("\\ ");
-      fRowTitle.replace(pos, 1, "");
-    }
-    */
     //RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR) ;
 
   }
+*/
 
   HistoToWorkspaceFactoryFast::HistoToWorkspaceFactoryFast(RooStats::HistFactory::Measurement& measurement ) :
     // fFileNamePrefix( measurement.GetOutputFilePrefix() ),
@@ -729,8 +728,10 @@ namespace HistFactory{
   }
 
 
-  void  HistoToWorkspaceFactoryFast::MakeTotalExpected(RooWorkspace* proto, string totName, string /**/, string /**/, 
-                                                       int /*lowBin*/, int /*highBin */, vector<string>& syst_x_expectedPrefixNames, 
+  void  HistoToWorkspaceFactoryFast::MakeTotalExpected(RooWorkspace* proto, string totName, 
+						       string /**/, string /**/, 
+                                                       int /*lowBin*/, int /*highBin */, 
+						       vector<string>& syst_x_expectedPrefixNames, 
                                                        vector<string>& normByNames){
 
     // for ith bin calculate totN_i =  lumi * sum_j expected_j * syst_j 
@@ -872,6 +873,7 @@ namespace HistFactory{
 
   }
 
+  /*
   void HistoToWorkspaceFactoryFast::Customize(RooWorkspace* proto, const char* pdfNameChar, map<string,string> renameMap) {
     cout << "in customizations" << endl;
     string pdfName(pdfNameChar);
@@ -887,7 +889,7 @@ namespace HistFactory{
     cout << edit<< endl;
     proto->factory( edit.c_str() );
   }
-
+  */
   //_____________________________________________________________
   void HistoToWorkspaceFactoryFast::EditSyst(RooWorkspace* proto, const char* pdfNameChar, 
 					     map<string,double> gammaSyst, 
@@ -2739,7 +2741,7 @@ namespace HistFactory{
   
 }
 
-
+  /*
   TDirectory * HistoToWorkspaceFactoryFast::Makedirs( TDirectory * file, vector<string> names ){
     if(! file) return file;
     string path="";
@@ -2760,6 +2762,8 @@ namespace HistFactory{
     if( ! ptr )  ptr=file->mkdir(name.c_str());
     return ptr;
   }
+  */
+
 
 }
 
