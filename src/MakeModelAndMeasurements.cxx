@@ -96,7 +96,7 @@ using namespace HistFactory;
 using namespace std;
 
 void topDriver(string input);
-void fastDriver(string input); // in MakeModelAndMeasurementsFast
+// void fastDriver(string input); // in MakeModelAndMeasurementsFast
 
 /*
 //_____________________________batch only_____________________
