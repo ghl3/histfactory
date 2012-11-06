@@ -151,7 +151,6 @@ namespace RooStats {
 
     }
 
-
     RooAbsPdf* HistFactoryNavigation::GetChannelPdf(const std::string& channel) {
 
       std::map< std::string, RooAbsPdf* >::iterator itr;
