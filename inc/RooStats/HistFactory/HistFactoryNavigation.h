@@ -60,7 +60,7 @@ namespace RooStats {
       void PrintSampleComponents(const std::string& channel, const std::string& sample);
 
       // Print a "HistFactory style" RooDataSet in a readable way
-      static void PrintDataSet(RooDataSet* data, const std::string& channel="", int max=-1);
+      static void PrintDataSet(RooDataSet* data, const std::string& channel="", int min=-1, int max=-1);
 
       // Print the model and the data, comparing channel by channel
       void PrintModelAndData(RooDataSet* data);
@@ -100,8 +100,14 @@ namespace RooStats {
       // the supplied regular expression
       void SetConstant(const std::string& regExpr=".*", bool constant=true);
 
-      void SetNumBinsToPrint(int num) { _numBinsToPrint = num; }
-      int GetNumBinsToPrint() const { return _numBinsToPrint; }
+      void SetMaxBinToPrint(int max) { _maxBinToPrint = max; }
+      int GetMaxBinToPrint() const { return _maxBinToPrint; }
+
+
+      void SetMinBinToPrint(int min) { _minBinToPrint = min; }
+      int GetMinBinToPrint() const { return _minBinToPrint; }
+
+
 
       // Get the model for this channel
       RooAbsPdf* GetModel() const { return fModel; }
@@ -156,7 +162,8 @@ namespace RooStats {
       // The observables
       RooArgSet* fObservables;
 
-      int _numBinsToPrint;
+      int _minBinToPrint;
+      int _maxBinToPrint;
 
       // The list of channels
       std::vector<std::string> fChannelNameVec;

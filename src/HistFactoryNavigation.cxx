@@ -19,7 +19,9 @@ namespace RooStats {
   namespace HistFactory {
 
 
-    HistFactoryNavigation::HistFactoryNavigation(ModelConfig* mc) : _numBinsToPrint(-1) {
+    // CONSTRUCTOR
+    HistFactoryNavigation::HistFactoryNavigation(ModelConfig* mc) 
+      : _minBinToPrint(-1), _maxBinToPrint(-1) {
 
       if( !mc ) {
 	std::cout << "Error: The supplied ModelConfig is NULL " << std::endl;
@@ -60,10 +62,11 @@ namespace RooStats {
     }
 
 
+    // CONSTRUCTOR
     HistFactoryNavigation::HistFactoryNavigation(const std::string& FileName,
 						 const std::string& WorkspaceName,
 						 const std::string& ModelConfigName) :
-      _numBinsToPrint(-1) {
+      _minBinToPrint(-1), _maxBinToPrint(-1) {
       
       // Open the File
       TFile* file = new TFile(FileName.c_str());
@@ -124,7 +127,9 @@ namespace RooStats {
     }
 
 
-    HistFactoryNavigation::HistFactoryNavigation(RooAbsPdf* model, RooArgSet* observables) {
+    // CONSTRUCTOR
+    HistFactoryNavigation::HistFactoryNavigation(RooAbsPdf* model, RooArgSet* observables) :
+      _minBinToPrint(-1), _maxBinToPrint(-1) {
 
       // Save the model pointer
       if( !model ) {
@@ -196,28 +201,31 @@ namespace RooStats {
       std::map< std::string, RooAbsReal*>::iterator itr = SampleFunctionMap.begin();
       for( ; itr != SampleFunctionMap.end(); ++itr) {
 
-
 	std::string sample_name = itr->first;
 	std::string tmp_name = sample_name + channel + "_pretty_tmp";
 	TH1* sample_hist = GetSampleHist(channel, sample_name, tmp_name);
 	num_bins = sample_hist->GetNbinsX();
 	std::cout << std::setw(label_print_width) << sample_name;
 
-	// Check that we should print this bin
-
 	for(int i = 0; i < num_bins; ++i) {
-	  if( _numBinsToPrint != -1 && i >= _numBinsToPrint) break;
+	  // Check that we should print this bin
+	  if( _minBinToPrint != -1 && i < _minBinToPrint) continue;
+	  if( _maxBinToPrint != -1 && i > _maxBinToPrint) break;
 	  std::cout << std::setw(bin_print_width) << sample_hist->GetBinContent(i+1);
 	}
 	std::cout << std::endl;
 	delete sample_hist;
+
       }
 
       // Make the line break as a set of "===============" ...
       std::string line_break;
-      int break_length = _numBinsToPrint == -1 ? 
-	num_bins : TMath::Min(_numBinsToPrint, (int)num_bins);
-      break_length *= bin_print_width;
+      //int break_length = _maxBinToPrint == -1 ? 
+      //	num_bins : TMath::Min(_maxBinToPrint, (int)num_bins);
+      //break_length *= bin_print_width;
+      int high_bin = _maxBinToPrint==-1 ? num_bins : TMath::Min(_maxBinToPrint, (int)num_bins);
+      int low_bin = _minBinToPrint==-1 ? num_bins : _minBinToPrint;
+      int break_length = (high_bin - low_bin + 1) * bin_print_width;
       break_length += label_print_width;
       for(int i = 0; i < break_length; ++i) {
 	line_break += "=";
@@ -228,7 +236,8 @@ namespace RooStats {
       TH1* channel_hist = GetChannelHist(channel, tmp_name);
       std::cout << std::setw(label_print_width) << "TOTAL:";
       for(int i = 0; i < channel_hist->GetNbinsX(); ++i) {
-	if( _numBinsToPrint != -1 && i >= _numBinsToPrint) break;
+	if( _minBinToPrint != -1 && i < _minBinToPrint) continue;
+	if( _maxBinToPrint != -1 && i > _maxBinToPrint) break;
 	std::cout << std::setw(bin_print_width) << channel_hist->GetBinContent(i+1);
       }
       std::cout << std::endl;
@@ -249,7 +258,7 @@ namespace RooStats {
 
     void HistFactoryNavigation::PrintDataSet(RooDataSet* data, 
 					     const std::string& channel_to_print,
-					     int max_bins) {
+					     int min_bins, int max_bins) {
 
       // Print the contents of a 'HistFactory' RooDataset
       // These are stored in a somewhat odd way that makes
@@ -306,6 +315,7 @@ namespace RooStats {
 	std::cout << std::setw(label_print_width) << channel_name + " (data)";
 	std::vector<double>& bins = itr->second;
 	for(unsigned int i = 0; i < bins.size(); ++i) {
+	  if( min_bins != -1 && (int)i < min_bins) continue;
 	  if( max_bins != -1 && (int)i >= max_bins) break;
 	  std::cout << std::setw(bin_print_width) << bins.at(i);
 	}
@@ -323,7 +333,7 @@ namespace RooStats {
       for( unsigned int i = 0; i < fChannelNameVec.size(); ++i) {
 	std::string channel = fChannelNameVec.at(i);
 	PrintState(channel);
-	PrintDataSet(data, channel, _numBinsToPrint);
+	PrintDataSet(data, channel, _minBinToPrint, _maxBinToPrint);
       }
       
       std::cout << std::endl;
@@ -1096,7 +1106,8 @@ namespace RooStats {
       std::cout << std::endl;
       std::cout << std::setw(label_print_width) << "Factor";
       for(unsigned int i=0; i < num_bins; ++i) {
-	if( _numBinsToPrint != -1 && (int)i >= _numBinsToPrint) break;
+	if( _minBinToPrint != -1 && (int)i < _minBinToPrint) continue;
+	if( _maxBinToPrint != -1 && (int)i > _maxBinToPrint) break;
 	std::stringstream sstr;
 	sstr << "Bin" << i;
 	std::cout << std::setw(bin_print_width) << sstr.str();
@@ -1128,7 +1139,8 @@ namespace RooStats {
 	// Print the hist
 	std::cout << std::setw(label_print_width) << NodeName;
 	for(unsigned int i = 0; i < num_bins; ++i) {
-	  if( _numBinsToPrint != -1 && (int)i >= _numBinsToPrint) break;
+	  if( _minBinToPrint != -1 && (int)i < _minBinToPrint) continue;
+	  if( _maxBinToPrint != -1 && (int)i > _maxBinToPrint) break;
 	  std::cout << std::setw(bin_print_width) << hist->GetBinContent(i+1);
 	}
 	std::cout << std::endl;
@@ -1136,9 +1148,12 @@ namespace RooStats {
       }
       /////
       std::string line_break;
-      int break_length = _numBinsToPrint == -1 ? 
-	num_bins : TMath::Min(_numBinsToPrint, (int)num_bins);
-      break_length *= bin_print_width;
+      //int break_length = _maxBinToPrint == -1 ? 
+      //	num_bins : TMath::Min(_maxBinToPrint, (int)num_bins);
+      //break_length *= bin_print_width;
+      int high_bin = _maxBinToPrint==-1 ? num_bins : TMath::Min(_maxBinToPrint, (int)num_bins);
+      int low_bin = _minBinToPrint==-1 ? num_bins : _minBinToPrint;
+      int break_length = (high_bin - low_bin + 1) * bin_print_width;
       break_length += label_print_width;
       for(int i = 0; i < break_length; ++i) {
 	line_break += "=";
@@ -1151,7 +1166,8 @@ namespace RooStats {
       //std::cout << std::endl << std::setw(label_print_width) << "TOTAL:";
       std::cout << std::setw(label_print_width) << "TOTAL:";
       for(unsigned int i = 0; i < num_bins; ++i) {
-	if( _numBinsToPrint != -1 && (int)i >= _numBinsToPrint) break;
+	if( _minBinToPrint != -1 && (int)i < _minBinToPrint) continue;
+	if( _maxBinToPrint != -1 && (int)i > _maxBinToPrint) break;
 	std::cout << std::setw(bin_print_width) << total_hist->GetBinContent(i+1);
       }
       std::cout << std::endl << std::endl;
