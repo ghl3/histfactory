@@ -1,4 +1,4 @@
-// @(#)root/roostats:$Id: ConfigParser.h 44398 2012-05-31 13:32:07Z moneta $
+// @(#)root/roostats:$Id: ConfigParser.h 47080 2012-11-06 19:44:06Z ghl $
 // Author: Kyle Cranmer, Akira Shibata
 /*************************************************************************
  * Copyright (C) 1995-2008, Rene Brun and Fons Rademakers.               *
