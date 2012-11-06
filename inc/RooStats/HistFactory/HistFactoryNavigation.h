@@ -9,6 +9,7 @@
 #include "TCanvas.h"
 #include "THStack.h"
 #include "TLegend.h"
+#include "THStack.h"
 
 #include "RooDataSet.h"
 #include "RooRealVar.h"
@@ -60,7 +61,8 @@ namespace RooStats {
       void PrintSampleComponents(const std::string& channel, const std::string& sample);
 
       // Print a "HistFactory style" RooDataSet in a readable way
-      static void PrintDataSet(RooDataSet* data, const std::string& channel="", int min=-1, int max=-1);
+      static void PrintDataSet(RooDataSet* data, const std::string& channel="", 
+			       int min=-1, int max=-1);
 
       // Print the model and the data, comparing channel by channel
       void PrintModelAndData(RooDataSet* data);
@@ -77,6 +79,17 @@ namespace RooStats {
 
       // Get the total channel histogram for this channel
       TH1* GetChannelHist(const std::string& channel, const std::string& name="");
+
+      static std::map< std::string, std::vector<double> > GetDataBinsMap(RooDataSet*);
+
+      static TH1* GetDataHist(RooDataSet* data, const std::string& channel, 
+			      const std::string& name="");
+
+      // Get a stack of all samples in a channel
+      THStack* GetChannelStack(const std::string& channel, const std::string& name="");
+
+      // Draw a stack of the channel, and include data if the pointer is supplied
+      void DrawChannel(const std::string& channel, RooDataSet* data=NULL);
 
       // Get the RooAbsReal function for a given sample in a given channel
       RooAbsReal* SampleFunction(const std::string& channel, const std::string& sample);
@@ -95,7 +108,6 @@ namespace RooStats {
       // Will do minimial checking to make sure the replacement makes sense
       void ReplaceNode(const std::string& ToReplace, RooAbsArg* ReplaceWith);
 
-
       // Set any RooRealVar's const (or not const) if they match
       // the supplied regular expression
       void SetConstant(const std::string& regExpr=".*", bool constant=true);
@@ -103,18 +115,17 @@ namespace RooStats {
       void SetMaxBinToPrint(int max) { _maxBinToPrint = max; }
       int GetMaxBinToPrint() const { return _maxBinToPrint; }
 
-
       void SetMinBinToPrint(int min) { _minBinToPrint = min; }
       int GetMinBinToPrint() const { return _minBinToPrint; }
-
-
 
       // Get the model for this channel
       RooAbsPdf* GetModel() const { return fModel; }
 
       //
       RooAbsPdf* GetChannelPdf(const std::string& channel);
-      
+
+
+      std::vector< std::string > GetChannelSampleList(const std::string& channel);
 
       // Return the RooRealVar by the same name used in the model
       // If not found, return NULL

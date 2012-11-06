@@ -256,6 +256,38 @@ namespace RooStats {
     }
 
 
+std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsMap(RooDataSet* data) {
+      
+      // Create a map of channel names to the channel's bin values
+      std::map< std::string, std::vector<double> > ChannelBinsMap;
+      
+      // Then loop and fill these vectors for each channel      
+      for(int i = 0; i < data->numEntries(); ++i) {
+
+	// Get the row
+	const RooArgSet* row = data->get(i);
+
+	// The current bin height is the weight
+	// of this row.
+	double bin_height = data->weight();
+
+	// Let's figure out the channel
+	// For now, the variable 'channelCat' is magic, but
+	// we should change this to be a bit smarter...
+	std::string channel = row->getCatLabel("channelCat");
+
+	// Get the vector of bin heights (creating if necessary)
+	// and append
+	std::vector<double>& bins = ChannelBinsMap[channel];
+	bins.push_back(bin_height);
+
+      }
+
+      return ChannelBinsMap;
+
+    }
+
+
     void HistFactoryNavigation::PrintDataSet(RooDataSet* data, 
 					     const std::string& channel_to_print,
 					     int min_bins, int max_bins) {
@@ -564,7 +596,7 @@ namespace RooStats {
       // Give a name, or a default one will be used
 
       RooArgList observable_list( *GetObservableSet(channel) );
-
+      
       std::map< std::string, RooAbsReal*> SampleFunctionMap = GetSampleFunctionMap(channel);
 
       // Okay, 'loop' once 
@@ -574,7 +606,8 @@ namespace RooStats {
 	std::string sample_name = itr->first;
 	std::string tmp_hist_name = sample_name + "_hist_tmp";
 	RooAbsReal* sample_function = itr->second;
-	TH1* sample_hist = MakeHistFromRooFunction(sample_function, observable_list, tmp_hist_name);
+	TH1* sample_hist = MakeHistFromRooFunction(sample_function, observable_list, 
+						   tmp_hist_name);
 	total_hist = (TH1*) sample_hist->Clone("TotalHist");
 	delete sample_hist;
 	break;
@@ -588,7 +621,8 @@ namespace RooStats {
 	std::string sample_name = itr->first;
 	std::string tmp_hist_name = sample_name + "_hist_tmp";
 	RooAbsReal* sample_function = itr->second;
-	TH1* sample_hist = MakeHistFromRooFunction(sample_function, observable_list, tmp_hist_name);
+	TH1* sample_hist = MakeHistFromRooFunction(sample_function, observable_list, 
+						   tmp_hist_name);
 	total_hist->Add(sample_hist);
 	delete sample_hist;
       }
@@ -599,6 +633,82 @@ namespace RooStats {
       return total_hist;
 
     }
+
+
+    std::vector< std::string > HistFactoryNavigation::GetChannelSampleList(const std::string& channel) {
+      
+      std::vector<std::string> sample_list;
+
+      std::map< std::string, RooAbsReal*> sample_map = fChannelSampleFunctionMap[channel];
+      std::map< std::string, RooAbsReal*>::iterator itr = sample_map.begin();;
+      for( ; itr != sample_map.end(); ++itr) {
+	sample_list.push_back( itr->first );
+      }
+
+      return sample_list;
+
+    }
+
+    
+    THStack* HistFactoryNavigation::GetChannelStack(const std::string& channel, 
+						    const std::string& name) {
+    
+      THStack* stack = new THStack(name.c_str(), "");
+
+      std::vector< std::string > samples = GetChannelSampleList(channel);
+
+      // Add the histograms
+      for( unsigned int i=0; i < samples.size(); ++i) {
+	std::string sample_name = samples.at(i);
+	TH1* hist = GetSampleHist(channel, sample_name, sample_name+"_tmp");
+	hist->SetLineColor(2+i);
+	hist->SetFillColor(2+i);
+	stack->Add(hist);
+      }
+
+      return stack;
+
+    }
+
+  
+    TH1* HistFactoryNavigation::GetDataHist(RooDataSet* data, const std::string& channel, 
+						   const std::string& name) {
+
+      // TO DO:
+      // MAINTAIN THE ACTUAL RANGE, USING THE OBSERVABLES
+      // MAKE IT WORK FOR MULTI-DIMENSIONAL
+
+      std::map< std::string, std::vector<double> > ChannelsBinsMap 
+	= HistFactoryNavigation::GetDataBinsMap(data);
+
+      std::vector<double> DataBins = ChannelsBinsMap[channel];
+      
+      TH1F* data_hist = new TH1F(name.c_str(), "", DataBins.size(), 0, DataBins.size()); 
+      
+      for(unsigned int i=0; i < DataBins.size(); ++i) {
+	data_hist->SetBinContent(i+1, DataBins.at(i));
+      }
+      
+      return data_hist;
+      
+    }
+
+
+    void HistFactoryNavigation::DrawChannel(const std::string& channel, RooDataSet* data) {
+    
+      // Get the stack
+      THStack* stack = GetChannelStack(channel, channel+"_stack_tmp");
+
+      stack->Draw();
+      
+      if( data!=NULL ) {
+	TH1* data_hist = GetDataHist(data, channel, channel+"_data_tmp");
+	data_hist->Draw("SAME");
+      }
+
+    }
+  
+
 
     RooArgSet HistFactoryNavigation::_GetAllProducts(RooProduct* node) {
 
@@ -807,11 +917,11 @@ namespace RooStats {
 	 I think it's the user's job to do checks on it.
 	 A dereference will always cause a crash, so it won't
 	 be silent for long...
-      if( term==NULL ) {
-	std::cout << "Error: Failed to find node: " << name
-		  << " as a child of: " << parent->GetName()
-		  << std::endl;
-      }
+	 if( term==NULL ) {
+	 std::cout << "Error: Failed to find node: " << name
+	 << " as a child of: " << parent->GetName()
+	 << std::endl;
+	 }
       */
 
       return term;
@@ -858,78 +968,78 @@ namespace RooStats {
       RooAbsArg* arg ;
       while((arg=(RooAbsArg*)iter->Next())) {
 
-	// Get the variable, ensuring that it's valid
-	RooRealVar* var = dynamic_cast<RooRealVar*>(arg) ;
-	if( !var ) {
-	  std::cout << "Error: Failed to obtain pointer to variable: " << arg->GetName() << std::endl;
-	  throw runtime_error("fixStatError");
-	}
+      // Get the variable, ensuring that it's valid
+      RooRealVar* var = dynamic_cast<RooRealVar*>(arg) ;
+      if( !var ) {
+      std::cout << "Error: Failed to obtain pointer to variable: " << arg->GetName() << std::endl;
+      throw runtime_error("fixStatError");
+      }
 
-	std::string VarName = var->GetName();
+      std::string VarName = var->GetName();
 
-	if( VarName == "" ) {
-	  std::cout << "Error: Invalid variable name encountered" << std::endl;
-	  throw runtime_error("fixStatError");
-	}
+      if( VarName == "" ) {
+      std::cout << "Error: Invalid variable name encountered" << std::endl;
+      throw runtime_error("fixStatError");
+      }
 
-	// Skip if it's not a "gamma_stat_* variable"
-	if( string(VarName).find("gamma_stat_")==string::npos ) continue;
+      // Skip if it's not a "gamma_stat_* variable"
+      if( string(VarName).find("gamma_stat_")==string::npos ) continue;
 
-	// Skip if it's not "nominal" parameter
-	if( string(VarName).find("nom_")!=string::npos ) continue;
+      // Skip if it's not "nominal" parameter
+      if( string(VarName).find("nom_")!=string::npos ) continue;
     
 
 
-	// Get the constraint and check its type:
-	RooAbsReal* constraint = (RooAbsReal*) wspace->obj( (VarName+"_constraint").c_str() );
-	std::string ConstraintType = constraint->IsA()->GetName();
+      // Get the constraint and check its type:
+      RooAbsReal* constraint = (RooAbsReal*) wspace->obj( (VarName+"_constraint").c_str() );
+      std::string ConstraintType = constraint->IsA()->GetName();
 
-	double sigma = 0.0;
+      double sigma = 0.0;
 
-	if( ConstraintType == "" ) {
-	  std::cout << "Error: Strange constraint type for Stat Uncertainties" << std::endl;
-	  throw runtime_error("fixStatError");
-	}
-	else if( ConstraintType == "RooGaussian" ){
-	  RooAbsReal* sigmaVar = (RooAbsReal*) wspace->obj( (VarName+"_sigma").c_str() );
-	  sigma = sigmaVar->getVal();
-	}
-	else if( ConstraintType == "RooPoisson" ){
-	  RooAbsReal* nom_gamma = (RooAbsReal*) wspace->obj( ("nom_" + VarName).c_str() );
-	  double nom_gamma_val = nom_gamma->getVal();
-	  sigma = 1.0 / TMath::Sqrt( nom_gamma_val );
-	} 
-	else {
-	  std::cout << "Error: Strange constraint type for Stat Uncertainties: " << ConstraintType << std::endl;
-	  throw runtime_error("fixStatError");
-	}
+      if( ConstraintType == "" ) {
+      std::cout << "Error: Strange constraint type for Stat Uncertainties" << std::endl;
+      throw runtime_error("fixStatError");
+      }
+      else if( ConstraintType == "RooGaussian" ){
+      RooAbsReal* sigmaVar = (RooAbsReal*) wspace->obj( (VarName+"_sigma").c_str() );
+      sigma = sigmaVar->getVal();
+      }
+      else if( ConstraintType == "RooPoisson" ){
+      RooAbsReal* nom_gamma = (RooAbsReal*) wspace->obj( ("nom_" + VarName).c_str() );
+      double nom_gamma_val = nom_gamma->getVal();
+      sigma = 1.0 / TMath::Sqrt( nom_gamma_val );
+      } 
+      else {
+      std::cout << "Error: Strange constraint type for Stat Uncertainties: " << ConstraintType << std::endl;
+      throw runtime_error("fixStatError");
+      }
 
-	std::cout << "Encountered a statistical uncertainty variable: " << VarName
-		  << " Error is: " << sigma;
+      std::cout << "Encountered a statistical uncertainty variable: " << VarName
+      << " Error is: " << sigma;
 
-	// Now, fix the parameter if it
-	// is less than some value
-	if( sigma < error_min ) {
-	  if( var->isConstant() ) std::cout << ". Keepting this variable Constant";
-	  else std::cout << ". Setting this variable Constant";
+      // Now, fix the parameter if it
+      // is less than some value
+      if( sigma < error_min ) {
+      if( var->isConstant() ) std::cout << ". Keepting this variable Constant";
+      else std::cout << ". Setting this variable Constant";
 
-	  var->setConstant(true);
-	}
-	else {
-	  if( var->isConstant() ) std::cout << ". Setting this variable NOT Constant";
-	  else std::cout << ". Keepting this variable NOT Constant";
+      var->setConstant(true);
+      }
+      else {
+      if( var->isConstant() ) std::cout << ". Setting this variable NOT Constant";
+      else std::cout << ". Keepting this variable NOT Constant";
 
-	  var->setConstant(false);
-	}
+      var->setConstant(false);
+      }
 
-	std::cout << std::endl;
+      std::cout << std::endl;
 
       }
 
       // Done :)
       return;
 
-*/
+      */
 
     }
 
@@ -1045,16 +1155,16 @@ namespace RooStats {
     }
 
     /*
-    void AddConstraintTerm(RooAbsArg* constraintTerm) {
+      void AddConstraintTerm(RooAbsArg* constraintTerm) {
       
       // Add a constraint term to the pdf
       // This method requires that the pdf NOT be simultaneous
       
       if(strcmp(modelPdf->ClassName(),"RooSimultaneous")==0){
-	std::cout << "Error: The pdf for this navigation is a RooSimultaneous, "
-		  << " to add a constraint term, you must supply an explicit channel"
-		  << std::endl;
-	throw hf_exc();
+      std::cout << "Error: The pdf for this navigation is a RooSimultaneous, "
+      << " to add a constraint term, you must supply an explicit channel"
+      << std::endl;
+      throw hf_exc();
       }
       
       // ADD CODE TO TAKE THE RooProdPdf term
@@ -1284,10 +1394,10 @@ namespace RooStats {
     }
 
     /*
-    void HistFactoryNavigation::AddChannel(const std::string& channel, RooAbsPdf* pdf, 
-					   RooDataSet* data=NULL) {
+      void HistFactoryNavigation::AddChannel(const std::string& channel, RooAbsPdf* pdf, 
+      RooDataSet* data=NULL) {
 
-    }
+      }
     */
 
   } // namespace HistFactory
