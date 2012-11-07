@@ -6,7 +6,7 @@
 
 #include "RooProduct.h"
 #include "RooMsgService.h"
-
+#include "RooCategory.h"
 
 #include "RooStats/HistFactory/HistFactoryNavigation.h"
 #include "RooStats/HistFactory/HistFactoryException.h"
@@ -672,25 +672,60 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
 
   
     TH1* HistFactoryNavigation::GetDataHist(RooDataSet* data, const std::string& channel, 
-						   const std::string& name) {
-
+					    const std::string& name) {
+					    
       // TO DO:
       // MAINTAIN THE ACTUAL RANGE, USING THE OBSERVABLES
       // MAKE IT WORK FOR MULTI-DIMENSIONAL
+      // 
 
-      std::map< std::string, std::vector<double> > ChannelsBinsMap 
-	= HistFactoryNavigation::GetDataBinsMap(data);
+      // If the dataset covers multiple categories,
+      // Split the dataset based on the categories
+      if(strcmp(fModel->ClassName(),"RooSimultaneous")==0){
 
-      std::vector<double> DataBins = ChannelsBinsMap[channel];
-      
-      TH1F* data_hist = new TH1F(name.c_str(), "", DataBins.size(), 0, DataBins.size()); 
-      
-      for(unsigned int i=0; i < DataBins.size(); ++i) {
-	data_hist->SetBinContent(i+1, DataBins.at(i));
+	// If so, get a list of the component pdf's:
+	RooSimultaneous* simPdf = (RooSimultaneous*) fModel;
+	RooCategory* channelCat = (RooCategory*) (&simPdf->indexCat());
+
+	TList* dataset_list = data->split(*channelCat);
+
+	data = dynamic_cast<RooDataSet*>( dataset_list->FindObject(channel.c_str()) );
+	
       }
-      
-      return data_hist;
-      
+
+      RooArgList vars( *GetObservableSet(channel) );
+
+      int dim = vars.getSize();
+
+      TH1* hist = NULL;
+
+      if( dim==1 ) {
+	RooRealVar* varX = (RooRealVar*) vars.at(0);
+	hist = data->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()) );
+      }
+      else if( dim==2 ) {
+	RooRealVar* varX = (RooRealVar*) vars.at(0);
+	RooRealVar* varY = (RooRealVar*) vars.at(1);
+	hist = data->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()),
+				      RooFit::YVar(*varY, RooFit::Binning(varY->getBinning())) );
+      }
+      else if( dim==3 ) {
+	RooRealVar* varX = (RooRealVar*) vars.at(0);
+	RooRealVar* varY = (RooRealVar*) vars.at(1);
+	RooRealVar* varZ = (RooRealVar*) vars.at(2);
+	hist = data->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()), 
+				      RooFit::YVar(*varY, RooFit::Binning(varY->getBinning())),
+				      RooFit::YVar(*varZ, RooFit::Binning(varZ->getBinning())) );
+      }
+      else {
+	std::cout << "Error: To Create Histogram from RooDataSet, Dimension must be 1, 2, or 3" << std::endl;
+	std::cout << "Observables: " << std::endl;
+	vars.Print("V");
+	throw hf_exc();
+      }
+
+      return hist;
+
     }
 
 
@@ -765,7 +800,7 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
 	// If so, get a list of the component pdf's:
 	RooSimultaneous* simPdf = (RooSimultaneous*) modelPdf;
 	RooCategory* channelCat = (RooCategory*) (&simPdf->indexCat());
-	
+
 	// Iterate over the categories and get the
 	// pdf and observables for each category
 	TIterator* iter = channelCat->typeIterator() ;
@@ -1289,7 +1324,8 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
     }
 
 
-    TH1* HistFactoryNavigation::MakeHistFromRooFunction( RooAbsReal* func, RooArgList vars, std::string name ) {
+    TH1* HistFactoryNavigation::MakeHistFromRooFunction( RooAbsReal* func, RooArgList vars, 
+							 std::string name ) {
 
       // Turn a RooAbsReal* into a TH1* based 
       // on a template histogram.  

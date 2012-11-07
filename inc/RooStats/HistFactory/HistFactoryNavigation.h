@@ -15,7 +15,7 @@
 #include "RooRealVar.h"
 #include "RooWorkspace.h"
 #include "RooSimultaneous.h"
-#include "RooCategory.h"
+//#include "RooCategory.h"
 #include "RooProduct.h"
 #include "RooRealSumPdf.h"
 #include "RooStats/HistFactory/Measurement.h"
@@ -82,8 +82,7 @@ namespace RooStats {
 
       static std::map< std::string, std::vector<double> > GetDataBinsMap(RooDataSet*);
 
-      static TH1* GetDataHist(RooDataSet* data, const std::string& channel, 
-			      const std::string& name="");
+      TH1* GetDataHist(RooDataSet* data, const std::string& channel, const std::string& name="");
 
       // Get a stack of all samples in a channel
       THStack* GetChannelStack(const std::string& channel, const std::string& name="");
