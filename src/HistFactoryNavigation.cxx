@@ -2,11 +2,18 @@
 #include <iomanip>
 #include <sstream>
 
+#include "TFile.h"
 #include "TRegexp.h"
+#include "TCanvas.h"
+#include "TLegend.h"
+#include "TMath.h"
 
+#include "RooRealSumPdf.h"
 #include "RooProduct.h"
 #include "RooMsgService.h"
 #include "RooCategory.h"
+#include "RooSimultaneous.h"
+#include "RooWorkspace.h"
 
 #include "RooStats/HistFactory/HistFactoryNavigation.h"
 #include "RooStats/HistFactory/HistFactoryException.h"
@@ -255,7 +262,7 @@ namespace RooStats {
       }
     }
 
-
+    /*
 std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsMap(RooDataSet* data) {
       
       // Create a map of channel names to the channel's bin values
@@ -286,7 +293,7 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
       return ChannelBinsMap;
 
     }
-
+    */
 
     void HistFactoryNavigation::PrintDataSet(RooDataSet* data, 
 					     const std::string& channel_to_print,
@@ -306,6 +313,8 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
       //                        ...etc...
       // =====================================================
 
+      /*
+      
       // Create a map of channel names to the channel's bin values
       std::map< std::string, std::vector<double> > ChannelBinsMap;
 
@@ -353,6 +362,31 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
 	}
 	std::cout << std::endl;
 
+      }
+      */
+
+      int label_print_width = 20;
+      int bin_print_width = 12;
+
+      // Get the Data Histogram for this channel
+      for( unsigned int i_chan=0; i_chan < fChannelNameVec.size(); ++i_chan) {
+
+	std::string channel_name = fChannelNameVec.at(i_chan);
+
+	// If we pass a channel string, we only print that one channel
+	if( channel_to_print != "" && channel_name != channel_to_print) continue;
+
+	TH1* data_hist = GetDataHist(data, channel_name, channel_name+"_tmp");
+	int num_bins = data_hist->GetNbinsX();
+	  
+	std::cout << std::setw(label_print_width) << channel_name + " (data)";
+	for( int i=0; i < num_bins; ++i) {
+	  if( min_bins != -1 && (int)i < min_bins) continue;
+	  if( max_bins != -1 && (int)i >= max_bins) break;
+	  std::cout << std::setw(bin_print_width) << data_hist->GetBinContent(i+1);
+	}
+	std::cout << std::endl;
+	
       }
     }
 
@@ -1247,7 +1281,6 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
       }
 
       // Now, loop over the components and print them out:
-      
       std::cout << std::endl;
       std::cout << std::setw(label_print_width) << "Factor";
       for(unsigned int i=0; i < num_bins; ++i) {
