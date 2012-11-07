@@ -1515,12 +1515,24 @@ namespace HistFactory{
 	      std::string funcParams = "gamma_" + shapeFactor.GetName();
 	      // GHL: Again, we are putting hard ranges on the gamma's
 	      //      We should change this to range from 0 to /inf
-	      RooArgList shapeFactorParams = ParamHistFunc::createParamSet(*proto, funcParams.c_str(), observables, 0, 1000);
+	      RooArgList shapeFactorParams = ParamHistFunc::createParamSet(*proto, 
+									   funcParams.c_str(), 
+									   observables, 0, 1000);
 	      
-	    // Create the Function
+	      // Create the Function
 	      ParamHistFunc shapeFactorFunc( funcName.c_str(), funcName.c_str(),
 					   observables, shapeFactorParams );
 	      
+	      // Set an initial shape, if requested
+	      if( shapeFactor.GetInitialShape() != NULL ) {
+		shapeFactorFunc.setShape( shapeFactor.GetInitialShape() );
+	      }
+	      
+	      // Set the variables constant, if requested
+	      if( shapeFactor.IsConstant() ) {
+		shapeFactorFunc.setConstant(true);
+	      }
+
 	      proto->import( shapeFactorFunc, RecycleConflictNodes() );
 	      paramHist = (ParamHistFunc*) proto->function( funcName.c_str() );
 	  

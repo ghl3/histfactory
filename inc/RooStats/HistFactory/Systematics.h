@@ -10,8 +10,6 @@
 #include "TH1.h"
 #include "TRef.h"
 
-//#include "RooStats/HistFactory/HistCollector.h"
-
 namespace RooStats{
 namespace HistFactory {
 
@@ -27,7 +25,6 @@ namespace HistFactory {
   class OverallSys {
 
   public:
-    //friend class Channel;
 
     void SetName( const std::string& Name ) { fName = Name; }
     std::string GetName() { return fName; }
@@ -50,7 +47,6 @@ namespace HistFactory {
   class NormFactor {
 
   public:
-    //friend class Channel;
 
     NormFactor();
 
@@ -84,8 +80,6 @@ namespace HistFactory {
   class HistoSys {
 
   public:
-    //friend class Channel;
-
 
     HistoSys() : fhLow(NULL), fhHigh(NULL) {;}
     HistoSys(const std::string& Name) : fName(Name), fhLow(NULL), fhHigh(NULL) {;}
@@ -144,9 +138,6 @@ namespace HistFactory {
   class HistoFactor {
 
   public:
-    //friend class Channel;  
-
-
 
     void SetName( const std::string& Name ) { fName = Name; }
     std::string GetName() { return fName; }
@@ -202,8 +193,6 @@ namespace HistFactory {
   class ShapeSys {
 
   public:
-    //friend class Channel;
-
 
     void SetName( const std::string& Name ) { fName = Name; }
     std::string GetName() { return fName; }
@@ -247,16 +236,25 @@ namespace HistFactory {
   class ShapeFactor {
 
   public:
-    //friend class Channel;  
 
+    ShapeFactor();
+    
     void SetName( const std::string& Name ) { fName = Name; }
     std::string GetName() { return fName; }
 
+    void SetInitialShape(TH1* shape) { fhInitialShape = shape; }
+    TH1* GetInitialShape() { return fhInitialShape; }
+
+    void SetConstant(bool constant) { fConstant = constant; }
+    bool IsConstant() { return fConstant; }
 
     void Print(std::ostream& = std::cout);  
 
   protected:
     std::string fName;
+    
+    TH1* fhInitialShape;
+    bool fConstant;
 
   };
 
@@ -264,7 +262,6 @@ namespace HistFactory {
   class StatError {
 
   public:
-    //friend class Channel;
 
     StatError() : fActivate(false), fUseHisto(false), fhError(NULL) {;}
 
@@ -307,8 +304,6 @@ namespace HistFactory {
   class StatErrorConfig {
 
   public:
-    //friend class Channel;
-
 
     StatErrorConfig() : fRelErrorThreshold( .05 ), fConstraintType( Constraint::Gaussian ) {;}
     void Print(std::ostream& = std::cout);  

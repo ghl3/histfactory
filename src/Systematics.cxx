@@ -217,6 +217,7 @@ void RooStats::HistFactory::HistoFactor::writeToFile( std::string FileName, std:
 }
 
 // Shape Factor
+RooStats::HistFactory::ShapeFactor::ShapeFactor() : fhInitialShape(NULL), fConstant(false) {;}
 
 void RooStats::HistFactory::ShapeFactor::Print( std::ostream& stream ) {
   stream << "\t \t Name: " << fName
