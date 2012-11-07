@@ -1146,6 +1146,22 @@ HistFactory::ShapeFactor ConfigParser::MakeShapeFactor( TXMLNode* node ) {
       shapeFactor.SetName( attrVal );
     }
 
+    else if( attrName == TString( "InputFile" ) ) {
+      data.SetInputFile( attrVal );
+    }
+    
+    else if( attrName == TString( "HistoName" ) ) {
+      data.SetHistoName( attrVal );
+    }
+    
+    else if( attrName == TString( "HistoPath" ) ) {
+      data.SetHistoPath( attrVal );
+    }
+
+    else if( attrName == TString( "Const" ) ) {
+      shapeFactor.SetConstant( CheckTrueFalse(attrVal) );
+    }
+
     else {
       std::cout << "Error: Encountered Element in ShapeFactor with unknown name: " 
 		<< attrName << std::endl;

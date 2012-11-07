@@ -252,9 +252,15 @@ namespace HistFactory {
 
   protected:
     std::string fName;
-    
-    TH1* fhInitialShape;
+
     bool fConstant;
+    
+    std::string fHistoName;
+    std::string fHistoPath;
+    std::string fInputFile;
+    TH1* fhInitialShape;
+
+
 
   };
 
