@@ -1130,7 +1130,14 @@ HistFactory::ShapeFactor ConfigParser::MakeShapeFactor( TXMLNode* node ) {
 
   TListIter attribIt = node->GetAttributes();
   TXMLAttr* curAttr = 0;
-  string Name="";
+
+  // A Shape Factor may or may not include an initial shape
+  // This will be set by strings pointing to a histogram
+  // If we don't see a 'HistoName' attribute, we assume
+  // that an initial shape is not being set
+  std::string ShapeInputFile = m_currentInputFile;
+  std::string ShapeInputPath = m_currentHistoPath;
+
   while( ( curAttr = dynamic_cast< TXMLAttr* >( attribIt() ) ) != 0 ) {
 
     // Get the Name, Val of this node
@@ -1146,20 +1153,20 @@ HistFactory::ShapeFactor ConfigParser::MakeShapeFactor( TXMLNode* node ) {
       shapeFactor.SetName( attrVal );
     }
 
-    else if( attrName == TString( "InputFile" ) ) {
-      data.SetInputFile( attrVal );
+    else if( attrName == TString( "Const" ) ) {
+      shapeFactor.SetConstant( CheckTrueFalse(attrVal, "ShapeFactor" ) );
     }
-    
+
     else if( attrName == TString( "HistoName" ) ) {
-      data.SetHistoName( attrVal );
+      shapeFactor.SetHistoName( attrVal );
+    }
+
+    else if( attrName == TString( "InputFile" ) ) {
+      ShapeInputFile = attrVal;
     }
     
     else if( attrName == TString( "HistoPath" ) ) {
-      data.SetHistoPath( attrVal );
-    }
-
-    else if( attrName == TString( "Const" ) ) {
-      shapeFactor.SetConstant( CheckTrueFalse(attrVal) );
+      ShapeInputPath = attrVal;
     }
 
     else {
@@ -1173,6 +1180,14 @@ HistFactory::ShapeFactor ConfigParser::MakeShapeFactor( TXMLNode* node ) {
   if( shapeFactor.GetName() == "" ) {
     std::cout << "Error: Encountered ShapeFactor with no name" << std::endl;
     throw hf_exc();
+  }
+  
+  // Set the Histogram Path and File if the name is set
+  // (These will be the current default values if the
+  //  tag doesn't explicitely give these attributes)
+  if( shapeFactor.GetHistoName() != "" ) {
+    shapeFactor.SetHistoPath( ShapeInputPath );
+    shapeFactor.SetInputFile( ShapeInputFile );
   }
 
   shapeFactor.Print();

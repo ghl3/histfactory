@@ -248,19 +248,28 @@ namespace HistFactory {
     void SetConstant(bool constant) { fConstant = constant; }
     bool IsConstant() { return fConstant; }
 
+    void SetInputFile( const std::string& InputFile ) { fInputFile = InputFile; }
+    std::string GetInputFile() { return fInputFile; }
+
+    void SetHistoName( const std::string& HistoName ) { fHistoName = HistoName; }
+    std::string GetHistoName() { return fHistoName; }
+
+    void SetHistoPath( const std::string& HistoPath ) { fHistoPath = HistoPath; }
+    std::string GetHistoPath() { return fHistoPath; }
+
     void Print(std::ostream& = std::cout);  
 
   protected:
     std::string fName;
 
     bool fConstant;
-    
+
+    // A histogram representing
+    // the initial shape
     std::string fHistoName;
     std::string fHistoPath;
     std::string fInputFile;
     TH1* fhInitialShape;
-
-
 
   };
 
