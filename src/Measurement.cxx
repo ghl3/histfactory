@@ -205,7 +205,6 @@ void RooStats::HistFactory::Measurement::PrintXML( std::string Directory, std::s
 
   // First, check that the directory exists:
 
-
   // LM : fixes for Windows 
   if( gSystem->OpenDirectory( Directory.c_str() ) == 0 ) {
     int success = gSystem->MakeDirectory(Directory.c_str() );    
@@ -252,7 +251,6 @@ void RooStats::HistFactory::Measurement::PrintXML( std::string Directory, std::s
       << day
       << std::endl;
 
-
   xml << "-->" << std::endl;
 
   // Add the doctype
@@ -283,8 +281,8 @@ void RooStats::HistFactory::Measurement::PrintXML( std::string Directory, std::s
   xml << "  <Measurement Name=\"" << GetName() << "\" "
       << "Lumi=\""        << fLumi       << "\" " 
       << "LumiRelErr=\""  << fLumiRelErr << "\" "
-      << "BinLow=\""      << fBinLow     << "\" "
-      << "BinHigh=\""     << fBinHigh    << "\" "
+    //<< "BinLow=\""      << fBinLow     << "\" "
+    // << "BinHigh=\""     << fBinHigh    << "\" "
       << "ExportOnly=\""  << (fExportOnly ? std::string("True") : std::string("False")) << "\" "
       << " >" <<  std::endl;
 
@@ -292,7 +290,7 @@ void RooStats::HistFactory::Measurement::PrintXML( std::string Directory, std::s
   // Set the POI
   xml << "    <POI>" ;
   for(unsigned int i = 0; i < fPOI.size(); ++i) {
-    xml << fPOI.at(i) << " ";
+    xml << fPOI.at(i);
   } 
   xml << "</POI>  " << std::endl;
   
