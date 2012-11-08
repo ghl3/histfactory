@@ -49,8 +49,7 @@ namespace RooStats {
       void PrintSampleComponents(const std::string& channel, const std::string& sample);
 
       // Print a "HistFactory style" RooDataSet in a readable way
-      void PrintDataSet(RooDataSet* data, const std::string& channel="", 
-			int min=-1, int max=-1);
+      void PrintDataSet(RooDataSet* data, const std::string& channel="");
 
       // Print the model and the data, comparing channel by channel
       void PrintModelAndData(RooDataSet* data);
