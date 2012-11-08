@@ -206,9 +206,7 @@ void RooStats::HistFactory::Channel::CollectHistograms() {
 
 
     // Get the StatError Histogram (if necessary)
-
     if( sample.GetStatError().GetUseHisto() ) {
-
       sample.GetStatError().SetErrorHist( GetHistogram(sample.GetStatError().GetInputFile(),
 						       sample.GetStatError().GetHistoPath(),
 						       sample.GetStatError().GetHistoName()) );
@@ -262,7 +260,7 @@ void RooStats::HistFactory::Channel::CollectHistograms() {
       RooStats::HistFactory::ShapeFactor& shapeFactor = sample.GetShapeFactorList().at( shapeFactorItr );
 
       // Check if we need an InitialShape
-      if( shapeFactor.GetHistoName() != "" ) {
+      if( shapeFactor.HasInitialShape() ) {
 	TH1* hist = GetHistogram( shapeFactor.GetInputFile(), shapeFactor.GetHistoPath(), 
 				  shapeFactor.GetHistoName() );
 	shapeFactor.SetInitialShape( hist );

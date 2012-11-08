@@ -272,7 +272,7 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
       // do fit unless exportOnly requested
       if(! measurement.GetExportOnly()){
 	if(!poi){
-	  cout <<"can't do fit for this channel, no parameter of interest"<<endl;
+	  cout << "Can't do fit for: " << measurement.GetName() << ", no parameter of interest" << endl;
 	} else{
 	  if(ws_single->data("obsData")){
 	    FitModelAndPlot(measurement.GetName(), measurement.GetOutputFilePrefix(), ws_single, ch_name, "obsData",    outFile, tableFile);
@@ -318,7 +318,7 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
     // Totally factorize the statistical test in "fit Model" to a different area
     if(! measurement.GetExportOnly()){
       if(!poi){
-	cout <<"can't do fit for this channel, no parameter of interest"<<endl;
+	cout << "Can't do fit for: " << measurement.GetName() << ", no parameter of interest" << endl;
       } else{
 	if(ws->data("obsData")){
 	  FitModelAndPlot(measurement.GetName(), measurement.GetOutputFilePrefix(), ws, "combined", "obsData",    outFile, tableFile);

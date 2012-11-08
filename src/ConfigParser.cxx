@@ -1255,10 +1255,16 @@ HistFactory::ShapeFactor ConfigParser::MakeShapeFactor( TXMLNode* node ) {
     throw hf_exc();
   }
   
-  // Set the Histogram Path and File if the name is set
-  // (These will be the current default values if the
-  //  tag doesn't explicitely give these attributes)
-  if( shapeFactor.GetHistoName() != "" ) {
+  // Set the Histogram name, path, and file
+  // if an InitialHist is set
+  if( shapeFactor.HasInitialShape() ) {
+    if( shapeFactor.GetHistoName() == "" ) {
+      std::cout << "Error: ShapeFactor: " << shapeFactor.GetName()
+		<< " is configured to have an initial shape, but "
+		<< "its histogram doesn't have a name"
+		<< std::endl;
+      throw hf_exc();
+    }
     shapeFactor.SetHistoPath( ShapeInputPath );
     shapeFactor.SetInputFile( ShapeInputFile );
   }

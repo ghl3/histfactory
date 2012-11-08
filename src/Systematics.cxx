@@ -270,7 +270,9 @@ void RooStats::HistFactory::HistoFactor::PrintXML( std::ostream& xml ) {
 
 
 // Shape Factor
-RooStats::HistFactory::ShapeFactor::ShapeFactor() : fConstant(false), fhInitialShape(NULL) {;}
+RooStats::HistFactory::ShapeFactor::ShapeFactor() : fConstant(false), 
+						    fHasInitialShape(false),
+						    fhInitialShape(NULL) {;}
 
 void RooStats::HistFactory::ShapeFactor::Print( std::ostream& stream ) {
 
@@ -292,21 +294,20 @@ void RooStats::HistFactory::ShapeFactor::Print( std::ostream& stream ) {
 void RooStats::HistFactory::ShapeFactor::writeToFile( const std::string& FileName, 
 						      const std::string& DirName ) {
 
-  TH1* histInitialShape = GetInitialShape();
-  if( histInitialShape!=NULL ) {
+  if( HasInitialShape() ) {
+    TH1* histInitialShape = GetInitialShape();
+    if( histInitialShape==NULL ) {
+      std::cout << "Error: Cannot write " << GetName()
+		<< " to file: " << FileName
+		<< " InitialShape is NULL" 
+		<< std::endl;
+      throw hf_exc();
+    }
     histInitialShape->Write();
     fInputFile = FileName;
     fHistoPath = DirName;
     fHistoName = histInitialShape->GetName(); 
   }
-  /*
-    std::cout << "Error: Cannot write " << GetName()
-	      << " to file: " << FileName
-	      << " InitialShape is NULL" 
-	      << std::endl;
-    throw hf_exc();
-  }
-  */
 
   return;
 
@@ -314,8 +315,13 @@ void RooStats::HistFactory::ShapeFactor::writeToFile( const std::string& FileNam
 
 
 void RooStats::HistFactory::ShapeFactor::PrintXML( std::ostream& xml ) {
-  xml << "      <ShapeFactor Name=\"" << GetName() << "\" "
-      << "  /> " << std::endl;
+  xml << "      <ShapeFactor Name=\"" << GetName() << "\" ";
+  if( fHasInitialShape ) {
+    xml << " InputFile=\""  << GetInputFile()  << "\" "
+	<< " HistoName=\""  << GetHistoName()  << "\" "
+	<< " HistoPath=\""  << GetHistoPath()  << "\" ";
+  }
+  xml << "  /> " << std::endl;
 }
 
 
