@@ -164,6 +164,28 @@ namespace RooStats {
     }
 
 
+    void HistFactoryNavigation::PrintMultiDimHist(TH1* hist, int bin_print_width) {
+
+      // This is how ROOT makes us loop over histograms :(
+      int current_bin = 0;
+      int num_bins = hist->GetNbinsX()*hist->GetNbinsY()*hist->GetNbinsZ();
+      for(int i = 0; i < num_bins; ++i) {
+	// Avoid the overflow/underflow
+	current_bin++;
+	while( hist->IsBinUnderflow(current_bin) ||
+	       hist->IsBinOverflow(current_bin) ) {
+	  current_bin++;
+	}
+	// Check that we should print this bin
+	if( _minBinToPrint != -1 && i < _minBinToPrint) continue;
+	if( _maxBinToPrint != -1 && i > _maxBinToPrint) break;
+	std::cout << std::setw(bin_print_width) << hist->GetBinContent(current_bin);
+      }
+      std::cout << std::endl;
+
+    }
+
+
     RooAbsPdf* HistFactoryNavigation::GetChannelPdf(const std::string& channel) {
 
       std::map< std::string, RooAbsPdf* >::iterator itr;
@@ -214,7 +236,9 @@ namespace RooStats {
 	num_bins = sample_hist->GetNbinsX()*sample_hist->GetNbinsY()*sample_hist->GetNbinsZ();
 	std::cout << std::setw(label_print_width) << sample_name;
 
-	// This is how ROOT makes us loop over histograms :(
+	// Print the content of the histogram
+	PrintMultiDimHist(sample_hist, bin_print_width);
+	/*
 	int current_bin = 0;
 	for(int i = 0; i < num_bins; ++i) {
 	  // Avoid the overflow/underflow
@@ -229,6 +253,7 @@ namespace RooStats {
 	  std::cout << std::setw(bin_print_width) << sample_hist->GetBinContent(current_bin);
 	}
 	std::cout << std::endl;
+	*/
 	delete sample_hist;
 
       }
@@ -250,7 +275,11 @@ namespace RooStats {
       std::string tmp_name = channel + "_pretty_tmp";
       TH1* channel_hist = GetChannelHist(channel, tmp_name);
       std::cout << std::setw(label_print_width) << "TOTAL:";
-      //int num_bins = channel_hist->GetNbinsX()*channel_hist->GetNbinsY()*channel_hist->GetNbinsZ();
+
+      // Print the Histogram
+      PrintMultiDimHist(channel_hist, bin_print_width);
+      /*
+      int num_bins = channel_hist->GetNbinsX()*channel_hist->GetNbinsY()*channel_hist->GetNbinsZ();
       int current_bin = 0;
       for(int i = 0; i < num_bins; ++i) {
 	// Avoid the overflow/underflow
@@ -264,6 +293,8 @@ namespace RooStats {
 	std::cout << std::setw(bin_print_width) << channel_hist->GetBinContent(current_bin);
       }
       std::cout << std::endl;
+      */
+
       delete channel_hist;
 
       return;
@@ -397,6 +428,9 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
 	  
 	std::cout << std::setw(label_print_width) << channel_name + " (data)";
 
+	// Print the Histogram
+	PrintMultiDimHist(data_hist, bin_print_width);
+	/*
 	int current_bin = 0;
 	for( int i=0; i < num_bins; ++i) {
 	  // Avoid the overflow/underflow
@@ -411,7 +445,7 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
 	  std::cout << std::setw(bin_print_width) << data_hist->GetBinContent(current_bin);
 	}
 	std::cout << std::endl;
-	
+	*/
       }
     }
 
@@ -1342,6 +1376,10 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
 
 	// Print the hist
 	std::cout << std::setw(label_print_width) << NodeName;
+
+	// Print the Histogram
+	PrintMultiDimHist(hist, bin_print_width);
+	/*
 	int current_bin = 0;
 	for(unsigned int i = 0; i < num_bins; ++i) {
 	  // Avoid the overflow/underflow
@@ -1356,6 +1394,7 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
 	  std::cout << std::setw(bin_print_width) << hist->GetBinContent(current_bin);
 	}
 	std::cout << std::endl;
+	*/
 	delete hist;
       }
       /////

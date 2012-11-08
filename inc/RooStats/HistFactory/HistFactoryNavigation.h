@@ -143,6 +143,7 @@ namespace RooStats {
 
       // Print a histogram's contents to the screen
       // void PrettyPrintHistogram(TH1* hist);
+      void PrintMultiDimHist(TH1* hist, int bin_print_width);
 
       // Make a histogram from a funciton
       // Edit so it can take a RooArgSet of parameters
