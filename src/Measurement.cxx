@@ -290,7 +290,8 @@ void RooStats::HistFactory::Measurement::PrintXML( std::string Directory, std::s
   // Set the POI
   xml << "    <POI>" ;
   for(unsigned int i = 0; i < fPOI.size(); ++i) {
-    xml << fPOI.at(i);
+    if(i==0) xml << fPOI.at(i);
+    else     xml << " " << fPOI.at(i);
   } 
   xml << "</POI>  " << std::endl;
   
