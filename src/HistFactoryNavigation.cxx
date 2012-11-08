@@ -211,14 +211,22 @@ namespace RooStats {
 	std::string sample_name = itr->first;
 	std::string tmp_name = sample_name + channel + "_pretty_tmp";
 	TH1* sample_hist = GetSampleHist(channel, sample_name, tmp_name);
-	num_bins = sample_hist->GetNbinsX();
+	num_bins = sample_hist->GetNbinsX()*sample_hist->GetNbinsY()*sample_hist->GetNbinsZ();
 	std::cout << std::setw(label_print_width) << sample_name;
 
+	// This is how ROOT makes us loop over histograms :(
+	int current_bin = 0;
 	for(int i = 0; i < num_bins; ++i) {
+	  // Avoid the overflow/underflow
+	  current_bin++;
+	  while( sample_hist->IsBinUnderflow(current_bin) ||
+		 sample_hist->IsBinOverflow(current_bin) ) {
+	    current_bin++;
+	  }
 	  // Check that we should print this bin
 	  if( _minBinToPrint != -1 && i < _minBinToPrint) continue;
 	  if( _maxBinToPrint != -1 && i > _maxBinToPrint) break;
-	  std::cout << std::setw(bin_print_width) << sample_hist->GetBinContent(i+1);
+	  std::cout << std::setw(bin_print_width) << sample_hist->GetBinContent(current_bin);
 	}
 	std::cout << std::endl;
 	delete sample_hist;
@@ -242,10 +250,18 @@ namespace RooStats {
       std::string tmp_name = channel + "_pretty_tmp";
       TH1* channel_hist = GetChannelHist(channel, tmp_name);
       std::cout << std::setw(label_print_width) << "TOTAL:";
-      for(int i = 0; i < channel_hist->GetNbinsX(); ++i) {
+      //int num_bins = channel_hist->GetNbinsX()*channel_hist->GetNbinsY()*channel_hist->GetNbinsZ();
+      int current_bin = 0;
+      for(int i = 0; i < num_bins; ++i) {
+	// Avoid the overflow/underflow
+	current_bin++;
+	while( channel_hist->IsBinUnderflow(current_bin) ||
+	       channel_hist->IsBinOverflow(current_bin) ) {
+	  current_bin++;
+	}
 	if( _minBinToPrint != -1 && i < _minBinToPrint) continue;
 	if( _maxBinToPrint != -1 && i > _maxBinToPrint) break;
-	std::cout << std::setw(bin_print_width) << channel_hist->GetBinContent(i+1);
+	std::cout << std::setw(bin_print_width) << channel_hist->GetBinContent(current_bin);
       }
       std::cout << std::endl;
       delete channel_hist;
@@ -377,13 +393,22 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
 	if( channel_to_print != "" && channel_name != channel_to_print) continue;
 
 	TH1* data_hist = GetDataHist(data, channel_name, channel_name+"_tmp");
-	int num_bins = data_hist->GetNbinsX();
+	int num_bins = data_hist->GetNbinsX()*data_hist->GetNbinsY()*data_hist->GetNbinsZ();
 	  
 	std::cout << std::setw(label_print_width) << channel_name + " (data)";
+
+	int current_bin = 0;
 	for( int i=0; i < num_bins; ++i) {
+	  // Avoid the overflow/underflow
+	  current_bin++;
+	  while( data_hist->IsBinUnderflow(current_bin) ||
+		 data_hist->IsBinOverflow(current_bin) ) {
+	    current_bin++;
+	  }
+	  // Check that we should print this bin
 	  if( min_bins != -1 && (int)i < min_bins) continue;
 	  if( max_bins != -1 && (int)i >= max_bins) break;
-	  std::cout << std::setw(bin_print_width) << data_hist->GetBinContent(i+1);
+	  std::cout << std::setw(bin_print_width) << data_hist->GetBinContent(current_bin);
 	}
 	std::cout << std::endl;
 	
@@ -1254,7 +1279,7 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
       // Make the total histogram for this sample
       std::string total_Name = sampleNode->GetName();
       TH1* total_hist= MakeHistFromRooFunction( sampleNode, observable_list, total_Name + "_tmp");
-      unsigned int num_bins = total_hist->GetNbinsX();
+      unsigned int num_bins = total_hist->GetNbinsX()*total_hist->GetNbinsY()*total_hist->GetNbinsZ();
 
       RooArgSet components;
       
@@ -1283,6 +1308,7 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
       // Now, loop over the components and print them out:
       std::cout << std::endl;
       std::cout << std::setw(label_print_width) << "Factor";
+
       for(unsigned int i=0; i < num_bins; ++i) {
 	if( _minBinToPrint != -1 && (int)i < _minBinToPrint) continue;
 	if( _maxBinToPrint != -1 && (int)i > _maxBinToPrint) break;
@@ -1316,10 +1342,18 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
 
 	// Print the hist
 	std::cout << std::setw(label_print_width) << NodeName;
+	int current_bin = 0;
 	for(unsigned int i = 0; i < num_bins; ++i) {
+	  // Avoid the overflow/underflow
+	  current_bin++;
+	  while( hist->IsBinUnderflow(current_bin) ||
+		 hist->IsBinOverflow(current_bin) ) {
+	    current_bin++;
+	  }
+	  // Check that we should print this bin
 	  if( _minBinToPrint != -1 && (int)i < _minBinToPrint) continue;
 	  if( _maxBinToPrint != -1 && (int)i > _maxBinToPrint) break;
-	  std::cout << std::setw(bin_print_width) << hist->GetBinContent(i+1);
+	  std::cout << std::setw(bin_print_width) << hist->GetBinContent(current_bin);
 	}
 	std::cout << std::endl;
 	delete hist;
