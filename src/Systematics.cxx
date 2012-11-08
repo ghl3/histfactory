@@ -5,7 +5,6 @@
 
 
 // Constraints
-
 std::string RooStats::HistFactory::Constraint::Name( Constraint::Type type ) {
 
   if( type == Constraint::Gaussian ) return "Gaussian";
@@ -49,6 +48,15 @@ void RooStats::HistFactory::NormFactor::Print( std::ostream& stream ) {
 	 << std::endl;
 }
 
+void RooStats::HistFactory::NormFactor::PrintXML( std::ostream& xml ) {
+  xml << "      <NormFactor Name=\"" << GetName() << "\" "
+      << " Val=\""   << GetVal()   << "\" "
+      << " High=\""  << GetHigh()  << "\" "
+      << " Low=\""   << GetLow()   << "\" "
+      << " Const=\"" << (GetConst() ? std::string("True") : std::string("False")) << "\" "
+      << "  /> " << std::endl;
+}
+
 // Overall Sys
 void RooStats::HistFactory::OverallSys::Print( std::ostream& stream ) {
   stream << "\t \t Name: " << fName
@@ -57,8 +65,14 @@ void RooStats::HistFactory::OverallSys::Print( std::ostream& stream ) {
 	 << std::endl;
 }
 
-// HistoSys
+void RooStats::HistFactory::OverallSys::PrintXML( std::ostream& xml ) {
+  xml << "      <OverallSys Name=\"" << GetName() << "\" "
+      << " High=\"" << GetHigh() << "\" "
+      << " Low=\""  << GetLow()  << "\" "
+      << "  /> " << std::endl;
+}
 
+// HistoSys
 TH1* RooStats::HistFactory::HistoSys::GetHistoLow() {
   TH1* histo_low = (TH1*) fhLow.GetObject();
   return histo_low;
@@ -80,6 +94,17 @@ void RooStats::HistFactory::HistoSys::Print( std::ostream& stream ) {
 	 << std::endl;
 }
 
+void RooStats::HistFactory::HistoSys::PrintXML( std::ostream& xml ) {
+  xml << "      <HistoSys Name=\"" << GetName() << "\" "
+      << " InputFileLow=\""  << GetInputFileLow()  << "\" "
+      << " HistoNameLow=\""  << GetHistoNameLow()  << "\" "
+      << " HistoPathLow=\""  << GetHistoPathLow()  << "\" "
+
+      << " InputFileHigh=\""  << GetInputFileHigh()  << "\" "
+      << " HistoNameHigh=\""  << GetHistoNameHigh()  << "\" "
+      << " HistoPathHigh=\""  << GetHistoPathHigh()  << "\" "
+      << "  /> " << std::endl;
+}
 
 void RooStats::HistFactory::HistoSys::writeToFile( const std::string& FileName, 
 						   const std::string& DirName ) {
@@ -118,7 +143,6 @@ void RooStats::HistFactory::HistoSys::writeToFile( const std::string& FileName,
 }
 
 
-
 // Shape Sys
 
 TH1* RooStats::HistFactory::ShapeSys::GetErrorHist() {
@@ -134,6 +158,17 @@ void RooStats::HistFactory::ShapeSys::Print( std::ostream& stream ) {
 	 << "\t HistoPath: " << fHistoPath
 	 << std::endl;
 }
+
+
+void RooStats::HistFactory::ShapeSys::PrintXML( std::ostream& xml ) {
+  xml << "      <ShapeSys Name=\"" << GetName() << "\" "
+      << " InputFile=\""  << GetInputFile()  << "\" "
+      << " HistoName=\""  << GetHistoName()  << "\" "
+      << " HistoPath=\""  << GetHistoPath()  << "\" "
+      << " ConstraintType=\"" << std::string(Constraint::Name(GetConstraintType())) << "\" "
+      << "  /> " << std::endl;
+}
+
 
 void RooStats::HistFactory::ShapeSys::writeToFile( const std::string& FileName, 
 						   const std::string& DirName ) {
@@ -154,6 +189,8 @@ void RooStats::HistFactory::ShapeSys::writeToFile( const std::string& FileName,
   return;
 
 }
+
+
 
 
 // HistoFactor
@@ -218,6 +255,20 @@ void RooStats::HistFactory::HistoFactor::writeToFile( const std::string& FileNam
 
 }
 
+void RooStats::HistFactory::HistoFactor::PrintXML( std::ostream& xml ) {
+  xml << "      <HistoFactor Name=\"" << GetName() << "\" "
+
+      << " InputFileLow=\""  << GetInputFileLow()  << "\" "
+      << " HistoNameLow=\""  << GetHistoNameLow()  << "\" "
+      << " HistoPathLow=\""  << GetHistoPathLow()  << "\" "
+
+      << " InputFileHigh=\""  << GetInputFileHigh()  << "\" "
+      << " HistoNameHigh=\""  << GetHistoNameHigh()  << "\" "
+      << " HistoPathHigh=\""  << GetHistoPathHigh()  << "\" "
+      << "  /> " << std::endl;
+}
+
+
 // Shape Factor
 RooStats::HistFactory::ShapeFactor::ShapeFactor() : fConstant(false), fhInitialShape(NULL) {;}
 
@@ -262,16 +313,30 @@ void RooStats::HistFactory::ShapeFactor::writeToFile( const std::string& FileNam
 }
 
 
+void RooStats::HistFactory::ShapeFactor::PrintXML( std::ostream& xml ) {
+  xml << "      <ShapeFactor Name=\"" << GetName() << "\" "
+      << "  /> " << std::endl;
+}
 
-// Stat Error
 
-
+// Stat Error Config
 void RooStats::HistFactory::StatErrorConfig::Print( std::ostream& stream ) {
   stream << "\t \t RelErrorThreshold: " << fRelErrorThreshold
 	 << "\t ConstraintType: " << Constraint::Name( fConstraintType )
 	 << std::endl;
 }  
 
+void RooStats::HistFactory::StatErrorConfig::PrintXML( std::ostream& xml ) {
+  xml << "    <StatErrorConfig RelErrorThreshold=\"" << GetRelErrorThreshold() 
+      << "\" "
+      << "ConstraintType=\"" << Constraint::Name( GetConstraintType() ) 
+      << "\" "
+      << "/> " << std::endl << std::endl;
+
+}
+
+
+// Stat Error
 TH1* RooStats::HistFactory::StatError::GetErrorHist() {
   return (TH1*) fhError.GetObject();
 }
@@ -284,6 +349,21 @@ void RooStats::HistFactory::StatError::Print( std::ostream& stream ) {
 	 << "\t histoPath: " << fHistoPath
 	 << std::endl;
 }  
+
+void RooStats::HistFactory::StatError::PrintXML( std::ostream& xml ) {
+
+  if( GetActivate() ) {
+    xml << "      <StatError Activate=\"" 
+	<< (GetActivate() ? std::string("True") : std::string("False"))  
+	<< "\" "
+	<< " InputFile=\"" << GetInputFile() << "\" "
+	<< " HistoName=\"" << GetHistoName() << "\" "
+	<< " HistoPath=\"" << GetHistoPath() << "\" "
+	<< " /> " << std::endl;
+  }
+
+}
+
 
 void RooStats::HistFactory::StatError::writeToFile( const std::string& OutputFileName, 
 						    const std::string& DirName ) {

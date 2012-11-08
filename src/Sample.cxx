@@ -132,7 +132,10 @@ void RooStats::HistFactory::Sample::PrintXML( std::ofstream& xml ) {
       << " NormalizeByTheory=\"" << (fNormalizeByTheory ? std::string("True") : std::string("False"))  << "\" "
       << ">" << std::endl;
 
+
   // Print Stat Error (if necessary)
+  fStatError.PrintXML( xml );
+  /*
   if( fStatError.GetActivate() ) {
     xml << "      <StatError Activate=\"" << (fStatError.GetActivate() ? std::string("True") : std::string("False"))  << "\" "
 	<< " InputFile=\"" << fStatError.GetInputFile() << "\" "
@@ -140,26 +143,36 @@ void RooStats::HistFactory::Sample::PrintXML( std::ofstream& xml ) {
 	<< " HistoPath=\"" << fStatError.GetHistoPath() << "\" "
 	<< " /> " << std::endl;
   }
-  
+  */
+
+
   // Now, print the systematics:
   for( unsigned int i = 0; i < fOverallSysList.size(); ++i ) {
     RooStats::HistFactory::OverallSys sys = fOverallSysList.at(i);
+    sys.PrintXML(xml);
+    /*
     xml << "      <OverallSys Name=\"" << sys.GetName() << "\" "
 	<< " High=\"" << sys.GetHigh() << "\" "
 	<< " Low=\""  << sys.GetLow()  << "\" "
 	<< "  /> " << std::endl;
+    */
   }
   for( unsigned int i = 0; i < fNormFactorList.size(); ++i ) {
     RooStats::HistFactory::NormFactor sys = fNormFactorList.at(i);
+    sys.PrintXML(xml);
+    /*
     xml << "      <NormFactor Name=\"" << sys.GetName() << "\" "
 	<< " Val=\""   << sys.GetVal()   << "\" "
 	<< " High=\""  << sys.GetHigh()  << "\" "
 	<< " Low=\""   << sys.GetLow()   << "\" "
 	<< " Const=\"" << (sys.GetConst() ? std::string("True") : std::string("False")) << "\" "
 	<< "  /> " << std::endl;
+    */
   }
   for( unsigned int i = 0; i < fHistoSysList.size(); ++i ) {
     RooStats::HistFactory::HistoSys sys = fHistoSysList.at(i);
+    sys.PrintXML(xml);
+    /*
     xml << "      <HistoSys Name=\"" << sys.GetName() << "\" "
 
 	<< " InputFileLow=\""  << sys.GetInputFileLow()  << "\" "
@@ -170,9 +183,12 @@ void RooStats::HistFactory::Sample::PrintXML( std::ofstream& xml ) {
 	<< " HistoNameHigh=\""  << sys.GetHistoNameHigh()  << "\" "
 	<< " HistoPathHigh=\""  << sys.GetHistoPathHigh()  << "\" "
 	<< "  /> " << std::endl;
+    */
   }
   for( unsigned int i = 0; i < fHistoFactorList.size(); ++i ) {
     RooStats::HistFactory::HistoFactor sys = fHistoFactorList.at(i);
+    sys.PrintXML(xml);
+    /*
     xml << "      <HistoFactor Name=\"" << sys.GetName() << "\" "
 
 	<< " InputFileLow=\""  << sys.GetInputFileLow()  << "\" "
@@ -183,9 +199,12 @@ void RooStats::HistFactory::Sample::PrintXML( std::ofstream& xml ) {
 	<< " HistoNameHigh=\""  << sys.GetHistoNameHigh()  << "\" "
 	<< " HistoPathHigh=\""  << sys.GetHistoPathHigh()  << "\" "
 	<< "  /> " << std::endl;
+    */
   }
   for( unsigned int i = 0; i < fShapeSysList.size(); ++i ) {
     RooStats::HistFactory::ShapeSys sys = fShapeSysList.at(i);
+    sys.PrintXML(xml);
+    /*
     xml << "      <ShapeSys Name=\"" << sys.GetName() << "\" "
 
 	<< " InputFile=\""  << sys.GetInputFile()  << "\" "
@@ -193,17 +212,19 @@ void RooStats::HistFactory::Sample::PrintXML( std::ofstream& xml ) {
 	<< " HistoPath=\""  << sys.GetHistoPath()  << "\" "
 	<< " ConstraintType=\"" << std::string(Constraint::Name(sys.GetConstraintType())) << "\" "
 	<< "  /> " << std::endl;
+    */
   }
   for( unsigned int i = 0; i < fShapeFactorList.size(); ++i ) {
     RooStats::HistFactory::ShapeFactor sys = fShapeFactorList.at(i);
+    sys.PrintXML(xml);
+    /*
     xml << "      <ShapeFactor Name=\"" << sys.GetName() << "\" "
 	<< "  /> " << std::endl;
+    */
   }
-
 
   // Finally, close the tag
   xml << "    </Sample>" << std::endl;
-
 
 }
 

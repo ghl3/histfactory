@@ -30,6 +30,19 @@ namespace HistFactory {
   }
 
 
+  // Base class for common functions
+  /*
+  class Systematic {
+    
+  public:
+
+    virtual void Print(std::ostream& = std::cout);
+    virtual void writeToFile(const std::string& FileName, 
+			     const std::string& Directory);
+    
+    
+  };
+  */
 
   class OverallSys {
 
@@ -44,6 +57,7 @@ namespace HistFactory {
     double GetHigh() { return fHigh; }
 
     void Print(std::ostream& = std::cout);  
+    void PrintXML(std::ostream&);
 
   protected:
     std::string fName;
@@ -74,6 +88,7 @@ namespace HistFactory {
     double GetHigh() { return fHigh; }
 
     void Print(std::ostream& = std::cout);      
+    void PrintXML(std::ostream&);
 
   protected:
 
@@ -94,6 +109,7 @@ namespace HistFactory {
     HistoSys(const std::string& Name) : fName(Name), fhLow(NULL), fhHigh(NULL) {;}
 
     void Print(std::ostream& = std::cout);  
+    void PrintXML(std::ostream&);
     void writeToFile( const std::string& FileName, const std::string& DirName );
 
     void SetHistoLow( TH1* Low ) { fhLow = Low; }
@@ -101,7 +117,6 @@ namespace HistFactory {
     
     TH1* GetHistoLow();
     TH1* GetHistoHigh();
-
     
     void SetName( const std::string& Name ) { fName = Name; }
     std::string GetName() { return fName; }
@@ -123,7 +138,6 @@ namespace HistFactory {
     
     std::string GetHistoPathLow() { return fHistoPathLow; }
     std::string GetHistoPathHigh() { return fHistoPathHigh; }
-
 
   protected:
 
@@ -150,7 +164,7 @@ namespace HistFactory {
 
     void SetName( const std::string& Name ) { fName = Name; }
     std::string GetName() { return fName; }
-
+    
     void SetInputFileLow( const std::string& InputFileLow ) { fInputFileLow = InputFileLow; }
     void SetInputFileHigh( const std::string& InputFileHigh ) { fInputFileHigh = InputFileHigh; }
     
@@ -171,14 +185,12 @@ namespace HistFactory {
 
     void Print(std::ostream& = std::cout);  
     void writeToFile( const std::string& FileName, const std::string& DirName );
-
+    void PrintXML(std::ostream&);
 
     TH1* GetHistoLow();
     TH1* GetHistoHigh();
     void SetHistoLow( TH1* Low ) { fhLow = Low; }
     void SetHistoHigh( TH1* High ) { fhHigh = High; }
-
-
 
   protected:
 
@@ -215,18 +227,15 @@ namespace HistFactory {
     void SetHistoPath( const std::string& HistoPath ) { fHistoPath = HistoPath; }
     std::string GetHistoPath() { return fHistoPath; }
 
-
     void Print(std::ostream& = std::cout);  
+    void PrintXML(std::ostream&);
     void writeToFile( const std::string& FileName, const std::string& DirName );
 
     TH1* GetErrorHist();
     void SetErrorHist(TH1* hError) { fhError = hError; }
 
-
-
     void SetConstraintType( Constraint::Type ConstrType ) { fConstraintType = ConstrType; }
     Constraint::Type GetConstraintType() { return fConstraintType; }
-
 
   protected:
 
@@ -251,6 +260,8 @@ namespace HistFactory {
     void SetName( const std::string& Name ) { fName = Name; }
     std::string GetName() { return fName; }
 
+    void Print(std::ostream& = std::cout);  
+    void PrintXML(std::ostream&);
     void writeToFile( const std::string& FileName, const std::string& DirName);
 
     void SetInitialShape(TH1* shape) { fhInitialShape = shape; }
@@ -268,7 +279,7 @@ namespace HistFactory {
     void SetHistoPath( const std::string& HistoPath ) { fHistoPath = HistoPath; }
     std::string GetHistoPath() { return fHistoPath; }
 
-    void Print(std::ostream& = std::cout);  
+
 
   protected:
     std::string fName;
@@ -292,6 +303,7 @@ namespace HistFactory {
     StatError() : fActivate(false), fUseHisto(false), fhError(NULL) {;}
 
     void Print(std::ostream& = std::cout);  
+    void PrintXML(std::ostream&);
     void writeToFile( const std::string& FileName, const std::string& DirName );
 
     void Activate( bool IsActive=true ) { fActivate = IsActive; }
@@ -313,7 +325,6 @@ namespace HistFactory {
     TH1* GetErrorHist();
     void SetErrorHist(TH1* Error) { fhError = Error; }
 
-
   protected:
 
     bool fActivate;
@@ -333,13 +344,13 @@ namespace HistFactory {
 
     StatErrorConfig() : fRelErrorThreshold( .05 ), fConstraintType( Constraint::Gaussian ) {;}
     void Print(std::ostream& = std::cout);  
+    void PrintXML(std::ostream&);
 
     void SetRelErrorThreshold( double Threshold ) { fRelErrorThreshold = Threshold; }
     double GetRelErrorThreshold() { return fRelErrorThreshold; }
 
     void SetConstraintType( Constraint::Type ConstrType ) { fConstraintType = ConstrType; }
     Constraint::Type GetConstraintType() { return fConstraintType; }
-
 
   protected:
 
