@@ -1148,13 +1148,15 @@ namespace RooStats {
       std::cout << line_break << std::endl;
 
       std::cout << std::setw(label_print_width) << "TOTAL:";
+      PrintMultiDimHist(total_hist, bin_print_width);
+      /*
       for(unsigned int i = 0; i < num_bins; ++i) {
 	if( _minBinToPrint != -1 && (int)i < _minBinToPrint) continue;
 	if( _maxBinToPrint != -1 && (int)i > _maxBinToPrint) break;
 	std::cout << std::setw(bin_print_width) << total_hist->GetBinContent(i+1);
       }
       std::cout << std::endl << std::endl;
-
+      */
       delete total_hist;
       
       return;
