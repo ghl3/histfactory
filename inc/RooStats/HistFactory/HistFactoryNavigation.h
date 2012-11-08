@@ -49,8 +49,7 @@ namespace RooStats {
       void PrintSampleComponents(const std::string& channel, const std::string& sample);
 
       // Print a "HistFactory style" RooDataSet in a readable way
-      void PrintDataSet(RooDataSet* data, const std::string& channel="", 
-			int min=-1, int max=-1);
+      void PrintDataSet(RooDataSet* data, const std::string& channel="");
 
       // Print the model and the data, comparing channel by channel
       void PrintModelAndData(RooDataSet* data);
@@ -143,6 +142,7 @@ namespace RooStats {
 
       // Print a histogram's contents to the screen
       // void PrettyPrintHistogram(TH1* hist);
+      void PrintMultiDimHist(TH1* hist, int bin_print_width);
 
       // Make a histogram from a funciton
       // Edit so it can take a RooArgSet of parameters

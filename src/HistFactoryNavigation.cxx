@@ -163,6 +163,30 @@ namespace RooStats {
 
     }
 
+
+    void HistFactoryNavigation::PrintMultiDimHist(TH1* hist, int bin_print_width) {
+
+      // This is how ROOT makes us loop over histograms :(
+      int current_bin = 0;
+      int num_bins = hist->GetNbinsX()*hist->GetNbinsY()*hist->GetNbinsZ();
+      for(int i = 0; i < num_bins; ++i) {
+	// Avoid the overflow/underflow
+	current_bin++;
+	while( hist->IsBinUnderflow(current_bin) ||
+	       hist->IsBinOverflow(current_bin) ) {
+	  current_bin++;
+	}
+	// Check that we should print this bin
+	if( _minBinToPrint != -1 && i < _minBinToPrint) continue;
+	if( _maxBinToPrint != -1 && i > _maxBinToPrint) break;
+	std::cout << std::setw(bin_print_width) << hist->GetBinContent(current_bin);
+      }
+      std::cout << std::endl;
+
+    }
+
+
+
     RooAbsPdf* HistFactoryNavigation::GetChannelPdf(const std::string& channel) {
 
       std::map< std::string, RooAbsPdf* >::iterator itr;
@@ -210,25 +234,17 @@ namespace RooStats {
 	std::string sample_name = itr->first;
 	std::string tmp_name = sample_name + channel + "_pretty_tmp";
 	TH1* sample_hist = GetSampleHist(channel, sample_name, tmp_name);
-	num_bins = sample_hist->GetNbinsX();
+	num_bins = sample_hist->GetNbinsX()*sample_hist->GetNbinsY()*sample_hist->GetNbinsZ();
 	std::cout << std::setw(label_print_width) << sample_name;
 
-	for(int i = 0; i < num_bins; ++i) {
-	  // Check that we should print this bin
-	  if( _minBinToPrint != -1 && i < _minBinToPrint) continue;
-	  if( _maxBinToPrint != -1 && i > _maxBinToPrint) break;
-	  std::cout << std::setw(bin_print_width) << sample_hist->GetBinContent(i+1);
-	}
-	std::cout << std::endl;
+	// Print the content of the histogram
+	PrintMultiDimHist(sample_hist, bin_print_width);
 	delete sample_hist;
 
       }
 
       // Make the line break as a set of "===============" ...
       std::string line_break;
-      //int break_length = _maxBinToPrint == -1 ? 
-      //	num_bins : TMath::Min(_maxBinToPrint, (int)num_bins);
-      //break_length *= bin_print_width;
       int high_bin = _maxBinToPrint==-1 ? num_bins : TMath::Min(_maxBinToPrint, (int)num_bins);
       int low_bin = _minBinToPrint==-1 ? num_bins : _minBinToPrint;
       int break_length = (high_bin - low_bin + 1) * bin_print_width;
@@ -241,12 +257,9 @@ namespace RooStats {
       std::string tmp_name = channel + "_pretty_tmp";
       TH1* channel_hist = GetChannelHist(channel, tmp_name);
       std::cout << std::setw(label_print_width) << "TOTAL:";
-      for(int i = 0; i < channel_hist->GetNbinsX(); ++i) {
-	if( _minBinToPrint != -1 && i < _minBinToPrint) continue;
-	if( _maxBinToPrint != -1 && i > _maxBinToPrint) break;
-	std::cout << std::setw(bin_print_width) << channel_hist->GetBinContent(i+1);
-      }
-      std::cout << std::endl;
+
+      // Print the Histogram
+      PrintMultiDimHist(channel_hist, bin_print_width);
       delete channel_hist;
 
       return;
@@ -261,43 +274,9 @@ namespace RooStats {
       }
     }
 
-    /*
-std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsMap(RooDataSet* data) {
-      
-      // Create a map of channel names to the channel's bin values
-      std::map< std::string, std::vector<double> > ChannelBinsMap;
-      
-      // Then loop and fill these vectors for each channel      
-      for(int i = 0; i < data->numEntries(); ++i) {
-
-	// Get the row
-	const RooArgSet* row = data->get(i);
-
-	// The current bin height is the weight
-	// of this row.
-	double bin_height = data->weight();
-
-	// Let's figure out the channel
-	// For now, the variable 'channelCat' is magic, but
-	// we should change this to be a bit smarter...
-	std::string channel = row->getCatLabel("channelCat");
-
-	// Get the vector of bin heights (creating if necessary)
-	// and append
-	std::vector<double>& bins = ChannelBinsMap[channel];
-	bins.push_back(bin_height);
-
-      }
-
-      return ChannelBinsMap;
-
-    }
-    */
-
     void HistFactoryNavigation::PrintDataSet(RooDataSet* data, 
-					     const std::string& channel_to_print,
-					     int min_bins, int max_bins) {
-
+					     const std::string& channel_to_print) {
+      
       // Print the contents of a 'HistFactory' RooDataset
       // These are stored in a somewhat odd way that makes
       // them difficult to inspect for humans.
@@ -312,58 +291,6 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
       //                        ...etc...
       // =====================================================
 
-      /*
-      
-      // Create a map of channel names to the channel's bin values
-      std::map< std::string, std::vector<double> > ChannelBinsMap;
-
-      int label_print_width = 20;
-      int bin_print_width = 12;
-
-      // Then loop and fill these vectors for each channel      
-      for(int i = 0; i < data->numEntries(); ++i) {
-
-	// Get the row
-	const RooArgSet* row = data->get(i);
-
-	// The current bin height is the weight
-	// of this row.
-	double bin_height = data->weight();
-
-	// Let's figure out the channel
-	// For now, the variable 'channelCat' is magic, but
-	// we should change this to be a bit smarter...
-	std::string channel = row->getCatLabel("channelCat");
-
-	// Get the vector of bin heights (creating if necessary)
-	// and append
-	std::vector<double>& bins = ChannelBinsMap[channel];
-	bins.push_back(bin_height);
-
-      }
-
-      // Now that we have the information, we loop over
-      // our newly created object and pretty print the info
-      std::map< std::string, std::vector<double> >::iterator itr = ChannelBinsMap.begin();
-      for( ; itr != ChannelBinsMap.end(); ++itr) {
-
-	std::string channel_name = itr->first;
-
-	// If we pass a channel string, we only print that one channel
-	if( channel_to_print != "" && channel_name != channel_to_print) continue;
-
-	std::cout << std::setw(label_print_width) << channel_name + " (data)";
-	std::vector<double>& bins = itr->second;
-	for(unsigned int i = 0; i < bins.size(); ++i) {
-	  if( min_bins != -1 && (int)i < min_bins) continue;
-	  if( max_bins != -1 && (int)i >= max_bins) break;
-	  std::cout << std::setw(bin_print_width) << bins.at(i);
-	}
-	std::cout << std::endl;
-
-      }
-      */
-
       int label_print_width = 20;
       int bin_print_width = 12;
 
@@ -376,16 +303,11 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
 	if( channel_to_print != "" && channel_name != channel_to_print) continue;
 
 	TH1* data_hist = GetDataHist(data, channel_name, channel_name+"_tmp");
-	int num_bins = data_hist->GetNbinsX();
-	  
 	std::cout << std::setw(label_print_width) << channel_name + " (data)";
-	for( int i=0; i < num_bins; ++i) {
-	  if( min_bins != -1 && (int)i < min_bins) continue;
-	  if( max_bins != -1 && (int)i >= max_bins) break;
-	  std::cout << std::setw(bin_print_width) << data_hist->GetBinContent(i+1);
-	}
-	std::cout << std::endl;
-	
+
+	// Print the Histogram
+	PrintMultiDimHist(data_hist, bin_print_width);
+	delete data_hist;
       }
     }
 
@@ -398,7 +320,7 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
       for( unsigned int i = 0; i < fChannelNameVec.size(); ++i) {
 	std::string channel = fChannelNameVec.at(i);
 	PrintState(channel);
-	PrintDataSet(data, channel, _minBinToPrint, _maxBinToPrint);
+	PrintDataSet(data, channel);
       }
       
       std::cout << std::endl;
@@ -965,7 +887,6 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
       // Check if it's a Parameter
       // (ie a RooRealVar)
       RooArgSet* args = new RooArgSet();
-      //RooArgSet* paramSet = fModel->getParameters(args);
       RooArgSet* paramSet = parent->getParameters(args);
       TIterator* paramItr = paramSet->createIterator();
       RooAbsArg* param = NULL;
@@ -1014,9 +935,8 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
       if( parameter.find("gamma_stat_") != std::string::npos ) { 
 	ConstraintTermName = parameter + "_constraint";
       }
-      // RooAbsReal* term = NULL;
-      // RooAbsReal* term = dynamic_cast<RooAbsReal*>(fModel->findServer(ConstraintTermName.c_str()));
 
+      // Now, get the constraint itself
       RooAbsReal* term = dynamic_cast<RooAbsReal*>(findChild(ConstraintTermName, fModel));
 
       if( term==NULL ) {
@@ -1026,88 +946,6 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
       }
 
       return term;
-
-      /*
-      // Get the set of all variables
-      RooArgSet all_vars = wspace->allVars();
-
-      // Loop over all variables (boilerplate...)
-      TIterator* iter = all_vars.createIterator() ;
-      RooAbsArg* arg ;
-      while((arg=(RooAbsArg*)iter->Next())) {
-
-      // Get the variable, ensuring that it's valid
-      RooRealVar* var = dynamic_cast<RooRealVar*>(arg) ;
-      if( !var ) {
-      std::cout << "Error: Failed to obtain pointer to variable: " << arg->GetName() << std::endl;
-      throw runtime_error("fixStatError");
-      }
-
-      std::string VarName = var->GetName();
-
-      if( VarName == "" ) {
-      std::cout << "Error: Invalid variable name encountered" << std::endl;
-      throw runtime_error("fixStatError");
-      }
-
-      // Skip if it's not a "gamma_stat_* variable"
-      if( string(VarName).find("gamma_stat_")==string::npos ) continue;
-
-      // Skip if it's not "nominal" parameter
-      if( string(VarName).find("nom_")!=string::npos ) continue;
-    
-
-
-      // Get the constraint and check its type:
-      RooAbsReal* constraint = (RooAbsReal*) wspace->obj( (VarName+"_constraint").c_str() );
-      std::string ConstraintType = constraint->IsA()->GetName();
-
-      double sigma = 0.0;
-
-      if( ConstraintType == "" ) {
-      std::cout << "Error: Strange constraint type for Stat Uncertainties" << std::endl;
-      throw runtime_error("fixStatError");
-      }
-      else if( ConstraintType == "RooGaussian" ){
-      RooAbsReal* sigmaVar = (RooAbsReal*) wspace->obj( (VarName+"_sigma").c_str() );
-      sigma = sigmaVar->getVal();
-      }
-      else if( ConstraintType == "RooPoisson" ){
-      RooAbsReal* nom_gamma = (RooAbsReal*) wspace->obj( ("nom_" + VarName).c_str() );
-      double nom_gamma_val = nom_gamma->getVal();
-      sigma = 1.0 / TMath::Sqrt( nom_gamma_val );
-      } 
-      else {
-      std::cout << "Error: Strange constraint type for Stat Uncertainties: " << ConstraintType << std::endl;
-      throw runtime_error("fixStatError");
-      }
-
-      std::cout << "Encountered a statistical uncertainty variable: " << VarName
-      << " Error is: " << sigma;
-
-      // Now, fix the parameter if it
-      // is less than some value
-      if( sigma < error_min ) {
-      if( var->isConstant() ) std::cout << ". Keepting this variable Constant";
-      else std::cout << ". Setting this variable Constant";
-
-      var->setConstant(true);
-      }
-      else {
-      if( var->isConstant() ) std::cout << ". Setting this variable NOT Constant";
-      else std::cout << ". Keepting this variable NOT Constant";
-
-      var->setConstant(false);
-      }
-
-      std::cout << std::endl;
-
-      }
-
-      // Done :)
-      return;
-
-      */
 
     }
 
@@ -1150,7 +988,6 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
 	}
 
 	// Get the sigma and its value
-	//RooAbsReal* sigmaVar = findChild(sigmaName, constraintTerm);
 	RooAbsReal* sigmaVar = dynamic_cast<RooAbsReal*>(constraintTerm->findServer(sigmaName.c_str()));
 	if( sigmaVar==NULL ) {
 	  std::cout << "Error: Failed to find the 'sigma' node: " << sigmaName
@@ -1205,7 +1042,6 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
 	// Check if this client is a member of our pdf
 	// (We probably don't want to mess with clients
 	// if they aren't...)
-	//std::cout << "Checking Client: " << client->GetName() << std::endl; //
 	if( findChild(client->GetName(), fModel)==NULL ) continue;
 	
 	// Now, do the replacement:
@@ -1222,24 +1058,6 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
 
     }
 
-    /*
-      void AddConstraintTerm(RooAbsArg* constraintTerm) {
-      
-      // Add a constraint term to the pdf
-      // This method requires that the pdf NOT be simultaneous
-      
-      if(strcmp(modelPdf->ClassName(),"RooSimultaneous")==0){
-      std::cout << "Error: The pdf for this navigation is a RooSimultaneous, "
-      << " to add a constraint term, you must supply an explicit channel"
-      << std::endl;
-      throw hf_exc();
-      }
-      
-      // ADD CODE TO TAKE THE RooProdPdf term
-      // and add an additional constraint
-
-      }
-    */
 
     void HistFactoryNavigation::PrintSampleComponents(const std::string& channel, 
 						      const std::string& sample) {
@@ -1253,7 +1071,7 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
       // Make the total histogram for this sample
       std::string total_Name = sampleNode->GetName();
       TH1* total_hist= MakeHistFromRooFunction( sampleNode, observable_list, total_Name + "_tmp");
-      unsigned int num_bins = total_hist->GetNbinsX();
+      unsigned int num_bins = total_hist->GetNbinsX()*total_hist->GetNbinsY()*total_hist->GetNbinsZ();
 
       RooArgSet components;
       
@@ -1282,14 +1100,13 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
       // Now, loop over the components and print them out:
       std::cout << std::endl;
       std::cout << std::setw(label_print_width) << "Factor";
+
       for(unsigned int i=0; i < num_bins; ++i) {
 	if( _minBinToPrint != -1 && (int)i < _minBinToPrint) continue;
 	if( _maxBinToPrint != -1 && (int)i > _maxBinToPrint) break;
 	std::stringstream sstr;
 	sstr << "Bin" << i;
 	std::cout << std::setw(bin_print_width) << sstr.str();
-	//std::cout << std::setw(bin_print_width) << "Bin ";
-	//std::cout << std::setw(bin_print_width) << i;
       }
       std::cout << std::endl;
 
@@ -1315,19 +1132,13 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
 
 	// Print the hist
 	std::cout << std::setw(label_print_width) << NodeName;
-	for(unsigned int i = 0; i < num_bins; ++i) {
-	  if( _minBinToPrint != -1 && (int)i < _minBinToPrint) continue;
-	  if( _maxBinToPrint != -1 && (int)i > _maxBinToPrint) break;
-	  std::cout << std::setw(bin_print_width) << hist->GetBinContent(i+1);
-	}
-	std::cout << std::endl;
+
+	// Print the Histogram
+	PrintMultiDimHist(hist, bin_print_width);
 	delete hist;
       }
       /////
       std::string line_break;
-      //int break_length = _maxBinToPrint == -1 ? 
-      //	num_bins : TMath::Min(_maxBinToPrint, (int)num_bins);
-      //break_length *= bin_print_width;
       int high_bin = _maxBinToPrint==-1 ? num_bins : TMath::Min(_maxBinToPrint, (int)num_bins);
       int low_bin = _minBinToPrint==-1 ? num_bins : _minBinToPrint;
       int break_length = (high_bin - low_bin + 1) * bin_print_width;
@@ -1337,10 +1148,6 @@ std::map< std::string, std::vector<double> > HistFactoryNavigation::GetDataBinsM
       }
       std::cout << line_break << std::endl;
 
-      //for(unsigned int i=0; i<label_print_width + 15*num_bins; ++i) { 
-      //std::cout << "="; 
-      //}
-      //std::cout << std::endl << std::setw(label_print_width) << "TOTAL:";
       std::cout << std::setw(label_print_width) << "TOTAL:";
       for(unsigned int i = 0; i < num_bins; ++i) {
 	if( _minBinToPrint != -1 && (int)i < _minBinToPrint) continue;
