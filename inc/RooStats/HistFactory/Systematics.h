@@ -26,7 +26,7 @@ namespace HistFactory {
   namespace Constraint {
     enum Type{ Gaussian, Poisson };            
     std::string Name( Type type ); 
-    Type GetType( std::string Name );
+    Type GetType( const std::string& Name );
   }
 
 
@@ -94,7 +94,7 @@ namespace HistFactory {
     HistoSys(const std::string& Name) : fName(Name), fhLow(NULL), fhHigh(NULL) {;}
 
     void Print(std::ostream& = std::cout);  
-    void writeToFile( std::string FileName, std::string DirName );
+    void writeToFile( const std::string& FileName, const std::string& DirName );
 
     void SetHistoLow( TH1* Low ) { fhLow = Low; }
     void SetHistoHigh( TH1* High ) { fhHigh = High; }
@@ -170,7 +170,7 @@ namespace HistFactory {
     std::string GetHistoPathHigh() { return fHistoPathHigh; }
 
     void Print(std::ostream& = std::cout);  
-    void writeToFile( std::string FileName, std::string DirName );
+    void writeToFile( const std::string& FileName, const std::string& DirName );
 
 
     TH1* GetHistoLow();
@@ -217,7 +217,7 @@ namespace HistFactory {
 
 
     void Print(std::ostream& = std::cout);  
-    void writeToFile( std::string FileName, std::string DirName );
+    void writeToFile( const std::string& FileName, const std::string& DirName );
 
     TH1* GetErrorHist();
     void SetErrorHist(TH1* hError) { fhError = hError; }
@@ -250,6 +250,8 @@ namespace HistFactory {
     
     void SetName( const std::string& Name ) { fName = Name; }
     std::string GetName() { return fName; }
+
+    void writeToFile( const std::string& FileName, const std::string& DirName);
 
     void SetInitialShape(TH1* shape) { fhInitialShape = shape; }
     TH1* GetInitialShape() { return fhInitialShape; }
@@ -290,7 +292,7 @@ namespace HistFactory {
     StatError() : fActivate(false), fUseHisto(false), fhError(NULL) {;}
 
     void Print(std::ostream& = std::cout);  
-    void writeToFile( std::string FileName, std::string DirName );
+    void writeToFile( const std::string& FileName, const std::string& DirName );
 
     void Activate( bool IsActive=true ) { fActivate = IsActive; }
     bool GetActivate() { return fActivate; }

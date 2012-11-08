@@ -13,7 +13,7 @@ std::string RooStats::HistFactory::Constraint::Name( Constraint::Type type ) {
   return "";
 }
 
-RooStats::HistFactory::Constraint::Type RooStats::HistFactory::Constraint::GetType( std::string Name ) {
+RooStats::HistFactory::Constraint::Type RooStats::HistFactory::Constraint::GetType( const std::string& Name ) {
 
   if( Name == "" ) {
     std::cout << "Error: Given empty name for ConstraintType" << std::endl;
@@ -81,7 +81,8 @@ void RooStats::HistFactory::HistoSys::Print( std::ostream& stream ) {
 }
 
 
-void RooStats::HistFactory::HistoSys::writeToFile( std::string FileName, std::string DirName ) {
+void RooStats::HistFactory::HistoSys::writeToFile( const std::string& FileName, 
+						   const std::string& DirName ) {
 
   // This saves the histograms to a file and 
   // changes the name of the local file and histograms
@@ -134,7 +135,8 @@ void RooStats::HistFactory::ShapeSys::Print( std::ostream& stream ) {
 	 << std::endl;
 }
 
-void RooStats::HistFactory::ShapeSys::writeToFile( std::string FileName, std::string DirName ) {
+void RooStats::HistFactory::ShapeSys::writeToFile( const std::string& FileName, 
+						   const std::string& DirName ) {
 
   TH1* histError = GetErrorHist();
   if( histError==NULL ) {
@@ -179,7 +181,8 @@ TH1* RooStats::HistFactory::HistoFactor::GetHistoHigh() {
 }
 
 
-void RooStats::HistFactory::HistoFactor::writeToFile( std::string FileName, std::string DirName ) {
+void RooStats::HistFactory::HistoFactor::writeToFile( const std::string& FileName, 
+						      const std::string& DirName ) {
 
 
   // This saves the histograms to a file and 
@@ -235,6 +238,31 @@ void RooStats::HistFactory::ShapeFactor::Print( std::ostream& stream ) {
 }
 
 
+void RooStats::HistFactory::ShapeFactor::writeToFile( const std::string& FileName, 
+						      const std::string& DirName ) {
+
+  TH1* histInitialShape = GetInitialShape();
+  if( histInitialShape!=NULL ) {
+    histInitialShape->Write();
+    fInputFile = FileName;
+    fHistoPath = DirName;
+    fHistoName = histInitialShape->GetName(); 
+  }
+  /*
+    std::cout << "Error: Cannot write " << GetName()
+	      << " to file: " << FileName
+	      << " InitialShape is NULL" 
+	      << std::endl;
+    throw hf_exc();
+  }
+  */
+
+  return;
+
+}
+
+
+
 // Stat Error
 
 
@@ -257,7 +285,8 @@ void RooStats::HistFactory::StatError::Print( std::ostream& stream ) {
 	 << std::endl;
 }  
 
-void RooStats::HistFactory::StatError::writeToFile( std::string OutputFileName, std::string DirName ) {
+void RooStats::HistFactory::StatError::writeToFile( const std::string& OutputFileName, 
+						    const std::string& DirName ) {
 
   if( fUseHisto ) {
     

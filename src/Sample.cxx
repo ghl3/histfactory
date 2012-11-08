@@ -37,6 +37,24 @@ void RooStats::HistFactory::Sample::writeToFile( std::string OutputFileName, std
   fHistoName = histNominal->GetName();
   fHistoPath = DirName;
 
+  // Write this sample's StatError
+  GetStatError().writeToFile( OutputFileName, DirName );
+
+  // Must write all systematics that contain internal histograms
+  // (This is not all systematics)
+  for( unsigned int i = 0; i < GetHistoSysList().size(); ++i ) {
+    GetHistoSysList().at(i).writeToFile( OutputFileName, DirName );
+  }
+  for( unsigned int i = 0; i < GetHistoFactorList().size(); ++i ) {
+    GetHistoFactorList().at(i).writeToFile( OutputFileName, DirName );
+  }
+  for( unsigned int i = 0; i < GetShapeSysList().size(); ++i ) {
+    GetShapeSysList().at(i).writeToFile( OutputFileName, DirName );
+  }
+  for( unsigned int i = 0; i < GetShapeFactorList().size(); ++i ) {
+    GetShapeFactorList().at(i).writeToFile( OutputFileName, DirName );
+  }
+
   return;
 
 }

@@ -381,7 +381,6 @@ void RooStats::HistFactory::Measurement::writeToFile( TFile* file ) {
     chanDir->cd();
 
     // Save the data:
-    
     TDirectory* dataDir = chanDir->mkdir( "data" );
     if( dataDir == NULL ) {
       std::cout << "Error: Cannot make directory " << chanDir << std::endl;
@@ -450,6 +449,8 @@ void RooStats::HistFactory::Measurement::writeToFile( TFile* file ) {
 
       // Write the histograms associated with
       // systematics
+
+      /*  THIS IS WHAT I"M COMMENTING
       sample.GetStatError().writeToFile( OutputFileName, sampleDirPath );
 
       // Must write all systematics that contain internal histograms
@@ -464,7 +465,7 @@ void RooStats::HistFactory::Measurement::writeToFile( TFile* file ) {
       for( unsigned int i = 0; i < sample.GetShapeSysList().size(); ++i ) {
 	sample.GetShapeSysList().at(i).writeToFile( OutputFileName, sampleDirPath );
       }
-
+      END COMMENT  */
       /*
       sample.statError.writeToFile( OutputFileName, sampleDirPath );
 
