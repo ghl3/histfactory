@@ -217,10 +217,22 @@ void RooStats::HistFactory::HistoFactor::writeToFile( std::string FileName, std:
 }
 
 // Shape Factor
+RooStats::HistFactory::ShapeFactor::ShapeFactor() : fConstant(false), fhInitialShape(NULL) {;}
 
 void RooStats::HistFactory::ShapeFactor::Print( std::ostream& stream ) {
-  stream << "\t \t Name: " << fName
-	 << std::endl;
+
+  stream << "\t \t Name: " << fName << std::endl;
+  
+  if( fHistoName != "" ) {
+    stream << "\t \t "
+	   << " Shape Hist Name: " << fHistoName
+	   << " Shape Hist Path Name: " << fHistoPath
+	   << " Shape Hist FileName: " << fInputFile
+	   << std::endl;
+  }
+
+  if( fConstant ) { stream << "\t \t ( Constant ): " << std::endl; }
+
 }
 
 
