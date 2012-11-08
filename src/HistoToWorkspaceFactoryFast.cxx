@@ -1410,11 +1410,18 @@ namespace HistFactory{
 	      
 	      // Set an initial shape, if requested
 	      if( shapeFactor.GetInitialShape() != NULL ) {
-		shapeFactorFunc.setShape( shapeFactor.GetInitialShape() );
+		TH1* initialShape = shapeFactor.GetInitialShape();
+		std::cout << "Setting Shape Factor: " << shapeFactor.GetName()
+			  << " to have initial shape from hist: "
+			  << initialShape->GetName()
+			  << std::endl;
+		shapeFactorFunc.setShape( initialShape );
 	      }
 	      
 	      // Set the variables constant, if requested
 	      if( shapeFactor.IsConstant() ) {
+		std::cout << "Setting Shape Factor: " << shapeFactor.GetName()
+			  << " to be constant" << std::endl;
 		shapeFactorFunc.setConstant(true);
 	      }
 

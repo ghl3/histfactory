@@ -112,7 +112,6 @@ void RooStats::HistFactory::HistoSys::writeToFile( std::string FileName, std::st
   fHistoPathHigh = DirName;
   fHistoNameHigh = histHigh->GetName();
 
-
   return;
 
 }

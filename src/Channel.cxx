@@ -267,6 +267,20 @@ void RooStats::HistFactory::Channel::CollectHistograms() {
 					  shapeSys.GetHistoName()) );
     } // End Loop over ShapeSys
 
+    
+    // Get any initial shape for a ShapeFactor
+    for( unsigned int shapeFactorItr = 0; shapeFactorItr < sample.GetShapeFactorList().size(); ++shapeFactorItr ) {
+
+      RooStats::HistFactory::ShapeFactor& shapeFactor = sample.GetShapeFactorList().at( shapeFactorItr );
+
+      // Check if we need an InitialShape
+      if( shapeFactor.GetHistoName() != "" ) {
+	TH1* hist = GetHistogram( shapeFactor.GetInputFile(), shapeFactor.GetHistoPath(), 
+				  shapeFactor.GetHistoName() );
+	shapeFactor.SetInitialShape( hist );
+      }
+
+    } // End Loop over ShapeFactor
 
   } // End Loop over Samples
 
