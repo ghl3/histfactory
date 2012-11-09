@@ -313,9 +313,7 @@ void RooStats::HistFactory::FitModelAndPlot(const std::string& MeasurementName,
 					    const std::string& FileNamePrefix, 
 					    RooWorkspace * combined, std::string channel, 
 					    std::string data_name, 
-					    TFile* outFile, FILE* tableFile  )
-  {
-
+					    TFile* outFile, FILE* tableFile  ) {
     
     ModelConfig* combined_config = (ModelConfig *) combined->obj("ModelConfig");
     if(!combined_config){
@@ -365,7 +363,7 @@ void RooStats::HistFactory::FitModelAndPlot(const std::string& MeasurementName,
       // but the rest are still saved in the ModelConfig
       // 
 
-      RooRealVar* poi = 0; // (RooRealVar*) POIs->first();
+      RooRealVar* poi = NULL; // (RooRealVar*) POIs->first();
       // for results tables
       TIterator* params_itr=POIs->createIterator();
       TObject* params_obj=0;
@@ -395,6 +393,7 @@ void RooStats::HistFactory::FitModelAndPlot(const std::string& MeasurementName,
 	throw hf_exc();
       }
 
+      // Draw the likelihood curve
       FormatFrameForLikelihood(frame);
       TCanvas* c1 = new TCanvas( channel.c_str(), "",800,600);
       nll->plotOn(frame, ShiftToZero(), LineColor(kRed), LineStyle(kDashed));
@@ -402,7 +401,6 @@ void RooStats::HistFactory::FitModelAndPlot(const std::string& MeasurementName,
       frame->SetMinimum(0);
       frame->SetMaximum(2.);
       frame->Draw();
-      //    c1->SaveAs( ("results/"+FilePrefixStr(channel)+"_profileLR.eps").c_str() );
       c1->SaveAs( (FileNamePrefix+"_"+channel+"_"+MeasurementName+"_profileLR.eps").c_str() );
       delete c1;
 
@@ -435,7 +433,7 @@ void RooStats::HistFactory::FitModelAndPlot(const std::string& MeasurementName,
 	y_arr_nll[i]=nll->getVal();
       }
 
-      TGraph * g = new TGraph(curve_N, x_arr, y_arr_nll);
+      TGraph* g = new TGraph(curve_N, x_arr, y_arr_nll);
       g->SetName( (FileNamePrefix +"_nll").c_str() );
       g->Write(); 
       delete g;
