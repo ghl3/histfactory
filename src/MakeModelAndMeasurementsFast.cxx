@@ -95,12 +95,13 @@
 #include "RooStats/HistFactory/MakeModelAndMeasurementsFast.h"
 
 using namespace RooFit;
-using namespace RooStats;
-using namespace HistFactory;
+//using namespace RooStats;
+//using namespace HistFactory;
 
 //using namespace std;
 
-void fastDriver(std::string input){
+
+void RooStats::HistFactory::fastDriver(std::string input){
   // TO DO:
   // would like to fully factorize the XML parsing.  
   // No clear need to have some here and some in ConfigParser
@@ -504,3 +505,5 @@ void RooStats::HistFactory::FormatFrameForLikelihood(RooPlot* frame, std::string
     frame->addObject(line90);
     frame->addObject(line95);
 }
+
+
