@@ -99,9 +99,9 @@ using namespace RooFit;
 using namespace RooStats;
 using namespace HistFactory;
 
-using namespace std;
+//using namespace std;
 
-void fastDriver(string input){
+void fastDriver(std::string input){
   // TO DO:
   // would like to fully factorize the XML parsing.  
   // No clear need to have some here and some in ConfigParser
@@ -182,14 +182,14 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
 	 << " including bins between " << measurement.GetBinLow() << " and " << measurement.GetBinHigh() << std::endl;
     std::cout << "fixing the following parameters:"  << std::endl;
 
-    for(vector<string>::iterator itr=measurement.GetConstantParams().begin(); itr!=measurement.GetConstantParams().end(); ++itr){
-      cout << "   " << *itr << endl;
+    for(std::vector<std::string>::iterator itr=measurement.GetConstantParams().begin(); itr!=measurement.GetConstantParams().end(); ++itr){
+      std::cout << "   " << *itr << std::endl;
     }
 
     std::string rowTitle = measurement.GetName();
     
-    vector<RooWorkspace*> channel_workspaces;
-    vector<string>        channel_names;
+    std::vector<RooWorkspace*> channel_workspaces;
+    std::vector<std::string>        channel_names;
 
 
     // This holds the TGraphs that are created during the fit
@@ -240,7 +240,7 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
 	return NULL;
       }
 
-      string ch_name = channel.GetName();
+      std::string ch_name = channel.GetName();
       channel_names.push_back(ch_name);
 
       std::cout << "Starting to process channel: " << ch_name << std::endl;
@@ -272,7 +272,7 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
       // do fit unless exportOnly requested
       if(! measurement.GetExportOnly()){
 	if(!poi){
-	  cout << "Can't do fit for: " << measurement.GetName() << ", no parameter of interest" << endl;
+	  std::cout << "Can't do fit for: " << measurement.GetName() << ", no parameter of interest" << std::endl;
 	} else{
 	  if(ws_single->data("obsData")){
 	    FitModelAndPlot(measurement.GetName(), measurement.GetOutputFilePrefix(), ws_single, ch_name, "obsData",    outFile, tableFile);
@@ -318,7 +318,7 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
     // Totally factorize the statistical test in "fit Model" to a different area
     if(! measurement.GetExportOnly()){
       if(!poi){
-	cout << "Can't do fit for: " << measurement.GetName() << ", no parameter of interest" << endl;
+	std::cout << "Can't do fit for: " << measurement.GetName() << ", no parameter of interest" << std::endl;
       } else{
 	if(ws->data("obsData")){
 	  FitModelAndPlot(measurement.GetName(), measurement.GetOutputFilePrefix(), ws, "combined", "obsData",    outFile, tableFile);
@@ -336,7 +336,7 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
     fclose( tableFile );
 
   }
-  catch(exception& e)
+  catch(std::exception& e)
     {
       std::cout << e.what() << std::endl;
       throw hf_exc();
@@ -350,25 +350,27 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
 
 
   ///////////////////////////////////////////////
-void RooStats::HistFactory::FitModelAndPlot(const std::string& MeasurementName, const std::string& FileNamePrefix, RooWorkspace * combined, string channel, string data_name, TFile* outFile, FILE* tableFile  )
+void RooStats::HistFactory::FitModelAndPlot(const std::string& MeasurementName, const std::string& FileNamePrefix, 
+					    RooWorkspace * combined, std::string channel, std::string data_name, 
+					    TFile* outFile, FILE* tableFile  )
   {
 
-    cout << "In Fit Model"<<endl;
+    std::cout << "In Fit Model" << std::endl;
     ModelConfig * combined_config = (ModelConfig *) combined->obj("ModelConfig");
     if(!combined_config){
-      cout << "no model config " << "ModelConfig" << " exiting" << endl;
+      std::cout << "no model config " << "ModelConfig" << " exiting" << std::endl;
       return;
     }
     //    RooDataSet * simData = (RooDataSet *) combined->obj(data_name.c_str());
     RooAbsData* simData = combined->data(data_name.c_str());
     if(!simData){
-      cout << "no data " << data_name << " exiting" << endl;
+      std::cout << "no data " << data_name << " exiting" << std::endl;
       return;
     }
     //    const RooArgSet * constrainedParams=combined_config->GetNuisanceParameters();
     const RooArgSet * POIs=combined_config->GetParametersOfInterest();
     if(!POIs){
-      cout << "no poi " << data_name << " exiting" << endl;
+      std::cout << "no poi " << data_name << " exiting" << std::endl;
       return;
     }
 
@@ -379,9 +381,9 @@ void RooStats::HistFactory::FitModelAndPlot(const std::string& MeasurementName, 
     ///////////////////////////////////////
     //Do combined fit
     //RooMsgService::instance().setGlobalKillBelow(RooMsgService::INFO) ;
-    cout << "\n\n---------------" << endl;
-    cout << "---------------- Doing "<< channel << " Fit" << endl;
-    cout << "---------------\n\n" << endl;
+    std::cout << "\n\n---------------" << std::endl;
+    std::cout << "---------------- Doing "<< channel << " Fit" << std::endl;
+    std::cout << "---------------\n\n" << std::endl;
     //    RooFitResult* result = model->fitTo(*simData, Minos(kTRUE), Save(kTRUE), PrintLevel(1));
     model->fitTo(*simData, Minos(kTRUE), PrintLevel(1));
     //    PrintCovarianceMatrix(result, allParams, "results/"+FilePrefixStr(channel)+"_corrMatrix.table" );
@@ -399,7 +401,10 @@ void RooStats::HistFactory::FitModelAndPlot(const std::string& MeasurementName, 
       TObject* params_obj=0;
       while((params_obj=params_itr->Next())){
 	poi = (RooRealVar*) params_obj;
-	cout << "printing results for " << poi->GetName() << " at " << poi->getVal()<< " high " << poi->getErrorLo() << " low " << poi->getErrorHi()<<endl;
+	std::cout << "printing results for " << poi->GetName() 
+		  << " at " << poi->getVal()<< " high " 
+		  << poi->getErrorLo() << " low " 
+		  << poi->getErrorHi() << std::endl;
       }
       fprintf(tableFile, " %.4f / %.4f  ", poi->getErrorLo(), poi->getErrorHi());
 
@@ -486,25 +491,25 @@ void RooStats::HistFactory::FitModelAndPlot(const std::string& MeasurementName, 
   }
 
 
-void RooStats::HistFactory::FitModel(RooWorkspace * combined, string data_name )
+void RooStats::HistFactory::FitModel(RooWorkspace * combined, std::string data_name )
   {
 
-    cout << "In Fit Model"<<endl;
+    std::cout << "In Fit Model" << std::endl;
     ModelConfig * combined_config = (ModelConfig *) combined->obj("ModelConfig");
     if(!combined_config){
-      cout << "no model config " << "ModelConfig" << " exiting" << endl;
+      std::cout << "no model config " << "ModelConfig" << " exiting" << std::endl;
       return;
     }
     //    RooDataSet * simData = (RooDataSet *) combined->obj(data_name.c_str());
     RooAbsData* simData = combined->data(data_name.c_str());
     if(!simData){
-      cout << "no data " << data_name << " exiting" << endl;
+      std::cout << "no data " << data_name << " exiting" << std::endl;
       return;
     }
     //    const RooArgSet * constrainedParams=combined_config->GetNuisanceParameters();
     const RooArgSet * POIs=combined_config->GetParametersOfInterest();
     if(!POIs){
-      cout << "no poi " << data_name << " exiting" << endl;
+      std::cout << "no poi " << data_name << " exiting" << std::endl;
       return;
     }
 
@@ -522,7 +527,7 @@ void RooStats::HistFactory::FitModel(RooWorkspace * combined, string data_name )
   }
 
 
-void RooStats::HistFactory::FormatFrameForLikelihood(RooPlot* frame, string /*XTitle*/, string YTitle){
+void RooStats::HistFactory::FormatFrameForLikelihood(RooPlot* frame, std::string /*XTitle*/, std::string YTitle){
 
     gStyle->SetCanvasBorderMode(0);
     gStyle->SetPadBorderMode(0);
