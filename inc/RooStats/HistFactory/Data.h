@@ -1,4 +1,4 @@
-// @(#)root/roostats:$Id: Data.h 47080 2012-11-06 19:44:06Z ghl $
+// @(#)root/roostats:$Id: Data.h 47197 2012-11-12 16:16:05Z ghl $
 // Author: George Lewis, Kyle Cranmer
 /*************************************************************************
  * Copyright (C) 1995-2008, Rene Brun and Fons Rademakers.               *
@@ -41,8 +41,8 @@ public:
   void SetHistoPath(const std::string& HistoPath) { fHistoPath = HistoPath; }
   std::string GetHistoPath() { return fHistoPath; }
 
-
   void Print(std::ostream& = std::cout);
+  void PrintXML( std::ostream& );
   void writeToFile( std::string FileName, std::string DirName );
 
   TH1* GetHisto();
