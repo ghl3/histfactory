@@ -86,7 +86,7 @@
 
 // from this package
 #include "Helper.h"
-#include "RooStats/HistFactory/ConfigParser.h"
+//#include "RooStats/HistFactory/ConfigParser.h"
 #include "RooStats/HistFactory/EstimateSummary.h"
 #include "RooStats/HistFactory/Measurement.h"
 #include "RooStats/HistFactory/HistoToWorkspaceFactoryFast.h"
@@ -100,46 +100,6 @@ using namespace RooFit;
 
 //using namespace std;
 
-
-void RooStats::HistFactory::fastDriver(std::string input){
-  // TO DO:
-  // would like to fully factorize the XML parsing.  
-  // No clear need to have some here and some in ConfigParser
-
-  // Make the list of measurements and channels
-  std::vector< HistFactory::Measurement > measurement_list;
-  std::vector< HistFactory::Channel >     channel_list;
-
-  HistFactory::ConfigParser xmlParser;
-
-  measurement_list = xmlParser.GetMeasurementsFromXML( input );
-
-  // Fill them using the XML parser
-  // xmlParser.FillMeasurementsAndChannelsFromXML( input, measurement_list, channel_list );
-
-  // At this point, we have all the information we need
-  // from the xml files.
-
-  // We will make the measurements 1-by-1
-  // This part will be migrated to the
-  // MakeModelAndMeasurements function,
-  // but is here for now.
-  
-  /* Now setup the measurement */
-  // At this point, all we need
-  // is the list of measurements
-    
-  for(unsigned int i = 0; i < measurement_list.size(); ++i) {
-
-    HistFactory::Measurement measurement = measurement_list.at(i);
-    measurement.CollectHistograms();
-    MakeModelAndMeasurementFast( measurement );
-
-  }
-
-  return;
-
-}
 
 
 RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::HistFactory::Measurement& measurement ) {

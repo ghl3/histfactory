@@ -44,21 +44,20 @@ std::vector< RooStats::HistFactory::Measurement > ConfigParser::GetMeasurementsF
   std::vector< HistFactory::Measurement > measurement_list;
 
   try {
-
+    
     // Open the Driver XML File
     TDOMParser xmlparser;
     Int_t parseError = xmlparser.ParseFile( input.c_str() );
     if( parseError ) { 
       std::cerr << "Loading of xml document \"" << input
 		<< "\" failed" << std::endl;
+      throw hf_exc();
     } 
-
-
+    
     // Read the Driver XML File
     cout << "reading input : " << input << endl;
     TXMLDocument* xmldoc = xmlparser.GetXMLDocument();
     TXMLNode* rootNode = xmldoc->GetRootNode();
-
 
     // Check that it is the proper DOCTYPE
     if( rootNode->GetNodeName() != TString( "Combination" ) ){
