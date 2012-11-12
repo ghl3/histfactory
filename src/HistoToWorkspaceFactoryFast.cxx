@@ -1270,7 +1270,7 @@ namespace HistFactory{
 
 	  // We need to get the *ABSOLUTE* uncertainty for use in Stat Uncertainties
 	  // This can be done in one of two ways:
-	  //   - Use the built-in Errors in the TH1 itself (they are aboslute)
+	  //   - Use the built-in Errors in the TH1 itself (assume they are aboslute)
 	  //   - Take the supplied *RELATIVE* error and multiply by the nominal  
 	  string UncertName  = syst_x_expectedPrefix + "_StatAbsolUncert";
 	  TH1* statErrorHist = NULL;
@@ -1603,8 +1603,7 @@ namespace HistFactory{
         normalizationNames.push_back(lumiParamString.Data());
       }
 
-    } // END: Loop over EstimateSummaries
-    //    proto->Print();
+    } // END: Loop over Samples
 
     // If a non-zero number of samples call for
     // Stat Uncertainties, create the statFactor functions
@@ -2501,7 +2500,8 @@ namespace HistFactory{
       
     } else if( type == Constraint::Poisson ) {
     
-      Double_t tau = 1/sigma/sigma; // this is correct Poisson equivalent to a Gaussian with mean 1 and stdev sigma
+      // this is correct Poisson equivalent to a Gaussian with mean 1 and stdev sigma
+      Double_t tau = 1/sigma/sigma; 
 
       // Make nominal "observed" value
       RooRealVar constrNom(nomName.c_str(), nomName.c_str(), tau);
