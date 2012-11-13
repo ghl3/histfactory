@@ -1023,6 +1023,24 @@ HistFactory::NormFactor ConfigParser::MakeNormFactor( TXMLNode* node ) {
     throw hf_exc();
   }
 
+  if( norm.GetLow() >= norm.GetHigh() ) {
+    std::cout << "Error: NormFactor: " << norm.GetName()
+	      << " has lower limit >= its upper limit: " 
+	      << " Lower: " << norm.GetLow()
+	      << " Upper: " << norm.GetHigh()
+	      << ". Please Fix" << std::endl;
+    throw hf_exc();
+  }
+  if( norm.GetVal() > norm.GetHigh() || norm.GetVal() < norm.GetLow() ) {
+    std::cout << "Error: NormFactor: " << norm.GetName()
+	      << " has initial value not within its range: " 
+	      << " Val: " << norm.GetVal()
+	      << " Lower: " << norm.GetLow()
+	      << " Upper: " << norm.GetHigh()
+	      << ". Please Fix" << std::endl;
+    throw hf_exc();
+  }
+
   norm.Print();
 
   return norm;
