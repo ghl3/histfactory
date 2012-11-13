@@ -23,3 +23,10 @@ void RooStats::HistFactory::PreprocessFunction::Print( std::ostream& stream ) {
 	 << std::endl;  
   
 }
+
+void RooStats::HistFactory::PreprocessFunction::PrintXML( std::ostream& xml ) {
+  xml << "<Function Name=\"" << GetName() << "\" "
+      << "Expression=\""     << GetExpression() << "\" "
+      << "Dependents=\""     << GetDependents() << "\" "
+      << "/>" << std::endl;
+}
