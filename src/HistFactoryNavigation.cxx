@@ -1122,6 +1122,7 @@ namespace RooStats {
 
       // Now, loop over the components and print them out:
       std::cout << std::endl;
+      std::cout << "Channel: " << channel << " Sample: " << sample << std::endl;
       std::cout << std::setw(label_print_width) << "Factor";
 
       for(unsigned int i=0; i < num_bins; ++i) {
