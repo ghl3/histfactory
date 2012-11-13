@@ -175,7 +175,8 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
       RooRealVar* poi = (RooRealVar*) ws_single->var( (measurement.GetPOI()).c_str() );
       
       // Make the output
-      std::string ChannelFileName = measurement.GetOutputFilePrefix() + "_" + ch_name + "_" + rowTitle + "_model.root";
+      std::string ChannelFileName = measurement.GetOutputFilePrefix() + "_" 
+	+ ch_name + "_" + rowTitle + "_model.root";
       ws_single->writeToFile( ChannelFileName.c_str() );
     
       // Now, write the measurement to the file
@@ -193,12 +194,15 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
       // do fit unless exportOnly requested
       if(! measurement.GetExportOnly()){
 	if(!poi){
-	  std::cout << "Can't do fit for: " << measurement.GetName() << ", no parameter of interest" << std::endl;
-	} else{
+	  std::cout << "Can't do fit for: " << measurement.GetName() 
+		    << ", no parameter of interest" << std::endl;
+	} else {
 	  if(ws_single->data("obsData")){
-	    FitModelAndPlot(measurement.GetName(), measurement.GetOutputFilePrefix(), ws_single, ch_name, "obsData",    outFile, tableFile);
+	    FitModelAndPlot(measurement.GetName(), measurement.GetOutputFilePrefix(), ws_single, 
+			    ch_name, "obsData",    outFile, tableFile);
 	  } else {
-	    FitModelAndPlot(measurement.GetName(), measurement.GetOutputFilePrefix(), ws_single, ch_name, "asimovData", outFile, tableFile);
+	    FitModelAndPlot(measurement.GetName(), measurement.GetOutputFilePrefix(), ws_single, 
+			    ch_name, "asimovData", outFile, tableFile);
 	  }
 	}
       }
@@ -221,9 +225,11 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
     // Get the Parameter of interest as a RooRealVar
     RooRealVar* poi = (RooRealVar*) ws->var( (measurement.GetPOI()).c_str() );
 
-    std::string CombinedFileName = measurement.GetOutputFilePrefix()+"_combined_"+rowTitle+"_model.root";
+    std::string CombinedFileName = measurement.GetOutputFilePrefix() + "_combined_"
+      + rowTitle + "_model.root";
+    std::cout << "Writing combined workspace to file: " << CombinedFileName << std::endl;
     ws->writeToFile( CombinedFileName.c_str() );
-    std::cout << "About to write combined measurement to file" << std::endl;
+    std::cout << "Writing combined measurement to file: " << CombinedFileName << std::endl;
     TFile* combFile = TFile::Open( CombinedFileName.c_str(), "UPDATE" );
     if( combFile == NULL ) {
       std::cout << "Error: Failed to open file " << CombinedFileName << std::endl;
@@ -231,18 +237,21 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
     }
     measurement.writeToFile( combFile );
     combFile->Close();
-
+    
     // Fit the combined model
     if(! measurement.GetExportOnly()){
       if(!poi){
-	std::cout << "Can't do fit for: " << measurement.GetName() << ", no parameter of interest" << std::endl;
+	std::cout << "Can't do fit for: " << measurement.GetName() 
+		  << ", no parameter of interest" << std::endl;
       } 
       else {
 	if(ws->data("obsData")){
-	  FitModelAndPlot(measurement.GetName(), measurement.GetOutputFilePrefix(), ws, "combined", "obsData",    outFile, tableFile);
+	  FitModelAndPlot(measurement.GetName(), measurement.GetOutputFilePrefix(), ws,"combined", 
+			  "obsData",    outFile, tableFile);
 	} 
 	else {
-	  FitModelAndPlot(measurement.GetName(), measurement.GetOutputFilePrefix(), ws, "combined", "asimovData", outFile, tableFile);
+	  FitModelAndPlot(measurement.GetName(), measurement.GetOutputFilePrefix(), ws,"combined", 
+			  "asimovData", outFile, tableFile);
 	}
       }
     }
@@ -303,6 +312,11 @@ void RooStats::HistFactory::FitModelAndPlot(const std::string& MeasurementName,
 		<< std::endl;
       throw hf_exc();
     }
+
+    // Save a Snapshot
+    RooArgSet PoiPlusNuisance( *combined_config->GetNuisanceParameters() );
+    PoiPlusNuisance.add( *combined_config->GetParametersOfInterest() );
+    combined->saveSnapshot("InitialValues", PoiPlusNuisance);
 
     ///////////////////////////////////////
     //Do combined fit
@@ -401,6 +415,9 @@ void RooStats::HistFactory::FitModelAndPlot(const std::string& MeasurementName,
       delete [] y_arr_nll;
 
     } // End: if( outFile==NULL )
+
+    // Finally, restore the initial values
+    combined->loadSnapshot("InitialValues");
 
   }
 
