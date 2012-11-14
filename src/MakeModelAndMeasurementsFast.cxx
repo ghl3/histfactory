@@ -277,149 +277,165 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
 }
 
 
-  ///////////////////////////////////////////////
+///////////////////////////////////////////////
 void RooStats::HistFactory::FitModelAndPlot(const std::string& MeasurementName, 
 					    const std::string& FileNamePrefix, 
 					    RooWorkspace * combined, std::string channel, 
 					    std::string data_name, 
 					    TFile* outFile, FILE* tableFile  ) {
     
-    ModelConfig* combined_config = (ModelConfig *) combined->obj("ModelConfig");
-    if(!combined_config){
-      std::cout << "Error: no ModelConfig found in Measurement: "
-		<< MeasurementName <<  std::endl;
-      throw hf_exc();
-    }
-
-    RooAbsData* simData = combined->data(data_name.c_str());
-    if(!simData){
-      std::cout << "Error: Failed to get dataset: " << data_name
-		<< " in measurement: " << MeasurementName << std::endl;
-      throw hf_exc();
-    }
-    
-    const RooArgSet* POIs = combined_config->GetParametersOfInterest();
-    if(!POIs) {
-      std::cout << "Not Fitting Model for measurement: " << MeasurementName
-		<< ", no poi found" << std::endl;
-      // Should I throw an exception here?
-      return;
-    }
-
-    RooAbsPdf* model = combined_config->GetPdf();
-    if( model==NULL ) {
-      std::cout << "Error: Failed to find pdf in ModelConfig: " << combined_config->GetName()
-		<< std::endl;
-      throw hf_exc();
-    }
-
-    // Save a Snapshot
-    RooArgSet PoiPlusNuisance( *combined_config->GetNuisanceParameters() );
-    PoiPlusNuisance.add( *combined_config->GetParametersOfInterest() );
-    combined->saveSnapshot("InitialValues", PoiPlusNuisance);
-
-    ///////////////////////////////////////
-    //Do combined fit
-    std::cout << "\n\n---------------" << std::endl;
-    std::cout << "---------------- Doing "<< channel << " Fit" << std::endl;
-    std::cout << "---------------\n\n" << std::endl;
-    model->fitTo(*simData, Minos(kTRUE), PrintLevel(1));
-    //    PrintCovarianceMatrix(result, allParams, "results/"+FilePrefixStr(channel)+"_corrMatrix.table" );
-
-    // ONE COULD ADD HistFactoryNavigation OUTPUT HERE
-
-    // Print the output table file 
-    // (Would like to update this...)
-    if( outFile != NULL ) {
-
-      //
-      // We only print info for the FIRST POI,
-      // but the rest are still saved in the ModelConfig
-      // 
-
-      RooRealVar* poi = NULL; // (RooRealVar*) POIs->first();
-      // for results tables
-      TIterator* params_itr=POIs->createIterator();
-      TObject* params_obj=0;
-      while( (params_obj=params_itr->Next()) ) {
-	poi = (RooRealVar*) params_obj;
-	std::cout << "printing results for " << poi->GetName() 
-		  << " at " << poi->getVal()<< " high " 
-		  << poi->getErrorLo() << " low " 
-		  << poi->getErrorHi() << std::endl;
-      }
-
-      fprintf(tableFile, " %.4f / %.4f  ", poi->getErrorLo(), poi->getErrorHi());
-
-      RooAbsReal* nll = model->createNLL(*simData);
-      RooAbsReal* profile = nll->createProfile(*poi);
-      if( profile==NULL ) {
-	std::cout << "Error: Failed to make ProfileLikelihood for: " << poi->GetName() 
-		  << " using model: " << model->GetName()
-		  << " and data: " << simData->GetName()
-		  << std::endl;
-	throw hf_exc();
-      }
-
-      RooPlot* frame = poi->frame();
-      if( frame == NULL ) {
-	std::cout << "Error: Failed to create RooPlot frame for: " << poi->GetName() << std::endl;
-	throw hf_exc();
-      }
-
-      // Draw the likelihood curve
-      FormatFrameForLikelihood(frame);
-      TCanvas* c1 = new TCanvas( channel.c_str(), "",800,600);
-      nll->plotOn(frame, ShiftToZero(), LineColor(kRed), LineStyle(kDashed));
-      profile->plotOn(frame);
-      frame->SetMinimum(0);
-      frame->SetMaximum(2.);
-      frame->Draw();
-      c1->SaveAs( (FileNamePrefix+"_"+channel+"_"+MeasurementName+"_profileLR.eps").c_str() );
-      delete c1;
-
-      // Save to the output file
-      TDirectory* channel_dir = outFile->mkdir(channel.c_str());
-      if( channel_dir == NULL ) {
-	std::cout << "Error: Failed to make channel directory: " << channel << std::endl;
-	throw hf_exc();
-      }
-      TDirectory* summary_dir = channel_dir->mkdir("Summary");
-      if( summary_dir == NULL ) {
-	std::cout << "Error: Failed to make Summary directory for channel: " 
-		  << channel << std::endl;
-	throw hf_exc();
-      }
-      summary_dir->cd();
-    
-      RooCurve* curve=frame->getCurve();
-      Int_t curve_N=curve->GetN();
-      Double_t* curve_x=curve->GetX();
-      delete frame;
-
-      Double_t * x_arr = new Double_t[curve_N];
-      Double_t * y_arr_nll = new Double_t[curve_N];
-      
-      for(int i=0; i<curve_N; i++){
-	double f=curve_x[i];
-	poi->setVal(f);
-	x_arr[i]=f;
-	y_arr_nll[i]=nll->getVal();
-      }
-
-      TGraph* g = new TGraph(curve_N, x_arr, y_arr_nll);
-      g->SetName( (FileNamePrefix +"_nll").c_str() );
-      g->Write(); 
-      delete g;
-      delete [] x_arr;
-      delete [] y_arr_nll;
-
-    } // End: if( outFile==NULL )
-
-    // Finally, restore the initial values
-    combined->loadSnapshot("InitialValues");
-
+  if( outFile == NULL ) {
+    std::cout << "Error: Output File in FitModelAndPlot is NULL" << std::endl;
+    throw hf_exc();
   }
+
+  ModelConfig* combined_config = (ModelConfig *) combined->obj("ModelConfig");
+  if(!combined_config){
+    std::cout << "Error: no ModelConfig found in Measurement: "
+	      << MeasurementName <<  std::endl;
+    throw hf_exc();
+  }
+
+  RooAbsData* simData = combined->data(data_name.c_str());
+  if(!simData){
+    std::cout << "Error: Failed to get dataset: " << data_name
+	      << " in measurement: " << MeasurementName << std::endl;
+    throw hf_exc();
+  }
+    
+  const RooArgSet* POIs = combined_config->GetParametersOfInterest();
+  if(!POIs) {
+    std::cout << "Not Fitting Model for measurement: " << MeasurementName
+	      << ", no poi found" << std::endl;
+    // Should I throw an exception here?
+    return;
+  }
+
+  RooAbsPdf* model = combined_config->GetPdf();
+  if( model==NULL ) {
+    std::cout << "Error: Failed to find pdf in ModelConfig: " << combined_config->GetName()
+	      << std::endl;
+    throw hf_exc();
+  }
+
+  // Save a Snapshot
+  RooArgSet PoiPlusNuisance( *combined_config->GetNuisanceParameters() );
+  PoiPlusNuisance.add( *combined_config->GetParametersOfInterest() );
+  combined->saveSnapshot("InitialValues", PoiPlusNuisance);
+
+  ///////////////////////////////////////
+  // Do the fit
+  std::cout << "\n\n---------------" << std::endl;
+  std::cout << "---------------- Doing "<< channel << " Fit" << std::endl;
+  std::cout << "---------------\n\n" << std::endl;
+  model->fitTo(*simData, Minos(kTRUE), PrintLevel(1));
+
+
+  // If there are no parameters of interest,
+  // we exit the function here
+  if( POIs->getSize()==0 ) {
+    std::cout << "WARNING: No POIs found in measurement: " << MeasurementName << std::endl;
+    return;
+  }
+
+
+  // Loop over all POIs and print their fitted values
+  RooRealVar* poi = NULL; // (RooRealVar*) POIs->first();
+  TIterator* params_itr = POIs->createIterator();
+  TObject* poi_obj=NULL;
+  while( (poi_obj=params_itr->Next()) ) {
+    //poi = (RooRealVar*) poi_obj;
+    poi = dynamic_cast<RooRealVar*>(poi_obj);
+    std::cout << "printing results for " << poi->GetName() 
+	      << " at " << poi->getVal()<< " high " 
+	      << poi->getErrorLo() << " low " 
+	      << poi->getErrorHi() << std::endl;
+  }
+
+  // But we only make detailed plots and tables
+  // for the 'first' POI
+  poi = dynamic_cast<RooRealVar*>(POIs->first());
+
+  // Print the MINOS errors to the TableFile
+  fprintf(tableFile, " %.4f / %.4f  ", poi->getErrorLo(), poi->getErrorHi());
+
+  // Make the Profile Likelihood Plot
+  RooAbsReal* nll = model->createNLL(*simData);
+  RooAbsReal* profile = nll->createProfile(*poi);
+  if( profile==NULL ) {
+    std::cout << "Error: Failed to make ProfileLikelihood for: " << poi->GetName() 
+	      << " using model: " << model->GetName()
+	      << " and data: " << simData->GetName()
+	      << std::endl;
+    throw hf_exc();
+  }
+
+  RooPlot* frame = poi->frame();
+  if( frame == NULL ) {
+    std::cout << "Error: Failed to create RooPlot frame for: " << poi->GetName() << std::endl;
+    throw hf_exc();
+  }
+
+  // Draw the likelihood curve
+  FormatFrameForLikelihood(frame);
+  TCanvas* ProfileLikelihoodCanvas = new TCanvas( channel.c_str(), "",800,600);
+  nll->plotOn(frame, ShiftToZero(), LineColor(kRed), LineStyle(kDashed));
+  profile->plotOn(frame);
+  frame->SetMinimum(0);
+  frame->SetMaximum(2.);
+  frame->Draw();
+  std::string ProfilePlotName = FileNamePrefix+"_"+channel+"_"+MeasurementName+"_profileLR.eps";
+  ProfileLikelihoodCanvas->SaveAs( ProfilePlotName.c_str() );
+  delete ProfileLikelihoodCanvas;
+
+  // Now, we save our results to the 'output' file
+  // (I'm not sure if users actually look into this file,
+  // but adding additional information and useful plots
+  // may make it more attractive)
+
+  // Save to the output file
+  TDirectory* channel_dir = outFile->mkdir(channel.c_str());
+  if( channel_dir == NULL ) {
+    std::cout << "Error: Failed to make channel directory: " << channel << std::endl;
+    throw hf_exc();
+  }
+  TDirectory* summary_dir = channel_dir->mkdir("Summary");
+  if( summary_dir == NULL ) {
+    std::cout << "Error: Failed to make Summary directory for channel: " 
+	      << channel << std::endl;
+    throw hf_exc();
+  }
+  summary_dir->cd();
+
+  // Save a graph of the profile likelihood curve
+  RooCurve* curve=frame->getCurve();
+  Int_t curve_N=curve->GetN();
+  Double_t* curve_x=curve->GetX();
+  delete frame;
+
+  Double_t * x_arr = new Double_t[curve_N];
+  Double_t * y_arr_nll = new Double_t[curve_N];
+      
+  for(int i=0; i<curve_N; i++){
+    double f=curve_x[i];
+    poi->setVal(f);
+    x_arr[i]=f;
+    y_arr_nll[i]=nll->getVal();
+  }
+
+  TGraph* g = new TGraph(curve_N, x_arr, y_arr_nll);
+  g->SetName( (FileNamePrefix +"_nll").c_str() );
+  g->Write(); 
+  delete g;
+  delete [] x_arr;
+  delete [] y_arr_nll;
+    
+  // } // End: if( outFile==NULL )
+    
+  // Finally, restore the initial values
+  combined->loadSnapshot("InitialValues");
+    
+}
 
 
 void RooStats::HistFactory::FitModel(RooWorkspace * combined, std::string data_name ) {
