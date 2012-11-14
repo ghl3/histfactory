@@ -1,4 +1,4 @@
-// @(#)root/roostats:$Id:  cranmer $
+// @(#)root/roostats:$Id: Channel.cxx 47288 2012-11-14 21:38:07Z ghl $
 // Author: Kyle Cranmer, George Lewis 
 /*************************************************************************
  * Copyright (C) 1995-2008, Rene Brun and Fons Rademakers.               *

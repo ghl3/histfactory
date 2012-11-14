@@ -1,4 +1,4 @@
-// @(#)root/roostats:$Id: Measurement.h 47080 2012-11-06 19:44:06Z ghl $
+// @(#)root/roostats:$Id: Measurement.h 47288 2012-11-14 21:38:07Z ghl $
 // Author: George Lewis, Kyle Cranmer
 /*************************************************************************
  * Copyright (C) 1995-2008, Rene Brun and Fons Rademakers.               *
