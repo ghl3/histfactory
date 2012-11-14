@@ -86,7 +86,6 @@
 
 // from this package
 #include "Helper.h"
-//#include "RooStats/HistFactory/ConfigParser.h"
 #include "RooStats/HistFactory/EstimateSummary.h"
 #include "RooStats/HistFactory/Measurement.h"
 #include "RooStats/HistFactory/HistoToWorkspaceFactoryFast.h"
@@ -106,6 +105,8 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
 
   // This will be returned
   RooWorkspace* ws = NULL;
+  TFile* outFile = NULL;
+  FILE*  tableFile=NULL;
 
   try {
 
@@ -114,7 +115,7 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
     double lumiError = measurement.GetLumi()*measurement.GetLumiRelErr();
 
     std::cout << "using lumi = " << measurement.GetLumi() << " and lumiError = " << lumiError
-	 << " including bins between " << measurement.GetBinLow() << " and " << measurement.GetBinHigh() << std::endl;
+	      << " including bins between " << measurement.GetBinLow() << " and " << measurement.GetBinHigh() << std::endl;
     std::cout << "fixing the following parameters:"  << std::endl;
 
     for(std::vector<std::string>::iterator itr=measurement.GetConstantParams().begin(); itr!=measurement.GetConstantParams().end(); ++itr){
@@ -129,12 +130,14 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
     // This holds the TGraphs that are created during the fit
     std::string outputFileName = measurement.GetOutputFilePrefix() + "_" + measurement.GetName() + ".root";
     std::cout << "Creating the output file: " << outputFileName << std::endl;
-    TFile* outFile = new TFile(outputFileName.c_str(), "recreate");
+    //TFile* outFile = new TFile(outputFileName.c_str(), "recreate");
+    outFile = new TFile(outputFileName.c_str(), "recreate");
 
     // This holds the table of fitted values and errors
     std::string tableFileName = measurement.GetOutputFilePrefix() + "_results.table";
     std::cout << "Creating the table file: " << tableFileName << std::endl;
-    FILE*  tableFile =  fopen( tableFileName.c_str(), "a"); 
+    //FILE*  tableFile =  fopen( tableFileName.c_str(), "a"); 
+    tableFile =  fopen( tableFileName.c_str(), "a"); 
 
     std::cout << "Creating the HistoToWorkspaceFactoryFast factory" << std::endl;
 
@@ -224,7 +227,7 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
 
     // Get the Parameter of interest as a RooRealVar
     RooRealVar* poi = (RooRealVar*) ws->var( (measurement.GetPOI()).c_str() );
-
+    
     std::string CombinedFileName = measurement.GetOutputFilePrefix() + "_combined_"
       + rowTitle + "_model.root";
     std::cout << "Writing combined workspace to file: " << CombinedFileName << std::endl;
@@ -264,15 +267,13 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
     fclose( tableFile );
 
   }
-  catch(std::exception& e)
-    {
-      std::cout << e.what() << std::endl;
-      throw hf_exc();
-      return NULL;
-    }
-
+  catch(...) {
+    if( tableFile ) fclose(tableFile);
+    if(outFile) outFile->Close();
+    throw;
+  }
+  
   return ws;
-
 
 }
 

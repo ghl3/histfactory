@@ -55,10 +55,12 @@ int main(int argc, char** argv) {
       RooStats::HistFactory::fastDriver(input);
     }
     catch (std::string str) {
-      std::cerr << "caught exception: " << str << std::endl ;
+      std::cerr << "hist2workspace - Caught exception: " << str << std::endl ;
+      exit(1);
     }
     catch( const std::exception& e ) {
-      std::cerr << "Caught Exception: " << e.what() << std::endl;
+      std::cerr << "hist2workspace - Caught Exception: " << e.what() << std::endl;
+      exit(1);
     }
     catch(...) {
       exit(1);
@@ -74,12 +76,15 @@ int main(int argc, char** argv) {
 	RooStats::HistFactory::fastDriver(input);
       }
       catch (std::string str) {
-	std::cerr << "caught exception: " << str << std::endl ;
+	std::cerr << "hist2workspace - Caught exception: " << str << std::endl ;
+	exit(1);
       }
       catch( const std::exception& e ) {
-	std::cerr << "Caught Exception: " << e.what() << std::endl;
+	std::cerr << "hist2workspace - Caught Exception: " << e.what() << std::endl;
+	exit(1);
       }
       catch(...) {
+	std::cerr << "hist2workspace - Caught Exception" << std::endl;
 	exit(1);
       }
     }

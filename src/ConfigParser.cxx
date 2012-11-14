@@ -550,13 +550,13 @@ HistFactory::Channel ConfigParser::ParseChannelXMLFile( string filen ) {
   if( parseError ) { 
     std::cout << "Loading of xml document \"" << filen
 	      << "\" failed" << std::endl;
+    throw hf_exc();
   } 
 
   TXMLDocument* xmldoc = xmlparser.GetXMLDocument();
   TXMLNode* rootNode = xmldoc->GetRootNode();
 
   // Check that is is a CHANNEL based on the DOCTYPE
-
   if( rootNode->GetNodeName() != TString( "Channel" ) ){
     std::cout << "Error: In parsing a Channel XML, " 
 	      << "Encounterd XML with DOCTYPE: " << rootNode->GetNodeName() 
