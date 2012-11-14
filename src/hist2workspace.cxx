@@ -44,7 +44,7 @@ namespace RooStats {
 
 int main(int argc, char** argv) {
 
-  if( !(argc>1) ) {
+  if( !(argc > 1) ) {
     std::cerr << "need input file" << std::endl;
     exit(1);
   }
@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
     try {
       RooStats::HistFactory::fastDriver(input);
     }
-    catch (std::string str) {
+    catch(std::string str) {
       std::cerr << "hist2workspace - Caught exception: " << str << std::endl ;
       exit(1);
     }
@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
       try {
 	RooStats::HistFactory::fastDriver(input);
       }
-      catch (std::string str) {
+      catch(std::string str) {
 	std::cerr << "hist2workspace - Caught exception: " << str << std::endl ;
 	exit(1);
       }

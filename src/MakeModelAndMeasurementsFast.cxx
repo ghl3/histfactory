@@ -127,56 +127,46 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
     std::vector<RooWorkspace*> channel_workspaces;
     std::vector<std::string>        channel_names;
 
+    // Create the outFile
     // This holds the TGraphs that are created during the fit
     std::string outputFileName = measurement.GetOutputFilePrefix() + "_" + measurement.GetName() + ".root";
     std::cout << "Creating the output file: " << outputFileName << std::endl;
-    //TFile* outFile = new TFile(outputFileName.c_str(), "recreate");
     outFile = new TFile(outputFileName.c_str(), "recreate");
 
+    // Create the table file
     // This holds the table of fitted values and errors
     std::string tableFileName = measurement.GetOutputFilePrefix() + "_results.table";
     std::cout << "Creating the table file: " << tableFileName << std::endl;
-    //FILE*  tableFile =  fopen( tableFileName.c_str(), "a"); 
     tableFile =  fopen( tableFileName.c_str(), "a"); 
 
     std::cout << "Creating the HistoToWorkspaceFactoryFast factory" << std::endl;
-
     HistoToWorkspaceFactoryFast factory( measurement );
-
-    std::cout << "Setting preprocess functions" << std::endl;
-
+    
     // Make the factory, and do some preprocessing
     // HistoToWorkspaceFactoryFast factory(measurement, rowTitle, outFile);
+    std::cout << "Setting preprocess functions" << std::endl;
     factory.SetFunctionsToPreprocess( measurement.GetPreprocessFunctions() );
   
     // for results tables
     fprintf(tableFile, " %s &", rowTitle.c_str() );
   
     // First: Loop to make the individual channels
-
     for( unsigned int chanItr = 0; chanItr < measurement.GetChannels().size(); ++chanItr ) {
     
       HistFactory::Channel& channel = measurement.GetChannels().at( chanItr );
-
       if( ! channel.CheckHistograms() ) {
 	std::cout << "MakeModelAndMeasurementsFast: Channel: " << channel.GetName()
 		  << " has uninitialized histogram pointers" << std::endl;
 	throw hf_exc();
-	return NULL;
       }
 
+      // Make the workspace for this individual channel
       std::string ch_name = channel.GetName();
-      channel_names.push_back(ch_name);
-
       std::cout << "Starting to process channel: " << ch_name << std::endl;
-
+      channel_names.push_back(ch_name);
       RooWorkspace* ws_single = factory.MakeSingleChannelModel( measurement, channel );
-
       channel_workspaces.push_back(ws_single);
 
-      // Get the Paramater of Interest as a RooRealVar
-      RooRealVar* poi = (RooRealVar*) ws_single->var( (measurement.GetPOI()).c_str() );
-      
       // Make the output
       std::string ChannelFileName = measurement.GetOutputFilePrefix() + "_" 
 	+ ch_name + "_" + rowTitle + "_model.root";
@@ -194,13 +184,16 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
       std::cout << "Successfully wrote channel to file" << std::endl;
       chanFile->Close();
 
+      // Get the Paramater of Interest as a RooRealVar
+      RooRealVar* poi = dynamic_cast<RooRealVar*>( ws_single->var( (measurement.GetPOI()).c_str() ) );
+
       // do fit unless exportOnly requested
       if(! measurement.GetExportOnly()){
-	if(!poi){
+	if(!poi) {
 	  std::cout << "Can't do fit for: " << measurement.GetName() 
 		    << ", no parameter of interest" << std::endl;
 	} else {
-	  if(ws_single->data("obsData")){
+	  if(ws_single->data("obsData")) {
 	    FitModelAndPlot(measurement.GetName(), measurement.GetOutputFilePrefix(), ws_single, 
 			    ch_name, "obsData",    outFile, tableFile);
 	  } else {
@@ -209,7 +202,7 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
 	  }
 	}
       }
-
+      
       fprintf(tableFile, " & " );
     } // End loop over channels
   
@@ -226,7 +219,7 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
     HistoToWorkspaceFactoryFast::ConfigureWorkspaceForMeasurement( "simPdf", ws, measurement );
 
     // Get the Parameter of interest as a RooRealVar
-    RooRealVar* poi = (RooRealVar*) ws->var( (measurement.GetPOI()).c_str() );
+    RooRealVar* poi = dynamic_cast<RooRealVar*>( ws->var( (measurement.GetPOI()).c_str() ) );
     
     std::string CombinedFileName = measurement.GetOutputFilePrefix() + "_combined_"
       + rowTitle + "_model.root";
@@ -243,7 +236,7 @@ RooWorkspace* RooStats::HistFactory::MakeModelAndMeasurementFast( RooStats::Hist
     
     // Fit the combined model
     if(! measurement.GetExportOnly()){
-      if(!poi){
+      if(!poi) {
 	std::cout << "Can't do fit for: " << measurement.GetName() 
 		  << ", no parameter of interest" << std::endl;
       } 
@@ -290,6 +283,16 @@ void RooStats::HistFactory::FitModelAndPlot(const std::string& MeasurementName,
     throw hf_exc();
   }
 
+  if( tableFile == NULL ) {
+    std::cout << "Error: tableFile in FitModelAndPlot is NULL" << std::endl;
+    throw hf_exc();
+  }
+
+  if( combined == NULL ) {
+    std::cout << "Error: Supplied workspace in FitModelAndPlot is NULL" << std::endl;
+    throw hf_exc();
+  }
+
   ModelConfig* combined_config = (ModelConfig *) combined->obj("ModelConfig");
   if(!combined_config){
     std::cout << "Error: no ModelConfig found in Measurement: "
@@ -331,14 +334,12 @@ void RooStats::HistFactory::FitModelAndPlot(const std::string& MeasurementName,
   std::cout << "---------------\n\n" << std::endl;
   model->fitTo(*simData, Minos(kTRUE), PrintLevel(1));
 
-
   // If there are no parameters of interest,
   // we exit the function here
   if( POIs->getSize()==0 ) {
     std::cout << "WARNING: No POIs found in measurement: " << MeasurementName << std::endl;
     return;
   }
-
 
   // Loop over all POIs and print their fitted values
   RooRealVar* poi = NULL; // (RooRealVar*) POIs->first();
@@ -430,8 +431,6 @@ void RooStats::HistFactory::FitModelAndPlot(const std::string& MeasurementName,
   delete g;
   delete [] x_arr;
   delete [] y_arr_nll;
-    
-  // } // End: if( outFile==NULL )
     
   // Finally, restore the initial values
   combined->loadSnapshot("InitialValues");
