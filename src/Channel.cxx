@@ -1,3 +1,24 @@
+// @(#)root/roostats:$Id: Channel.cxx 47288 2012-11-14 21:38:07Z ghl $
+// Author: Kyle Cranmer, George Lewis 
+/*************************************************************************
+ * Copyright (C) 1995-2008, Rene Brun and Fons Rademakers.               *
+ * All rights reserved.                                                  *
+ *                                                                       *
+ * For the licensing terms see $ROOTSYS/LICENSE.                         *
+ * For the list of contributors see $ROOTSYS/README/CREDITS.             *
+ *************************************************************************/
+
+//_________________________________________________
+/*
+BEGIN_HTML
+<p>
+</p>
+END_HTML
+*/
+//
+
+
+
 #include "RooStats/HistFactory/Channel.h"
 #include <stdlib.h>
 
