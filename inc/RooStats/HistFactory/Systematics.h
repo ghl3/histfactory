@@ -308,7 +308,8 @@ namespace HistFactory {
 
   public:
 
-    StatError() : fActivate(false), fUseHisto(false), fhError(NULL) {;}
+    StatError() : fActivate(false), fUseHisto(false), 
+		  fZeroBinMode(false), fhError(NULL) {;}
 
     void Print(std::ostream& = std::cout);  
     void PrintXML(std::ostream&);
@@ -329,6 +330,8 @@ namespace HistFactory {
     void SetHistoPath( const std::string& HistoPath ) { fHistoPath = HistoPath; }
     std::string GetHistoPath() { return fHistoPath; }
 
+    void SetZeroBinMode( bool ZeroBinMode ) { fZeroBinMode=ZeroBinMode; }
+    bool GetZeroBinMode() { return fZeroBinMode; }
 
     TH1* GetErrorHist();
     void SetErrorHist(TH1* Error) { fhError = Error; }
@@ -337,6 +340,7 @@ namespace HistFactory {
 
     bool fActivate;
     bool fUseHisto; // Use an external histogram for the errors 
+    bool fZeroBinMode;
     std::string fInputFile;
     std::string fHistoName;
     std::string fHistoPath;

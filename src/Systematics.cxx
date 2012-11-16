@@ -361,6 +361,7 @@ void RooStats::HistFactory::StatErrorConfig::PrintXML( std::ostream& xml ) {
 
 
 // Stat Error
+
 TH1* RooStats::HistFactory::StatError::GetErrorHist() {
   return (TH1*) fhError.GetObject();
 }
