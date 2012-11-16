@@ -476,6 +476,21 @@ namespace RooStats {
 		<< std::setw(15) << "Error High"
 		<< std::endl;
       
+      int label_print_width = 30;  
+      int val_print_width = 15;
+
+      {
+	TIterator* paramItr = params->createIterator();
+	RooRealVar* param = NULL;
+	while( (param=(RooRealVar*)paramItr->Next()) ) {
+	  if( !IncludeConstantParams && param->isConstant() ) continue;
+	  if( findChild(param->GetName(), sample_func)==NULL ) continue;
+	  std::string ComponentName = param->GetName();
+	  label_print_width = TMath::Max(label_print_width, (int)ComponentName.size()+2);
+	}
+      }
+      
+
       // Loop over the parameters and print their values, etc
       TIterator* paramItr = params->createIterator();
       RooRealVar* param = NULL;
@@ -485,10 +500,11 @@ namespace RooStats {
 
 	if( findChild(param->GetName(), sample_func)==NULL ) continue;
 
-	std::cout << std::setw(30) << param->GetName();
-	std::cout << std::setw(15) << param->getVal();
+	std::cout << std::setw(label_print_width) << param->GetName();
+	std::cout << std::setw(val_print_width) << param->getVal();
 	if( !param->isConstant() ) {
-	  std::cout << std::setw(15) << param->getErrorLo() << std::setw(15) << param->getErrorHi();
+	  std::cout << std::setw(val_print_width) << param->getErrorLo() 
+		    << std::setw(val_print_width) << param->getErrorHi();
 	}
 	std::cout<< std::endl;
       }
@@ -1126,12 +1142,15 @@ namespace RooStats {
       std::string total_Name = sampleNode->GetName();
       TH1* total_hist= MakeHistFromRooFunction( sampleNode, observable_list, total_Name + "_tmp");
       unsigned int num_bins = total_hist->GetNbinsX()*total_hist->GetNbinsY()*total_hist->GetNbinsZ();
-
-      RooArgSet components;
       
       // Let's see what it is...
+      //SetPrintWidths(channel);
+      
       int label_print_width = 30;  
       int bin_print_width = 12;
+
+      // Get the components of this sample
+      RooArgSet components;
       if( strcmp(sampleNode->ClassName(),"RooProduct")==0){
 	RooProduct* prod = dynamic_cast<RooProduct*>(sampleNode);
 	components.add( _GetAllProducts(prod) );
