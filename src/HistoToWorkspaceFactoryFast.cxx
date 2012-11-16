@@ -802,6 +802,23 @@ namespace HistFactory{
     unsigned int nskipped = 0;
     map<string,double>::iterator it;
 
+    
+    // Do a simple check that all requested variables to edit
+    // are actually present in this workspace
+    for(it=gammaSyst.begin(); it!=gammaSyst.end(); ++it) {
+      std::string sysName = std::string("alpha_") + it->first; 
+      if( proto->var(sysName.c_str())==NULL ) {
+	proto->allVars().Print("V");
+	std::cout << "Error: Cannot perform EDIT, Couldn't find variable: " << sysName
+		  << " in workspace: " << proto->GetName() << std::endl;
+	std::cout << "(This is the parameter describing the systematic: " << it->first 
+		  << ")" << std::endl;
+	throw hf_exc();
+      }
+    }
+
+
+
     // add gamma terms and their constraints
     for(it=gammaSyst.begin(); it!=gammaSyst.end(); ++it) {
       //cout << "edit for " << it->first << "with rel uncert = " << it->second << endl;
