@@ -607,11 +607,53 @@ namespace RooStats {
       }
       
       return channel_itr->second;
+      
+    }
+    
+    RooAbsReal* HistFactoryNavigation::GetNominalNode(const std::string& channel, 
+						      const std::string& sample) {
+      
+      // First, get the (fully interpolated and scaled) function
+      RooAbsReal* full_node = SampleFunction(channel, sample);
+      RooAbsReal* nominal_node = NULL;
+
+      // Next, get the sub function that has the name 'nominal'
+      RooArgSet* components = full_node->getComponents();
+      TIterator* argItr = components->createIterator();
+      RooAbsArg* arg = NULL;
+      while( (arg=(RooAbsArg*)argItr->Next()) ) {
+	std::string NodeName = arg->GetName();
+	if( NodeName.find("nominal") != std::string::npos ) {
+	  nominal_node = dynamic_cast<RooAbsReal*>(arg);
+	  break;
+	}
+      }
+
+      if( nominal_node==NULL ) {
+	std::cout << "Error: Nominal node for sample: " << sample
+		  << " in channel: " << channel << " is NULL" << std::endl;
+	throw hf_exc();
+      }
+
+      // Finally, do some sanity checks
+      std::string NominalNodeName = nominal_node->GetName();
+      std::string NameA = sample + "_" + channel + "_nominal";
+      std::string NameB = sample + "_" + channel + "_Hist_alphanominal";
+      if( NominalNodeName != NameA && NominalNodeName != NameB ) {
+	std::cout << "Error: Nominal node for sample: " << sample
+		  << " in channel: " << channel 
+		  << " has unexpected name: " << NominalNodeName << std::endl;
+	throw hf_exc();
+      }
+
+      // And return if all is well
+      return nominal_node;
 
     }
+    
 
-
-    TH1* HistFactoryNavigation::GetSampleHist(const std::string& channel, const std::string& sample,
+    TH1* HistFactoryNavigation::GetSampleHist(const std::string& channel, 
+					      const std::string& sample,
 					      const std::string& hist_name) {
       // Get a histogram of the expected values for
       // a particular sample in a particular channel
