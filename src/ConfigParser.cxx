@@ -899,15 +899,18 @@ HistFactory::Sample ConfigParser::CreateSampleElement( TXMLNode* node ) {
 
   // Quickly check the properties of the Sample Node
   if( sample.GetName() == "" ) {
-    std::cout << "Error: Sample Node has no Name" << std::endl;
+    std::cout << "Error: Sample Node: " << sample.GetName() 
+	      << " in channel: " << sample.GetChannelName() << " has no Name" << std::endl;
     throw hf_exc();
   }
   if( sample.GetInputFile() == "" ) {
-    std::cout << "Error: Sample Node has no InputFile" << std::endl;
+    std::cout << "Error: Sample Node: " << sample.GetName() 
+	      << " in channel: " << sample.GetChannelName()<< " has no InputFile" << std::endl;
     throw hf_exc();
   }
   if( sample.GetHistoName() == "" ) {
-    std::cout << "Error: Sample Node has no HistoName" << std::endl;
+    std::cout << "Error: Sample Node: " << sample.GetName() 
+	      << " in channel: " << sample.GetChannelName()<< " has no HistoName" << std::endl;
     throw hf_exc();
   }
 
@@ -1138,19 +1141,19 @@ HistFactory::HistoSys ConfigParser::MakeHistoSys( TXMLNode* node ) {
     throw hf_exc();
   }
   if( histoSys.GetInputFileHigh() == "" ) {
-    std::cout << "Error: HistoSysSample Node has no InputFileHigh" << std::endl;
+    std::cout << "Error: HistoSysSample Node: " << histoSys.GetName() << " has no InputFileHigh" << std::endl;
     throw hf_exc();
   }
   if( histoSys.GetInputFileLow() == "" ) {
-    std::cout << "Error: HistoSysSample Node has no InputFileLow" << std::endl;
+    std::cout << "Error: HistoSysSample Node: " << histoSys.GetName() << " has no InputFileLow" << std::endl;
     throw hf_exc();
   }
   if( histoSys.GetHistoNameHigh() == "" ) {
-    std::cout << "Error: HistoSysSample Node has no HistoNameHigh" << std::endl;
+    std::cout << "Error: HistoSysSample Node: " << histoSys.GetName() << " has no HistoNameHigh" << std::endl;
     throw hf_exc();
   }
   if( histoSys.GetHistoNameLow() == "" ) {
-    std::cout << "Error: HistoSysSample Node has no HistoNameLow" << std::endl;
+    std::cout << "Error: HistoSysSample Node: " << histoSys.GetName() << " has no HistoNameLow" << std::endl;
     throw hf_exc();
   }
 
