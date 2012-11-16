@@ -25,6 +25,7 @@ namespace RooStats {
 			    const std::string& WorkspaceName="combined",
 			    const std::string& ModelConfigName="ModelConfig");
       HistFactoryNavigation(RooAbsPdf* model, RooArgSet* observables);
+      HistFactoryNavigation(RooAbsPdf* model, RooAbsData* data);
 
       virtual ~HistFactoryNavigation() {} 
 
