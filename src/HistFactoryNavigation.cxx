@@ -161,11 +161,43 @@ namespace RooStats {
 	throw hf_exc();
       }
 
+      // Set the observables
+      fObservables = observables;
+
       // Initialize the rest of the members
       _GetNodes(fModel, fObservables);
 
     }
 
+    // CONSTRUCTOR
+    HistFactoryNavigation::HistFactoryNavigation(RooAbsPdf* model, RooAbsData* data) :
+      _minBinToPrint(-1), _maxBinToPrint(-1), 
+      _label_print_width(20), _bin_print_width(12) {
+
+      RooArgSet* observables = model->getObservables(*data);
+
+      // Save the model pointer
+      if( !model ) {
+	std::cout << "Error: The supplied pdf is NULL" << std::endl;
+	throw hf_exc();
+      }
+
+      // Set the PDF member
+      fModel = model;
+
+      if( observables->getSize() == 0 ) {
+	std::cout << "Error: Observable list: " << observables->GetName()
+		  << " has no entries." << std::endl;
+	throw hf_exc();
+      }
+
+      // Set the observables
+      fObservables = observables;
+
+      // Initialize the rest of the members
+      _GetNodes(fModel, fObservables);
+
+    }
 
     void HistFactoryNavigation::PrintMultiDimHist(TH1* hist, int bin_print_width) {
 
