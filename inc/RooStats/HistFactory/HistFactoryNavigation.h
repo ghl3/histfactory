@@ -80,6 +80,9 @@ namespace RooStats {
       // Get the RooAbsReal function for a given sample in a given channel
       RooAbsReal* SampleFunction(const std::string& channel, const std::string& sample);
 
+      // Get the Nominal (input values) function for a given channel and sample
+      RooAbsReal* GetNominalNode(const std::string& channel, const std::string& sample);
+
       // Get the set of observables for a given channel
       RooArgSet* GetObservableSet(const std::string& channel);
 
