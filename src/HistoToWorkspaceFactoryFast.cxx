@@ -314,9 +314,11 @@ namespace HistFactory{
 
   }
 
-  void HistoToWorkspaceFactoryFast::ProcessExpectedHisto(TH1* hist, RooWorkspace* proto, 
+  void HistoToWorkspaceFactoryFast::ProcessExpectedHisto(const std::string& nomHistName, 
+							 RooWorkspace* proto, 
 							 string prefix, string productPrefix, 
 							 string systTerm ) {
+    /*
     if(hist) {
       cout << "processing hist " << hist->GetName() << endl;
     } else {
@@ -355,12 +357,12 @@ namespace HistFactory{
       }
       observables.add( *proto->var(itr->c_str()) );
     }
-
+    
     std::string nomHistName = prefix+"_nominal";
     RooDataHist* histDHist = new RooDataHist((nomHistName+"DHist").c_str(),"",observables,hist);
     RooHistFunc* histFunc = new RooHistFunc(nomHistName.c_str(),"",observables,*histDHist,0) ;
-    
     proto->import(*histFunc);
+    */    
 
     /// now create the product of the overall efficiency times the sigma(params) for this estimate
     proto->factory(("prod:"+productPrefix+"("+nomHistName+","+systTerm+")").c_str() );    
@@ -454,7 +456,8 @@ namespace HistFactory{
 
   }
 
-  void HistoToWorkspaceFactoryFast::LinInterpWithConstraint(RooWorkspace* proto, TH1* nominal, 
+  void HistoToWorkspaceFactoryFast::LinInterpWithConstraint(RooWorkspace* proto, 
+							    const std::string& nomHistName,
 							    std::vector<HistoSys> histoSysList,
 							    string prefix, string productPrefix, 
 							    string systTerm, 
@@ -463,6 +466,7 @@ namespace HistFactory{
     // these are the nominal predictions: eg. the mean of some space of variations
     // later fill these in a loop over histogram bins
 
+    /*
     // require dimension >=1 or <=3
     if (fObsNameVec.empty() && !fObsName.empty()) { fObsNameVec.push_back(fObsName); }    
     R__ASSERT( fObsNameVec.size()>=1 && fObsNameVec.size()<=3 );
@@ -503,6 +507,14 @@ namespace HistFactory{
 
     RooDataHist* nominalDHist = new RooDataHist((prefix+"_nominalDHist").c_str(),"",observables,nominal);
     RooHistFunc* nominalFunc = new RooHistFunc((prefix+"_nominal").c_str(),"",observables,*nominalDHist,0) ;
+    */
+
+    // Get the observables
+    RooArgList observables;
+    std::vector<std::string>::iterator itr = fObsNameVec.begin();
+    for (int idx=0; itr!=fObsNameVec.end(); ++itr, ++idx ) {
+      observables.add( *proto->var(itr->c_str()) );
+    }
 
     // make list of abstract parameters that interpolate in space of variations
     RooArgList params( ("alpha_Hist") );
@@ -556,6 +568,7 @@ namespace HistFactory{
     
     // this is sigma(params), a piece-wise linear interpolation
     std::string interpolatedHistName = prefix + "_Hist";
+    RooAbsReal* nominalFunc = dynamic_cast<RooAbsReal*>(proto->function(nomHistName.c_str()));
     PiecewiseInterpolation interp(interpolatedHistName.c_str(),"",
 				  *nominalFunc, lowSet, highSet, params);
     interp.setPositiveDefinite();
@@ -565,7 +578,7 @@ namespace HistFactory{
     interp.setBinIntegrator(observableSet);
     interp.forceNumInt();
 
-    proto->import(interp); // individual params have already been imported in first loop of this function
+    proto->import(interp, RecycleConflictNodes()); // individual params have already been imported in first loop of this function
     
     // now create the product of the overall efficiency times the sigma(params) for this estimate
     proto->factory(("prod:"+productPrefix+"("+interpolatedHistName+","+systTerm+")").c_str() );    
@@ -1275,10 +1288,9 @@ namespace HistFactory{
       //      which reduces code reuse and enables some
       //      stat uncertainty functionality
       // Create the nominal Histogram Function
-      /*
       string nominal_prefix = sample.GetName() + "_" + channel_name;
       std::string nominalNodeName = CreateNominalHistAndObservables(proto, sample, nominal_prefix);
-      */
+
       // Do Conserve Stat Functionality here
       // to replace the effective nominal node name
       /*
@@ -1305,7 +1317,7 @@ namespace HistFactory{
         string expPrefix = sample.GetName() + "_" + channel_name; //+"_expN";
         syst_x_expectedPrefix = sample.GetName() + "_" + channel_name + "_overallSyst_x_Exp";
 
-        ProcessExpectedHisto(sample.GetHisto(), proto, expPrefix, syst_x_expectedPrefix, 
+        ProcessExpectedHisto(nominalNodeName, proto, expPrefix, syst_x_expectedPrefix, 
 			     overallSystName);
       } 
       else {
@@ -1316,7 +1328,7 @@ namespace HistFactory{
 
 	// constraintTermNames are passed by reference and appended to,
 	// overallSystName is a std::string for this sample
-        LinInterpWithConstraint(proto, nominal, sample.GetHistoSysList(),
+        LinInterpWithConstraint(proto, nominalNodeName, sample.GetHistoSysList(),
 				constraintPrefix, syst_x_expectedPrefix, overallSystName, 
 				constraintTermNames);
       }

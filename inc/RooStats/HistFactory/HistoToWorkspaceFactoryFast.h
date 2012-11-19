@@ -90,7 +90,8 @@ namespace RooStats{
 						  std::string prefix);
 
 
-      void LinInterpWithConstraint(RooWorkspace* proto, TH1* nominal, std::vector<HistoSys>,  
+      void LinInterpWithConstraint(RooWorkspace* proto, const std::string& nomHistName, 
+				   std::vector<HistoSys>,  
 				   std::string prefix, std::string productPrefix, 
 				   std::string systTerm, 
 				   std::vector<std::string>& likelihoodTermNames);
@@ -108,7 +109,8 @@ namespace RooStats{
 				RooArgList obsList,
 				RooCategory* channelCat);
 
-      void ProcessExpectedHisto(TH1* hist, RooWorkspace* proto, std::string prefix, 
+      void ProcessExpectedHisto(const std::string& nomHistName, RooWorkspace* proto, 
+				std::string prefix, 
 				std::string productPrefix, std::string systTerm );
 
       void SetObsToExpected(RooWorkspace* proto, std::string obsPrefix, std::string expPrefix, 
