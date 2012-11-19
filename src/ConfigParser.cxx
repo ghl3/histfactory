@@ -1422,6 +1422,23 @@ HistFactory::StatError ConfigParser::ActivateStatError( TXMLNode* node ) {
     else if( attrName == TString( "InputFile" ) ) {
       statError.SetInputFile( attrVal );
     }
+
+
+    else if( attrName == TString( "ZeroBinMode" ) ) {
+      statError.SetZeroBinMode( CheckTrueFalse(attrVal, "StatError") );
+    }
+
+    else if( attrName == TString( "McWeightHistoName" ) ) {
+      statError.SetMcWeightHistoName( attrVal );
+    }
+
+    else if( attrName == TString( "McWeightHistoPath" ) ) {
+      statError.SetMcWeightHistoPath( attrVal );
+    }
+
+    else if( attrName == TString( "McWeightInputFile" ) ) {
+      statError.SetMcWeightInputFile( attrVal );
+    }
     
     else {
       std::cout << "Error: Encountered Element in ActivateStatError with unknown name: " 
@@ -1451,6 +1468,30 @@ HistFactory::StatError ConfigParser::ActivateStatError( TXMLNode* node ) {
     }
 
   }
+
+  if( statError.GetMcWeightHistoName() != "" ) {
+
+    // If we set the McWeight Histo Name, we also
+    // must ensure that the ZeroBinMode is set
+    if( ! statError.GetZeroBinMode() ) {
+      std::cout << "Error: In the stat uncertainty, McWeight histogram is set"
+		<< " but ZeroBinMode is not activated."
+		<< " If you want to use ZeroBinMode, you must set: ZeroBinMode=\"True\""
+		<< std::endl;
+      throw hf_exc();
+    }
+
+    // Check that a file has been set
+    // (Possibly using the default)
+    if( statError.GetInputFile() == "" ) {
+      statError.SetInputFile( m_currentInputFile );
+    }
+    if( statError.GetMcWeightHistoPath() == "" ) {
+      statError.SetMcWeightHistoPath( m_currentHistoPath );
+    }
+
+  }
+
 
   /*
   if( statError.Activate ) {

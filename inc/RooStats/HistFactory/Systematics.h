@@ -336,8 +336,8 @@ namespace HistFactory {
     void SetZeroBinMode( bool ZeroBinMode ) { fZeroBinMode=ZeroBinMode; }
     bool GetZeroBinMode() { return fZeroBinMode; }
 
-    void SetMcWeightFile( const std::string& McWeightFile ) { fMcWeightFile = McWeightFile; }
-    std::string GetMcWeightFile() { return fMcWeightFile; }
+    void SetMcWeightInputFile( const std::string& McWeightInputFile ) { fMcWeightInputFile = McWeightInputFile; }
+    std::string GetMcWeightInputFile() { return fMcWeightInputFile; }
 
     void SetMcWeightHistoName( const std::string& McWeightHistoName ) { fMcWeightHistoName = McWeightHistoName; }
     std::string GetMcWeightHistoName() { return fMcWeightHistoName; }
@@ -361,7 +361,7 @@ namespace HistFactory {
     // The histogram holding the error
     TRef fhError;
 
-    std::string fMcWeightFile;
+    std::string fMcWeightInputFile;
     std::string fMcWeightHistoName;
     std::string fMcWeightHistoPath;
 

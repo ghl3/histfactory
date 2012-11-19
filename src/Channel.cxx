@@ -196,7 +196,6 @@ void RooStats::HistFactory::Channel::CollectHistograms() {
   // and collect all necessary histograms
 
   // Get the Data Histogram:
-
   if( fData.GetInputFile() != "" ) {
     fData.SetHisto( GetHistogram(fData.GetInputFile(), 
 				 fData.GetHistoPath(),
@@ -216,7 +215,6 @@ void RooStats::HistFactory::Channel::CollectHistograms() {
 
     RooStats::HistFactory::Sample& sample = fSamples.at( sampItr );
 
-
     // Get the nominal histogram:
     std::cout << "Collecting Nominal Histogram" << std::endl;
     TH1* Nominal =  GetHistogram(sample.GetInputFile(),
@@ -225,12 +223,17 @@ void RooStats::HistFactory::Channel::CollectHistograms() {
 
     sample.SetHisto( Nominal );
 
-
     // Get the StatError Histogram (if necessary)
     if( sample.GetStatError().GetUseHisto() ) {
       sample.GetStatError().SetErrorHist( GetHistogram(sample.GetStatError().GetInputFile(),
 						       sample.GetStatError().GetHistoPath(),
 						       sample.GetStatError().GetHistoName()) );
+    }
+
+    if( sample.GetStatError().GetZeroBinMode() ) {
+      sample.GetStatError().SetMcWeightHist( GetHistogram(sample.GetStatError().GetMcWeightInputFile(),
+							  sample.GetStatError().GetMcWeightHistoPath(),
+							  sample.GetStatError().GetMcWeightHistoName()) );
     }
 
       
