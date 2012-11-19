@@ -1338,7 +1338,8 @@ namespace HistFactory{
       // Add StatErrors to this Channel //
       ////////////////////////////////////
 
-      if( sample.GetStatError().GetActivate() ) {
+      // Zero bins aren't used in the "global" stat uncertainty mode
+      if( sample.GetStatError().GetActivate() && ! sample.GetStatError().GetZeroBinMode() ) {
 
 	if( fObsNameVec.size() > 3 ) {
 	  std::cout << "Cannot include Stat Error for histograms of more than 3 dimensions." 
@@ -1818,8 +1819,6 @@ namespace HistFactory{
     proto->defineSet("observables", Form("%s",observablesStr.c_str()));
     proto->defineSet("observablesSet", Form("%s",observablesStr.c_str()));
     
-    // Create the ParamHistFunc
-    // after observables have been made
     cout <<"-----------------------------------------"<<endl;
     cout <<"import model into workspace" << endl;
 
@@ -1827,6 +1826,8 @@ namespace HistFactory{
                "product of Poissons accross bins for a single channel",
 	       constraintTerms, Conditional(likelihoodTerms,observables));  //likelihoodTerms);
     proto->import(*model,RecycleConflictNodes());
+
+    cout << "TMP: Importing ModelConfig" << std::endl;
 
     proto_config->SetPdf(*model);
     proto_config->SetObservables(observables);
@@ -1839,7 +1840,8 @@ namespace HistFactory{
 
     ///////////////////////////
     // make data sets
-      // THis works and is natural, but the memory size of the simultaneous dataset grows exponentially with channels
+    // THis works and is natural, but the memory size of the simultaneous dataset grows exponentially with channels
+    cout << "TMP: Making Weight Var" << std::endl;
     const char* weightName="weightVar";
     proto->factory(Form("%s[0,-1e10,1e10]",weightName));
     proto->defineSet("obsAndWeight",Form("%s,%s",weightName,observablesStr.c_str()));
@@ -1861,7 +1863,11 @@ namespace HistFactory{
 
     // New Asimov Generation: Use the code in the Asymptotic calculator 
     // Need to get the ModelConfig...
+    // TMP!!!
+    model->graphVizTree("model.dot");
+    cout << "TMP: Doing Asimov" << std::endl;
     RooDataSet* asimov_dataset = (RooDataSet*) AsymptoticCalculator::GenerateAsimovData(*model, observables);
+    cout << "TMP: Importing Asimov" << std::endl;
     proto->import(*asimov_dataset, Rename("asimovData"));
 
     // GHL: Determine to use data if the hist isn't 'NULL'
@@ -1876,49 +1882,15 @@ namespace HistFactory{
       }
 
       // THis works and is natural, but the memory size of the simultaneous dataset grows exponentially with channels
+      cout << "TMP: Configure HistFactory Dataset" << std::endl;
       RooDataSet* obsDataUnbinned = new RooDataSet("obsData","",*proto->set("obsAndWeight"),weightName);
-
-
       ConfigureHistFactoryDataset( obsDataUnbinned, mnominal, 
 				   proto, fObsNameVec );
       
-      /*
-      //ES// TH1* mnominal = summary.at(0).nominal;
-      TH1* mnominal = data.GetHisto(); 
-      TAxis* ax = mnominal->GetXaxis(); 
-      TAxis* ay = mnominal->GetYaxis(); 
-      TAxis* az = mnominal->GetZaxis(); 	
-
-      for (int i=1; i<=ax->GetNbins(); ++i) { // 1 or more dimension
-	Double_t xval = ax->GetBinCenter(i);
-	proto->var( fObsNameVec[0].c_str() )->setVal( xval );
-	if        (fObsNameVec.size()==1) {
-	  Double_t fval = mnominal->GetBinContent(i);
-	  obsDataUnbinned->add( *proto->set("obsAndWeight"), fval );
-	} else { // 2 or more dimensions
-	  for (int j=1; j<=ay->GetNbins(); ++j) {
-	    Double_t yval = ay->GetBinCenter(j);
-	    proto->var( fObsNameVec[1].c_str() )->setVal( yval );
-	    if (fObsNameVec.size()==2) { 
-	      Double_t fval = mnominal->GetBinContent(i,j);
-	      obsDataUnbinned->add( *proto->set("obsAndWeight"), fval );
-	    } else { // 3 dimensions 
-	      for (int k=1; k<=az->GetNbins(); ++k) {
-		Double_t zval = az->GetBinCenter(k);
-		proto->var( fObsNameVec[2].c_str() )->setVal( zval );
-		Double_t fval = mnominal->GetBinContent(i,j,k);
-		obsDataUnbinned->add( *proto->set("obsAndWeight"), fval );
-	      }
-	    }
-	  }
-	}
-      }
-      */
-
       proto->import(*obsDataUnbinned);
     } // End: Has non-null 'data' entry
 
-    
+    cout << "TMP: Looking for additional data" << std::endl;
     for(unsigned int i=0; i < channel.GetAdditionalData().size(); ++i) {
       
       Data& data = channel.GetAdditionalData().at(i);
@@ -1933,46 +1905,13 @@ namespace HistFactory{
       // THis works and is natural, but the memory size of the simultaneous dataset grows exponentially with channels
       RooDataSet* obsDataUnbinned = new RooDataSet(dataName.c_str(), dataName.c_str(),
 						   *proto->set("obsAndWeight"), weightName);
-      
       ConfigureHistFactoryDataset( obsDataUnbinned, mnominal, 
 				   proto, fObsNameVec );
       
-      /*
-      //ES// TH1* mnominal = summary.at(0).nominal;
-      TH1* mnominal = data.GetHisto(); 
-      TAxis* ax = mnominal->GetXaxis(); 
-      TAxis* ay = mnominal->GetYaxis(); 
-      TAxis* az = mnominal->GetZaxis(); 	
-
-      for (int i=1; i<=ax->GetNbins(); ++i) { // 1 or more dimension
-	Double_t xval = ax->GetBinCenter(i);
-	proto->var( fObsNameVec[0].c_str() )->setVal( xval );
-	if        (fObsNameVec.size()==1) {
-	  Double_t fval = mnominal->GetBinContent(i);
-	  obsDataUnbinned->add( *proto->set("obsAndWeight"), fval );
-	} else { // 2 or more dimensions
-	  for (int j=1; j<=ay->GetNbins(); ++j) {
-	    Double_t yval = ay->GetBinCenter(j);
-	    proto->var( fObsNameVec[1].c_str() )->setVal( yval );
-	    if (fObsNameVec.size()==2) { 
-	      Double_t fval = mnominal->GetBinContent(i,j);
-	      obsDataUnbinned->add( *proto->set("obsAndWeight"), fval );
-	    } else { // 3 dimensions 
-	      for (int k=1; k<=az->GetNbins(); ++k) {
-		Double_t zval = az->GetBinCenter(k);
-		proto->var( fObsNameVec[2].c_str() )->setVal( zval );
-		Double_t fval = mnominal->GetBinContent(i,j,k);
-		obsDataUnbinned->add( *proto->set("obsAndWeight"), fval );
-	      }
-	    }
-	  }
-	}
-      }
-      */
-
       proto->import(*obsDataUnbinned);
     } // End: Has non-null 'data' entry
 
+    cout << "TMP: printint and returning" << std::endl;
     proto->Print();
     return proto;
   }
@@ -2671,10 +2610,8 @@ namespace HistFactory{
     std::string conserveStatPrefix = "N_mc_events_exp_" + sample.GetName() + "_" + channel;
     RooArgList conserveStatParams = ParamHistFunc::createParamSet(*wspace, conserveStatPrefix,
 								  obsSet, 0, 10);
-    RooRealVar* stat_conserve_constant = (RooRealVar*) wspace->factory("zero_var_dummy[0, 0, 1]");
+    RooRealVar* stat_conserve_constant = (RooRealVar*) wspace->factory("zero_var_dummy[0.0, 0.0, 1.0]");
     stat_conserve_constant->setConstant(true);
-
-    RooConstVar Zero("Zero", "Zero", 0.0);
 
     // Now, figure out which of these parameters actually are allowed
     // to float (ie, which ones have 0 entries)
@@ -2685,15 +2622,17 @@ namespace HistFactory{
       num << i;
       // If we need to add uncertainties
       double epsilon = 10E-5;
-      if( nominalHist->GetBinContent(i) < epsilon ) {
+      if( nominalHist->GetBinContent(i+1) < epsilon ) {
 	conserveParams.add( *conserveStatParams.at(i) );
 
 	// And create a constraint term
+	RooRealVar* Nom_N_MC = (RooRealVar*) wspace->factory((std::string("Nom_")+conserveStatPrefix.c_str()+"_bin_"+num.str()+"[0.0,0.0,1.0]").c_str()); //ConstVar Zero("Zero", "Zero", 0.0);
+	Nom_N_MC->setConstant(true);
 	std::string constraintName = conserveStatPrefix + "_bin_" + num.str() + "Constraint";
 	//std::string processExpr = "RooPoisson::" << constraintName << "
 	RooRealVar* bin_var = (RooRealVar*) conserveStatParams.at(i);
 	RooPoisson constraint(constraintName.c_str(), constraintName.c_str(),
-			      Zero, *bin_var);
+			      *Nom_N_MC, *bin_var);
 	wspace->import( constraint, RecycleConflictNodes() );
 	constraintTermNames.push_back( constraintName );
       }
@@ -2706,24 +2645,31 @@ namespace HistFactory{
     // Create the ParamHistFunc
     ParamHistFunc ConserveStat(conserveStatPrefix.c_str(), conserveStatPrefix.c_str(),
 			       obsSet, conserveParams );
-    
+    wspace->import(ConserveStat, RecycleConflictNodes());
+
     // Get the MC Weight histogram and create the value of the nominal estimate
     TH1* mcWeightHist = sample.GetStatError().GetMcWeightHist();
-    RooDataHist mcWeightDataHist("mcWeight_bkg_chan", "mcWeight_bkg_chan", obsSet, mcWeightHist);
-    RooHistFunc mcWeightHistFunc("mcWeightHistFunc", "mcWeightHistFunc", obsSet, mcWeightDataHist);
-    
+    if( mcWeightHist==NULL ) {
+      std::cout << "Error: mcWeightHist for channel: " << channel << " and sample: " << sample.GetName()
+		<< " is NULL" << std::endl;
+      throw hf_exc();
+    }
+    std::string mcWeightPrefix = "mcWeight_" + sample.GetName() + "_" + channel;
+    RooDataHist* mcWeightDataHist = new RooDataHist((mcWeightPrefix+"DHist").c_str(), (mcWeightPrefix+"DHist").c_str(), obsSet, mcWeightHist);
+    RooHistFunc* mcWeightHistFunc = new RooHistFunc(mcWeightPrefix.c_str(), mcWeightPrefix.c_str(), obsSet, *mcWeightDataHist);
+    wspace->import( *mcWeightHistFunc, RecycleConflictNodes() );
+
     // stat = N_mc * w_mc
     std::string mcTimesWeightName = conserveStatPrefix + "_x_McWeight";
-    RooProduct mcTimesWeight(mcTimesWeightName.c_str(), mcTimesWeightName.c_str(), 
-			     RooArgSet(mcWeightHistFunc, ConserveStat) );
-    
+    RooProduct* mcTimesWeight = new RooProduct(mcTimesWeightName.c_str(), mcTimesWeightName.c_str(), 
+					       RooArgSet(*wspace->function(mcWeightPrefix.c_str()), 
+							 *wspace->function(conserveStatPrefix.c_str())));
     // Create the RooAddition:
     // nominal_with_stat = nominal + stat
     std::string nominalPlusStatName = nominalNodeName + "_plus_stat";
-    RooAddition nominal_with_stat( nominalPlusStatName.c_str(), "", RooArgSet(*nominalFunc, mcTimesWeight) );
-    wspace->import( nominal_with_stat, RecycleConflictNodes() );
+    RooAddition* nominal_with_stat = new RooAddition( nominalPlusStatName.c_str(), "", RooArgSet(*nominalFunc, *mcTimesWeight) );
+    wspace->import( *nominal_with_stat, RecycleConflictNodes() );
     
-
     // Finally, we simply return the nominal string to be
     // the name of this newly created node
     return nominalPlusStatName;
