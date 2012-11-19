@@ -1236,7 +1236,7 @@ namespace HistFactory{
       else {
 	// If there ARE HistoSys(s)
 	// name of source for variation
-        string constraintPrefix = sample.GetName() + "_" + channel_name + "_Hist_alpha"; 
+        string constraintPrefix = sample.GetName() + "_" + channel_name; // + "_Hist_alpha"; 
 	syst_x_expectedPrefix = sample.GetName() + "_" + channel_name + "_overallSyst_x_HistSyst";
 
 	// constraintTermNames are passed by reference and appended to,
