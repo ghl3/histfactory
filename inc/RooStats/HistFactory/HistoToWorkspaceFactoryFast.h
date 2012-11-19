@@ -85,6 +85,11 @@ namespace RooStats{
 			   std::map<std::string,double> logNormSyst, 
 			   std::map<std::string,double> noSyst);
 
+      std::string CreateNominalHistAndObservables(RooWorkspace* proto, 
+						  Sample& sample, 
+						  std::string prefix);
+
+
       void LinInterpWithConstraint(RooWorkspace* proto, TH1* nominal, std::vector<HistoSys>,  
 				   std::string prefix, std::string productPrefix, 
 				   std::string systTerm, 

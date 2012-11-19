@@ -356,13 +356,14 @@ namespace HistFactory{
       observables.add( *proto->var(itr->c_str()) );
     }
 
-    RooDataHist* histDHist = new RooDataHist((prefix+"nominalDHist").c_str(),"",observables,hist);
-    RooHistFunc* histFunc = new RooHistFunc((prefix+"_nominal").c_str(),"",observables,*histDHist,0) ;
-
+    std::string nomHistName = prefix+"_nominal";
+    RooDataHist* histDHist = new RooDataHist((nomHistName+"DHist").c_str(),"",observables,hist);
+    RooHistFunc* histFunc = new RooHistFunc(nomHistName.c_str(),"",observables,*histDHist,0) ;
+    
     proto->import(*histFunc);
 
     /// now create the product of the overall efficiency times the sigma(params) for this estimate
-    proto->factory(("prod:"+productPrefix+"("+prefix+"_nominal,"+systTerm+")").c_str() );    
+    proto->factory(("prod:"+productPrefix+"("+nomHistName+","+systTerm+")").c_str() );    
 
   }
 
@@ -395,6 +396,62 @@ namespace HistFactory{
     proto->import(constraint);
 
     constraintTermNames.push_back(constraint.GetName());
+  }
+
+
+  std::string HistoToWorkspaceFactoryFast::CreateNominalHistAndObservables(RooWorkspace* proto, 
+									   Sample& sample, 
+									   std::string prefix) {
+
+    /// require dimension >=1 or <=3
+    if (fObsNameVec.empty() && !fObsName.empty()) { fObsNameVec.push_back(fObsName); }    
+    R__ASSERT( fObsNameVec.size()>=1 && fObsNameVec.size()<=3 );
+    
+    // Get the nominal TH1
+    TH1* nominal = sample.GetHisto();
+    
+    // determine histogram dimensionality 
+    unsigned int histndim(1);
+    std::string classname = nominal->ClassName();
+    if      (classname.find("TH1")==0) { histndim=1; }
+    else if (classname.find("TH2")==0) { histndim=2; }
+    else if (classname.find("TH3")==0) { histndim=3; }
+    R__ASSERT( histndim==fObsNameVec.size() );
+    //    cout <<"In LinInterpWithConstriants and histndim = " << histndim <<endl;
+
+    // create roorealvar observables
+    RooArgList observables;
+    std::vector<std::string>::iterator itr = fObsNameVec.begin();
+    for (int idx=0; itr!=fObsNameVec.end(); ++itr, ++idx ) {
+      if ( !proto->var(itr->c_str()) ) {
+	TAxis* axis(NULL);
+	if (idx==0) { axis = nominal->GetXaxis(); }
+	else if (idx==1) { axis = nominal->GetYaxis(); }
+	else if (idx==2) { axis = nominal->GetZaxis(); }
+	else {
+	  std::cout << "Error: Too many observables.  "
+		    << "HistFactory only accepts up to 3 observables (3d) "
+		    << std::endl;
+	  throw hf_exc();
+	}
+	Int_t nbins = axis->GetNbins();	
+	Double_t xmin = axis->GetXmin();
+	Double_t xmax = axis->GetXmax(); 	
+	// create observable
+	proto->factory(Form("%s[%f,%f]",itr->c_str(),xmin,xmax));
+	proto->var(itr->c_str())->setBins(nbins);
+      }
+      observables.add( *proto->var(itr->c_str()) );
+    }
+
+    RooDataHist* nominalDHist = new RooDataHist((prefix+"_nominalDHist").c_str(),"",
+						observables, nominal);
+    RooHistFunc* nominalFunc = new RooHistFunc((prefix+"_nominal").c_str(),"",
+					       observables, *nominalDHist, 0) ;
+
+    proto->import(*nominalFunc, RecycleConflictNodes());
+    return nominalFunc->GetName();
+
   }
 
   void HistoToWorkspaceFactoryFast::LinInterpWithConstraint(RooWorkspace* proto, TH1* nominal, 
@@ -498,7 +555,9 @@ namespace HistFactory{
     }
     
     // this is sigma(params), a piece-wise linear interpolation
-    PiecewiseInterpolation interp(prefix.c_str(),"",*nominalFunc,lowSet,highSet,params);
+    std::string interpolatedHistName = prefix + "_Hist";
+    PiecewiseInterpolation interp(interpolatedHistName.c_str(),"",
+				  *nominalFunc, lowSet, highSet, params);
     interp.setPositiveDefinite();
     interp.setAllInterpCodes(0); // MB : change default to 1? = piece-wise log interpolation from pice-wise linear (=0)
     // KC: interpo codes 1 etc. don't have proper analytic integral.
@@ -509,7 +568,7 @@ namespace HistFactory{
     proto->import(interp); // individual params have already been imported in first loop of this function
     
     // now create the product of the overall efficiency times the sigma(params) for this estimate
-    proto->factory(("prod:"+productPrefix+"("+prefix+","+systTerm+")").c_str() );    
+    proto->factory(("prod:"+productPrefix+"("+interpolatedHistName+","+systTerm+")").c_str() );    
 
   }
 
@@ -1212,6 +1271,20 @@ namespace HistFactory{
       //ES// TH1* nominal = it->nominal;
       TH1* nominal = sample.GetHisto();
 
+      // GHL: Move the nominal histogram creation here, 
+      //      which reduces code reuse and enables some
+      //      stat uncertainty functionality
+      // Create the nominal Histogram Function
+      /*
+      string nominal_prefix = sample.GetName() + "_" + channel_name;
+      std::string nominalNodeName = CreateNominalHistAndObservables(proto, sample, nominal_prefix);
+      */
+      // Do Conserve Stat Functionality here
+      // to replace the effective nominal node name
+      /*
+
+       */
+
       // MB : HACK no option to have both non-hist variations and hist variations ?
       // get histogram
       // GHL: Okay, this is going to be non-trivial.
@@ -1226,7 +1299,9 @@ namespace HistFactory{
       if(sample.GetHistoSysList().size() == 0) {
 
 	// If no HistoSys
-        cout << sample.GetName() + "_" + channel_name + " has no variation histograms " << endl;
+	std::cout << sample.GetName() << "_" << channel_name 
+		  << " has no variation histograms " << std::endl;
+
         string expPrefix = sample.GetName() + "_" + channel_name; //+"_expN";
         syst_x_expectedPrefix = sample.GetName() + "_" + channel_name + "_overallSyst_x_Exp";
 
