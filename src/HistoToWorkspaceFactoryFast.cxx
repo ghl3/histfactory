@@ -314,7 +314,7 @@ namespace HistFactory{
 
   }
 
-  void HistoToWorkspaceFactoryFast::ProcessExpectedHisto(TH1* hist,RooWorkspace* proto, 
+  void HistoToWorkspaceFactoryFast::ProcessExpectedHisto(TH1* hist, RooWorkspace* proto, 
 							 string prefix, string productPrefix, 
 							 string systTerm ) {
     if(hist) {
@@ -444,8 +444,8 @@ namespace HistFactory{
       observables.add( *proto->var(itr->c_str()) );
     }
 
-    RooDataHist* nominalDHist = new RooDataHist((prefix+"nominalDHist").c_str(),"",observables,nominal);
-    RooHistFunc* nominalFunc = new RooHistFunc((prefix+"nominal").c_str(),"",observables,*nominalDHist,0) ;
+    RooDataHist* nominalDHist = new RooDataHist((prefix+"_nominalDHist").c_str(),"",observables,nominal);
+    RooHistFunc* nominalFunc = new RooHistFunc((prefix+"_nominal").c_str(),"",observables,*nominalDHist,0) ;
 
     // make list of abstract parameters that interpolate in space of variations
     RooArgList params( ("alpha_Hist") );
@@ -485,10 +485,14 @@ namespace HistFactory{
       str<<"_"<<j;
 
       HistoSys& histoSys = histoSysList.at(j);
-      RooDataHist* lowDHist = new RooDataHist((prefix+str.str()+"lowDHist").c_str(),"",observables, histoSys.GetHistoLow());
-      RooDataHist* highDHist = new RooDataHist((prefix+str.str()+"highDHist").c_str(),"",observables, histoSys.GetHistoHigh());
-      RooHistFunc* lowFunc = new RooHistFunc((prefix+str.str()+"low").c_str(),"",observables,*lowDHist,0) ;
-      RooHistFunc* highFunc = new RooHistFunc((prefix+str.str()+"high").c_str(),"",observables,*highDHist,0) ;
+
+      // GHL: Renaming variations
+      std::string HistoPrefix = prefix + "_" + histoSys.GetName();
+      
+      RooDataHist* lowDHist = new RooDataHist((HistoPrefix+"_lowDHist").c_str(),"",observables, histoSys.GetHistoLow());
+      RooDataHist* highDHist = new RooDataHist((HistoPrefix+"_highDHist").c_str(),"",observables, histoSys.GetHistoHigh());
+      RooHistFunc* lowFunc = new RooHistFunc((HistoPrefix+"_low").c_str(),"",observables,*lowDHist,0) ;
+      RooHistFunc* highFunc = new RooHistFunc((HistoPrefix+"_high").c_str(),"",observables,*highDHist,0) ;
       lowSet.add(*lowFunc);
       highSet.add(*highFunc);
     }
@@ -1234,9 +1238,9 @@ namespace HistFactory{
 	// name of source for variation
         string constraintPrefix = sample.GetName() + "_" + channel_name + "_Hist_alpha"; 
 	syst_x_expectedPrefix = sample.GetName() + "_" + channel_name + "_overallSyst_x_HistSyst";
+
 	// constraintTermNames are passed by reference and appended to,
 	// overallSystName is a std::string for this sample
-
         LinInterpWithConstraint(proto, nominal, sample.GetHistoSysList(),
 				constraintPrefix, syst_x_expectedPrefix, overallSystName, 
 				constraintTermNames);
