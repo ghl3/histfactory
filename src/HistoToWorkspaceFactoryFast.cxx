@@ -1293,10 +1293,11 @@ namespace HistFactory{
 
       // Do Conserve Stat Functionality here
       // to replace the effective nominal node name
-      /*
-
-       */
-
+      // and we add the ConstrantTerms for these new uncertainty terms
+      if( sample.GetStatError().GetZeroBinMode() ) {
+	nominalNodeName = AddZeroBinUncertainties(proto, nominalNodeName, 
+						  constraintTermNames, sample, channel_name);
+      }
       // MB : HACK no option to have both non-hist variations and hist variations ?
       // get histogram
       // GHL: Okay, this is going to be non-trivial.
@@ -1353,29 +1354,6 @@ namespace HistFactory{
 		    << "for channel " << channel_name
 		    << std::endl;
 
-	  /*
-	  Constraint::Type type = channel.GetStatErrorConfig().GetConstraintType();
-	  statConstraintType = Constraint::Gaussian;
-	  if( type == Constraint::Gaussian) {
-	    std::cout << "Using Gaussian StatErrors" << std::endl;
-	    statConstraintType = Constraint::Gaussian;
-	  }
-	  if( type == Constraint::Poisson ) {
-	    std::cout << "Using Poisson StatErrors" << std::endl;
-	    statConstraintType = Constraint::Poisson;
-	  }
-	  */
-
-	  //statRelErrorThreshold = channel.GetStatErrorConfig().GetRelErrorThreshold();
-
-	  // First, get the uncertainty histogram
-	  // and push it back to our vectors
-	
-	  //if( sample.GetStatError().GetErrorHist() ) {
-	  //statErrorHist = (TH1*) sample.GetStatError().GetErrorHist()->Clone();
-	  //}
-	  //if( statErrorHist == NULL ) {
-
 	  // We need to get the *ABSOLUTE* uncertainty for use in Stat Uncertainties
 	  // This can be done in one of two ways:
 	  //   - Use the built-in Errors in the TH1 itself (assume they are aboslute)
@@ -1425,6 +1403,11 @@ namespace HistFactory{
 	  // Next, try to get the ParamHistFunc (it may have been 
 	  // created by another sample in this channel)
 	  // or create it if it doesn't yet exist:
+	  /*
+	  if( channel.GetStatErrorConfig().DoConservativeStat() ) {
+	    ;
+	  }
+	  */
 	  statFuncName = "mc_stat_" + channel_name;
 	  ParamHistFunc* paramHist = (ParamHistFunc*) proto->function( statFuncName.c_str() );
 	  if( paramHist == NULL ) {
@@ -2665,6 +2648,90 @@ namespace HistFactory{
   return ConstraintTerms;
   
 }
+
+  std::string HistoToWorkspaceFactoryFast::
+  AddZeroBinUncertainties(RooWorkspace* wspace, std::string nominalNodeName,
+			  std::vector<std::string>& constraintTermNames,
+			  RooStats::HistFactory::Sample sample, std::string channel) {
+    
+    // Get the nominal Histogra
+    TH1* nominalHist = sample.GetHisto();
+
+    // Get the nominal Function
+    RooAbsReal* nominalFunc = dynamic_cast<RooAbsReal*>(wspace->function(nominalNodeName.c_str()));
+
+    // Create the set of observables
+    RooArgList obsSet;
+    std::vector<std::string>::iterator itr = fObsNameVec.begin();
+    for (int idx=0; itr!=fObsNameVec.end(); ++itr, ++idx ) {
+      obsSet.add( *wspace->var(itr->c_str()) );
+    }
+
+    // First, let's create a ParamHistFunc
+    std::string conserveStatPrefix = "N_mc_events_exp_" + sample.GetName() + "_" + channel;
+    RooArgList conserveStatParams = ParamHistFunc::createParamSet(*wspace, conserveStatPrefix,
+								  obsSet, 0, 10);
+    RooRealVar* stat_conserve_constant = (RooRealVar*) wspace->factory("zero_var_dummy[0, 0, 1]");
+    stat_conserve_constant->setConstant(true);
+
+    RooConstVar Zero("Zero", "Zero", 0.0);
+
+    // Now, figure out which of these parameters actually are allowed
+    // to float (ie, which ones have 0 entries)
+    RooArgList conserveParams;
+    for( unsigned int i=0; i < nominalHist->GetNbinsX(); ++i) {
+      
+      std::stringstream num;
+      num << i;
+      // If we need to add uncertainties
+      double epsilon = 10E-5;
+      if( nominalHist->GetBinContent(i) < epsilon ) {
+	conserveParams.add( *conserveStatParams.at(i) );
+
+	// And create a constraint term
+	std::string constraintName = conserveStatPrefix + "_bin_" + num.str() + "Constraint";
+	//std::string processExpr = "RooPoisson::" << constraintName << "
+	RooRealVar* bin_var = (RooRealVar*) conserveStatParams.at(i);
+	RooPoisson constraint(constraintName.c_str(), constraintName.c_str(),
+			      Zero, *bin_var);
+	wspace->import( constraint, RecycleConflictNodes() );
+	constraintTermNames.push_back( constraintName );
+      }
+      // Else, we just add a 'global' constant
+      else {
+	conserveParams.add( *stat_conserve_constant );
+      }
+    }
+
+    // Create the ParamHistFunc
+    ParamHistFunc ConserveStat(conserveStatPrefix.c_str(), conserveStatPrefix.c_str(),
+			       obsSet, conserveParams );
+    
+    // Get the MC Weight histogram and create the value of the nominal estimate
+    TH1* mcWeightHist = sample.GetStatError().GetMcWeightHist();
+    RooDataHist mcWeightDataHist("mcWeight_bkg_chan", "mcWeight_bkg_chan", obsSet, mcWeightHist);
+    RooHistFunc mcWeightHistFunc("mcWeightHistFunc", "mcWeightHistFunc", obsSet, mcWeightDataHist);
+    
+    // stat = N_mc * w_mc
+    std::string mcTimesWeightName = conserveStatPrefix + "_x_McWeight";
+    RooProduct mcTimesWeight(mcTimesWeightName.c_str(), mcTimesWeightName.c_str(), 
+			     RooArgSet(mcWeightHistFunc, ConserveStat) );
+    
+    // Create the RooAddition:
+    // nominal_with_stat = nominal + stat
+    std::string nominalPlusStatName = nominalNodeName + "_plus_stat";
+    RooAddition nominal_with_stat( nominalPlusStatName.c_str(), "", RooArgSet(*nominalFunc, mcTimesWeight) );
+    wspace->import( nominal_with_stat, RecycleConflictNodes() );
+    
+
+    // Finally, we simply return the nominal string to be
+    // the name of this newly created node
+    return nominalPlusStatName;
+
+  }
+  
+
+
 
 } // namespace RooStats
 } // namespace HistFactory

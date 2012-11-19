@@ -366,6 +366,9 @@ TH1* RooStats::HistFactory::StatError::GetErrorHist() {
   return (TH1*) fhError.GetObject();
 }
 
+TH1* RooStats::HistFactory::StatError::GetMcWeightHist() {
+  return (TH1*) fhMcWeight.GetObject();
+}
 
 void RooStats::HistFactory::StatError::Print( std::ostream& stream ) {
   stream << "\t \t Activate: " << fActivate
