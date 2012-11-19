@@ -1026,8 +1026,8 @@ HistFactory::NormFactor ConfigParser::MakeNormFactor( TXMLNode* node ) {
   if( norm.GetLow() >= norm.GetHigh() ) {
     std::cout << "Error: NormFactor: " << norm.GetName()
 	      << " has lower limit >= its upper limit: " 
-	      << " Lower: " << norm.GetLow()
-	      << " Upper: " << norm.GetHigh()
+	      << " Low: " << norm.GetLow()
+	      << " High: " << norm.GetHigh()
 	      << ". Please Fix" << std::endl;
     throw hf_exc();
   }
