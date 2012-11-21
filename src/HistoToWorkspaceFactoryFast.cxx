@@ -1297,20 +1297,29 @@ namespace HistFactory{
       // Change the nominal histogram to an interpolated
       // histogram if there are HistoSys's:
       if(sample.GetHistoSysList().size() != 0) {
-	// If there ARE HistoSys(s)
-	// name of source for variation
+
+	// If there ARE HistoSys(s), we create a new node
+	// and reset some string names to point to that node
         string constraintPrefix = sample.GetName() + "_" + channel_name; // + "_Hist_alpha"; 
 	syst_x_expectedPrefix = sample.GetName() + "_" + channel_name + "_overallSyst_x_HistSyst";
-
+	interpolatedHistNodeName = constraintPrefix + "_Hist";
+	
 	// constraintTermNames are passed by reference and appended to,
 	// overallSystName is a std::string for this sample
         LinInterpWithConstraint(proto, nominalNodeName, sample.GetHistoSysList(),
 				constraintPrefix, syst_x_expectedPrefix, overallSystName, 
 				constraintTermNames);
+  
+	// This was the old term:
+	// productPrefix = syst_x_expectedPrefix
+	// interpolatedHistName = constraintPrefix + "_Hist"
+	// sysTerm = overallSystName
+	// proto->factory(("prod:"+productPrefix+"("+interpolatedHistName+","+systTerm+")").c_str() );    
       }
 
       //
-      // Add the NEW stat uncertainties HERE
+      // Add the NEW stat uncertainties HERE since
+      // these must come before OverallSys
       //
 
       //
