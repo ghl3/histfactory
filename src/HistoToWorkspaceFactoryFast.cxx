@@ -1334,7 +1334,33 @@ namespace HistFactory{
 	  // Next, try to get the ParamHistFunc (it may have been 
 	  // created by another sample in this channel)
 	  // or create it if it doesn't yet exist:
-	  statFuncName = "mc_stat_" + channel_name;
+
+	  // New Plan: Create a different ParamHistFunc for each sample
+	  // (We're currently in a loop over samples...)
+	  statFuncName = "mc_stat_" + channel_name + "_" + sample.GetName();;
+	  RooArgList observables;
+	  std::vector<std::string>::iterator itr = fObsNameVec.begin();
+	  for (int idx=0; itr!=fObsNameVec.end(); ++itr, ++idx ) {
+	    observables.add( *proto->var(itr->c_str()) );
+	  }
+	  
+	  // Create the list of terms to
+	  // control the bin heights:
+	  std::string ParamSetPrefix  = "gamma_stat_" + channel_name;
+	  Double_t gammaMin = 0.0;
+	  Double_t gammaMax = 10.0;
+	  RooArgList statFactorParams = ParamHistFunc::createParamSet(*proto, 
+								      ParamSetPrefix.c_str(), 
+								      observables, 
+								      gammaMin, gammaMax);
+	  
+	  ParamHistFunc statUncertFunc(statFuncName.c_str(), statFuncName.c_str(), 
+				       observables, statFactorParams );
+	  
+	  proto->import( statUncertFunc, RecycleConflictNodes() );
+	  ParamHistFunc* paramHist = (ParamHistFunc*) proto->function( statFuncName.c_str() );
+	  
+	  /*
 	  ParamHistFunc* paramHist = (ParamHistFunc*) proto->function( statFuncName.c_str() );
 	  if( paramHist == NULL ) {
 
@@ -1364,7 +1390,8 @@ namespace HistFactory{
 	    paramHist = (ParamHistFunc*) proto->function( statFuncName.c_str() );
 
 	  } // END: If Statement: Create ParamHistFunc
-	
+	  */
+
 	  // Create the node as a product
 	  // of this function and the 
 	  // expected value from MC
