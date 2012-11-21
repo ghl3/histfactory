@@ -811,16 +811,35 @@ namespace RooStats {
     }
 
 
-    void HistFactoryNavigation::DrawChannel(const std::string& channel, RooDataSet* data) {
+    void HistFactoryNavigation::DrawChannel(const std::string& channel, RooDataSet* data, 
+					    bool DrawLegend) {
     
       // Get the stack
       THStack* stack = GetChannelStack(channel, channel+"_stack_tmp");
-
       stack->Draw();
+      
+      TLegend* leg = NULL;
+      if( DrawLegend ) {
+	leg = new TLegend(.8, .8, .95, .95);
+	TList* hist_list = stack->GetHists();
+	TIter itr(hist_list);
+
+	TObject* hist = 0;
+	while((hist = itr())) {
+	  leg->AddEntry( hist );
+	}
+      }
       
       if( data!=NULL ) {
 	TH1* data_hist = GetDataHist(data, channel, channel+"_data_tmp");
+	double max_height = TMath::Max( stack->GetMaximum(), data_hist->GetMaximum());
+	stack->SetMaximum( max_height*1.2); 
+	stack->Draw();
 	data_hist->Draw("SAME");
+      }
+
+      if( DrawLegend ) {
+	leg->Draw();
       }
 
     }

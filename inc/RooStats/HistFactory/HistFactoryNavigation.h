@@ -75,7 +75,7 @@ namespace RooStats {
       THStack* GetChannelStack(const std::string& channel, const std::string& name="");
 
       // Draw a stack of the channel, and include data if the pointer is supplied
-      void DrawChannel(const std::string& channel, RooDataSet* data=NULL);
+      void DrawChannel(const std::string& channel, RooDataSet* data=NULL, bool DrawLegend=false);
 
       // Get the RooAbsReal function for a given sample in a given channel
       RooAbsReal* SampleFunction(const std::string& channel, const std::string& sample);
