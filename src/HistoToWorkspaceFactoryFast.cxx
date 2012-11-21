@@ -1684,17 +1684,18 @@ namespace HistFactory{
 	temp->setConstant();
 	
 	// remove the corresponding auxiliary observable from the global observables
+	// This should only be done for systematics, not norm factors
 	RooRealVar* auxMeas = NULL;
 	if(systToFix.at(i)=="Lumi"){
 	  auxMeas = proto->var("nominalLumi");
 	} else {
 	  auxMeas = proto->var(Form("nom_%s",temp->GetName()));
 	}
-
+	
 	if(auxMeas){
 	  const_cast<RooArgSet*>(proto->set("globalObservables"))->remove(*auxMeas);
 	} else{
-	  cout << "could not corresponding auxiliary measurement  " 
+	  cout << "could not find corresponding auxiliary observable  " 
 	       << Form("nom_%s",temp->GetName()) << endl;
 	}
       } else {
