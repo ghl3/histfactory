@@ -246,7 +246,7 @@ namespace HistFactory{
     string ch_name = channel.GetName();
 
     // Create a workspace for a SingleChannel from the Measurement Object
-    RooWorkspace* ws_single = this->MakeSingleChannelWorkspace(measurement, channel);
+    RooWorkspace* ws_single = MakeSingleChannelWorkspace(measurement, channel);
     if( ws_single == NULL ) {
       std::cout << "Error: Failed to make Single-Channel workspace for channel: " << ch_name
 		<< " and measurement: " << measurement.GetName() << std::endl;
@@ -580,8 +580,9 @@ namespace HistFactory{
 
     proto->import(interp, RecycleConflictNodes()); // individual params have already been imported in first loop of this function
     
-    // now create the product of the overall efficiency times the sigma(params) for this estimate
-    proto->factory(("prod:"+productPrefix+"("+interpolatedHistName+","+systTerm+")").c_str() );    
+    // Move this outside of this method for now:
+    // // now create the product of the overall efficiency times the sigma(params) for this estimate
+    // proto->factory(("prod:"+productPrefix+"("+interpolatedHistName+","+systTerm+")").c_str() );    
 
   }
 
@@ -1278,7 +1279,7 @@ namespace HistFactory{
       // Create the string for the object
       // that is added to the RooRealSumPdf
       // for this channel
-      string syst_x_expectedPrefix = "";
+
 
       // get histogram
       //ES// TH1* nominal = it->nominal;
@@ -1290,14 +1291,37 @@ namespace HistFactory{
       // Create the nominal Histogram Function
       string nominal_prefix = sample.GetName() + "_" + channel_name;
       std::string nominalNodeName = CreateNominalHistAndObservables(proto, sample, nominal_prefix);
+      std::string interpolatedHistNodeName = nominalNodeName;
+      string syst_x_expectedPrefix = sample.GetName() + "_" + channel_name + "_overallSyst_x_Exp";
 
-      // Do Conserve Stat Functionality here
-      // to replace the effective nominal node name
-      // and we add the ConstrantTerms for these new uncertainty terms
-      if( sample.GetStatError().GetZeroBinMode() ) {
-	nominalNodeName = AddZeroBinUncertainties(proto, nominalNodeName, 
-						  constraintTermNames, sample, channel_name);
+      // Change the nominal histogram to an interpolated
+      // histogram if there are HistoSys's:
+      if(sample.GetHistoSysList().size() != 0) {
+	// If there ARE HistoSys(s)
+	// name of source for variation
+        string constraintPrefix = sample.GetName() + "_" + channel_name; // + "_Hist_alpha"; 
+	syst_x_expectedPrefix = sample.GetName() + "_" + channel_name + "_overallSyst_x_HistSyst";
+
+	// constraintTermNames are passed by reference and appended to,
+	// overallSystName is a std::string for this sample
+        LinInterpWithConstraint(proto, nominalNodeName, sample.GetHistoSysList(),
+				constraintPrefix, syst_x_expectedPrefix, overallSystName, 
+				constraintTermNames);
       }
+
+      //
+      // Add the NEW stat uncertainties HERE
+      //
+
+      //
+      // Overall Sys: 
+      // Make a new RooProduct
+      //
+      //std::string productPrefix = sample.GetName() + "_" + channel_name;
+      std::string histTimesEpsilonCommand = interpolatedHistNodeName+","+overallSystName;
+      proto->factory(("prod:"+syst_x_expectedPrefix+"("+histTimesEpsilonCommand+","+overallSystName+")").c_str() );    
+
+
       // MB : HACK no option to have both non-hist variations and hist variations ?
       // get histogram
       // GHL: Okay, this is going to be non-trivial.
@@ -1309,6 +1333,7 @@ namespace HistFactory{
       //        - else, if the histo syst's don't match, return (we ignore this case)
       //        - finally, we take the syst's and apply the linear interpolation w/ constraint
 
+      /*
       if(sample.GetHistoSysList().size() == 0) {
 
 	// If no HistoSys
@@ -1318,6 +1343,7 @@ namespace HistFactory{
         string expPrefix = sample.GetName() + "_" + channel_name; //+"_expN";
         syst_x_expectedPrefix = sample.GetName() + "_" + channel_name + "_overallSyst_x_Exp";
 
+	// Create the product of the nominal histogram and the systematics
         ProcessExpectedHisto(nominalNodeName, proto, expPrefix, syst_x_expectedPrefix, 
 			     overallSystName);
       } 
@@ -1333,6 +1359,19 @@ namespace HistFactory{
 				constraintPrefix, syst_x_expectedPrefix, overallSystName, 
 				constraintTermNames);
       }
+      */
+
+      /* We're going to do this differently
+      // Do Conserve Stat Functionality here
+      // to replace the effective nominal node name
+      // and we add the ConstrantTerms for these new uncertainty terms
+      if( sample.GetStatError().GetZeroBinMode() ) {
+	nominalNodeName = AddZeroBinUncertainties(proto, nominalNodeName, 
+						  constraintTermNames, sample, channel_name);
+      }
+      */
+
+
 
       ////////////////////////////////////
       // Add StatErrors to this Channel //
