@@ -667,7 +667,11 @@ namespace RooStats {
 
       RooAbsReal* sample_function = SampleFunction(channel, sample);
 
-      return MakeHistFromRooFunction( sample_function, observable_list, name );
+      TH1* hist = MakeHistFromRooFunction( sample_function, observable_list, name );
+      hist->SetName(name.c_str());
+      hist->SetTitle(name.c_str());
+
+      return hist;
 				     
     }
 
@@ -742,7 +746,7 @@ namespace RooStats {
       // Add the histograms
       for( unsigned int i=0; i < samples.size(); ++i) {
 	std::string sample_name = samples.at(i);
-	TH1* hist = GetSampleHist(channel, sample_name, sample_name+"_tmp");
+	TH1* hist = GetSampleHist(channel, sample_name, sample_name);
 	hist->SetLineColor(2+i);
 	hist->SetFillColor(2+i);
 	stack->Add(hist);
@@ -800,10 +804,22 @@ namespace RooStats {
 				      RooFit::YVar(*varZ, RooFit::Binning(varZ->getBinning())) );
       }
       else {
-	std::cout << "Error: To Create Histogram from RooDataSet, Dimension must be 1, 2, or 3" << std::endl;
+	std::cout << "Error: To Create Histogram from RooDataSet, Dimension must be 1, 2, or 3" 
+		  << std::endl;
 	std::cout << "Observables: " << std::endl;
 	vars.Print("V");
 	throw hf_exc();
+      }
+
+      // Set the errors to be root(N) "by hand"
+      // Since it's data, this is a decent assumption
+
+      for( int i=0; i < hist->GetNbinsX()*hist->GetNbinsY()*hist->GetNbinsZ(); ++i) {
+	int current_bin = i+1;
+	if( hist->IsBinUnderflow(current_bin) || hist->IsBinOverflow(current_bin) ) continue;
+	
+	double bin_error = TMath::Sqrt(hist->GetBinContent(current_bin));
+	hist->SetBinError(current_bin, bin_error);
       }
 
       return hist;
@@ -816,29 +832,37 @@ namespace RooStats {
     
       // Get the stack
       THStack* stack = GetChannelStack(channel, channel+"_stack_tmp");
+      TList* hist_list = stack->GetHists();
       stack->Draw();
-      
-      TLegend* leg = NULL;
-      if( DrawLegend ) {
-	leg = new TLegend(.8, .8, .95, .95);
-	TList* hist_list = stack->GetHists();
-	TIter itr(hist_list);
 
-	TObject* hist = 0;
-	while((hist = itr())) {
-	  leg->AddEntry( hist );
-	}
-      }
-      
+      // Get and draw the data if necessary
+      TH1* data_hist=NULL;
       if( data!=NULL ) {
-	TH1* data_hist = GetDataHist(data, channel, channel+"_data_tmp");
+	data_hist = GetDataHist(data, channel, channel+"_data_tmp");
+	data_hist->SetLineColor(kBlack);
 	double max_height = TMath::Max( stack->GetMaximum(), data_hist->GetMaximum());
 	stack->SetMaximum( max_height*1.2); 
 	stack->Draw();
 	data_hist->Draw("SAME");
       }
-
+      
+      // Create and draw the legend
+      TLegend* leg = NULL;
       if( DrawLegend ) {
+	leg = new TLegend(.8, .8, .95, .95);
+	leg->SetFillColor(0);
+
+	if(data_hist != NULL) {
+	  leg->AddEntry(data_hist, "data", "lep");
+	}
+
+	// Iterate over hists and draw them
+	TIter itr(hist_list);
+	TObject* hist = 0;
+	while((hist = itr())) {
+	  leg->AddEntry( hist, hist->GetName(), "L" );
+	}
+
 	leg->Draw();
       }
 

@@ -188,6 +188,9 @@ namespace RooStats {
       // Used by doing: fChannelSampleFunctionMap["MyChannel"]["MySample"]
       std::map< std::string, std::map< std::string, RooAbsReal*> > fChannelSampleFunctionMap;
 
+      // Color map for printing samples
+      std::map<std::string, int> fColorMap;
+
       // Internal method implementation of finding a daughter node
       // from a parent node (looping over all generations)
       RooAbsArg* findChild(const std::string& name, RooAbsReal* parent) const;
