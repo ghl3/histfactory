@@ -113,6 +113,9 @@ namespace RooStats {
       //
       RooAbsPdf* GetChannelPdf(const std::string& channel);
 
+      // Set the color of drawn samples
+      void SetColor(const std::string& sample, int color) { fColorMap[sample]=color; }
+
 
       std::vector< std::string > GetChannelSampleList(const std::string& channel);
 

@@ -747,8 +747,16 @@ namespace RooStats {
       for( unsigned int i=0; i < samples.size(); ++i) {
 	std::string sample_name = samples.at(i);
 	TH1* hist = GetSampleHist(channel, sample_name, sample_name);
-	hist->SetLineColor(2+i);
-	hist->SetFillColor(2+i);
+	
+	int color = 2+i;
+	if( fColorMap.find(sample_name) != fColorMap.end() ){
+	  color = fColorMap[sample_name];
+	} else {
+	  fColorMap[sample_name] = color;
+	}
+	hist->SetFillColor(color);
+	if( color != 0 ) hist->SetLineColor(color);
+	else hist->SetLineColor(1);
 	stack->Add(hist);
       }
 
