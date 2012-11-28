@@ -755,8 +755,9 @@ namespace RooStats {
 	  fColorMap[sample_name] = color;
 	}
 	hist->SetFillColor(color);
-	if( color != 0 ) hist->SetLineColor(color);
-	else hist->SetLineColor(1);
+	hist->SetLineColor(kBlack);
+	//if( color != 0 ) hist->SetLineColor(color);
+	//else hist->SetLineColor(1);
 	stack->Add(hist);
       }
 
@@ -849,26 +850,34 @@ namespace RooStats {
 	data_hist = GetDataHist(data, channel, channel+"_data_tmp");
 	data_hist->SetLineColor(kBlack);
 	double max_height = TMath::Max( stack->GetMaximum(), data_hist->GetMaximum());
-	stack->SetMaximum( max_height*1.2); 
+	stack->SetMaximum(max_height*1.4); 
 	stack->Draw();
+	//stack->SetLineSize(2);
 	data_hist->Draw("SAME");
       }
       
       // Create and draw the legend
       TLegend* leg = NULL;
       if( DrawLegend ) {
-	leg = new TLegend(.8, .8, .95, .95);
+	leg = new TLegend(.75, .70, .90, .90);
 	leg->SetFillColor(0);
+	leg->SetBorderSize(0);
 
 	if(data_hist != NULL) {
-	  leg->AddEntry(data_hist, "data", "lep");
+	  leg->AddEntry(data_hist, "data", "lpe");
 	}
 
 	// Iterate over hists and draw them
 	TIter itr(hist_list);
 	TObject* hist = 0;
+	std::vector<TH1*> hist_vec;
 	while((hist = itr())) {
-	  leg->AddEntry( hist, hist->GetName(), "L" );
+	  hist_vec.push_back(dynamic_cast<TH1*>(hist));
+	}
+	for( unsigned int i=0; i < hist_vec.size(); ++i) {
+	  unsigned int entry = hist_vec.size() - i - 1;
+	  TH1* mc_hist = hist_vec.at(entry);
+	  leg->AddEntry( mc_hist, mc_hist->GetName(), "f" );
 	}
 
 	leg->Draw();
