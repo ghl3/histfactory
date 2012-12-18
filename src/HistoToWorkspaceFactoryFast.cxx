@@ -1175,7 +1175,8 @@ namespace HistFactory{
 
 
   ///////////////////////////////////////////////
-  RooWorkspace* HistoToWorkspaceFactoryFast::MakeSingleChannelWorkspace(Measurement& measurement, Channel& channel) {
+  RooWorkspace* HistoToWorkspaceFactoryFast::MakeSingleChannelWorkspace(Measurement& measurement, 
+									Channel& channel) {
     
     // Set these by hand inside the function
     vector<string> systToFix = measurement.GetConstantParams();
@@ -1207,13 +1208,18 @@ namespace HistFactory{
 
     R__ASSERT( fObsNameVec.size()>=1 && fObsNameVec.size()<=3 );
 
-    cout << "\n\n-------------------\nStarting to process " << channel_name << " channel with " << fObsNameVec.size() << " observables" << endl;
+    cout << "\n\n-------------------\nStarting to process " << channel_name 
+	 << " channel with " << fObsNameVec.size() << " observables" << endl;
 
     //
     // our main workspace that we are using to construct the model
     //
-    RooWorkspace* proto = new RooWorkspace(channel_name.c_str(), (channel_name+" workspace").c_str());
-    ModelConfig * proto_config = new ModelConfig("ModelConfig", proto);
+    std::string wspace_title = channel_name + " workspace";
+    RooWorkspace* proto = new RooWorkspace(channel_name.c_str(), wspace_title.c_str());
+    //RooWorkspace* proto = new RooWorkspace(channel_name.c_str(),
+    //(channel_name+" workspace").c_str());
+
+    ModelConfig* proto_config = new ModelConfig("ModelConfig", proto);
     proto_config->SetWorkspace(*proto);
 
     // preprocess functions
@@ -1225,7 +1231,8 @@ namespace HistFactory{
     }
 
     RooArgSet likelihoodTerms("likelihoodTerms"), constraintTerms("constraintTerms");
-    vector<string> likelihoodTermNames, constraintTermNames, totSystTermNames, syst_x_expectedPrefixNames, normalizationNames;
+    vector<string> likelihoodTermNames, constraintTermNames, totSystTermNames, 
+      syst_x_expectedPrefixNames, normalizationNames;
 
     vector< pair<string,string> >   statNamePairs;
     vector< pair<TH1*,TH1*> >       statHistPairs; // <nominal, error>
@@ -1280,7 +1287,6 @@ namespace HistFactory{
       // that is added to the RooRealSumPdf
       // for this channel
 
-
       // get histogram
       //ES// TH1* nominal = it->nominal;
       TH1* nominal = sample.GetHisto();
@@ -1289,10 +1295,19 @@ namespace HistFactory{
       //      which reduces code reuse and enables some
       //      stat uncertainty functionality
       // Create the nominal Histogram Function
+      // Also, create the observables and put them in fObsNameVec
       string nominal_prefix = sample.GetName() + "_" + channel_name;
       std::string nominalNodeName = CreateNominalHistAndObservables(proto, sample, nominal_prefix);
       std::string interpolatedHistNodeName = nominalNodeName;
       string syst_x_expectedPrefix = sample.GetName() + "_" + channel_name + "_overallSyst_x_Exp";
+
+
+      // Move Observable vector here
+      RooArgList observables;
+      std::vector<std::string>::iterator itr = fObsNameVec.begin();
+      for (int idx=0; itr!=fObsNameVec.end(); ++itr, ++idx ) {
+	observables.add( *proto->var(itr->c_str()) );
+      }
 
       // Change the nominal histogram to an interpolated
       // histogram if there are HistoSys's:
@@ -1335,8 +1350,8 @@ namespace HistFactory{
 	  for(unsigned int i=0; i < num_bins; ++i) {
 	    if( nominal->IsBinUnderflow(i) || nominal->IsBinOverflow(i) ) continue;
 	    // Push back the boolean of whether this bin has 0 content
-	    if( nominal->GetBinContent(i) < epsilon ) zeroBins.push_back(make_pair(i, true));
-	    else zeroBins.push_back(make_pair(i, false));
+	    if( nominal->GetBinContent(i) < epsilon ) isZeroBin.push_back(make_pair(i, true)); //isZeroBin[i] = true; //iszeroBins.push_back(make_pair(i, true));
+	    else isZeroBin.push_back(make_pair(i, false));
 	  }
 	}      
 
@@ -1347,21 +1362,21 @@ namespace HistFactory{
 	double nu_min = 0.0;
 	double nu_max = 20.0;
 
-	std::string conserveStatPrefix = "nu_mc_events_exp_" + Sample.GetName() 
-	  + "_" + Channel.GetName();
-	RooArgList conserveStatParams = ParamHistFunc::createParamSet(*wspace, conserveStatPrefix,
-								      obsSet, nu_min, nu_max);
-	RooRealVar* stat_conserve_constant = (RooRealVar*) wspace->factory("zero_var_dummy[0, 0, 1]");
+	std::string conserveStatPrefix = "nu_mc_events_exp_" + sample.GetName() 
+	  + "_" + channel.GetName();
+	RooArgList conserveStatParams = ParamHistFunc::createParamSet(*proto, conserveStatPrefix,
+								      observables, nu_min, nu_max);
+	RooRealVar* stat_conserve_constant = (RooRealVar*) proto->factory("zero_var_dummy[0,0,1]");
 	stat_conserve_constant->setConstant(true);
 	
 	// Create a RooArgList that includes, in order, the proper
 	// parameter for each bin
 	RooArgList zeroBinParams;
-	for( unsigned int i=0; i < conserveStatParams.size(); ++i) {
+	for(unsigned int i=0; i < conserveStatParams.getSize(); ++i) {
 
 	  // Sanity Check:
 	  RooRealVar* zero_bin_var = dynamic_cast<RooRealVar*>(conserveStatParams.at(i));
-	  std::pair<int, double> bin_pair = zeroBins.at(i);
+	  std::pair<int, double> bin_pair = isZeroBin.at(i);
 	  std::cout << "Zero Bin Uncertainty: Checking Zero bin: " << zero_bin_var->GetName()
 		    << " comparing to bin: " << bin_pair.first << " " << bin_pair.second
 		    << std::endl;
@@ -1382,16 +1397,16 @@ namespace HistFactory{
 	  num << i;
 
 	  //std::string processExpr = "RooPoisson::" << constraintName << "
-	  std::string nominal_name = "Nom_" + zero_bin_var->GetName();
+	  std::string nominal_name = std::string("Nom_") + zero_bin_var->GetName();
 	  nominal_name += "[0, 0, 10]";
-	  RooRealVar* bin_nominal = wspace->factory(nominal_name.c_str());
+	  RooRealVar* bin_nominal =dynamic_cast<RooRealVar*>(proto->factory(nominal_name.c_str()));
 	  std::string constraintName = conserveStatPrefix + "_bin_" + num.str() + "Constraint";
 	  RooPoisson constraint(constraintName.c_str(), constraintName.c_str(),
 				*bin_nominal, *zero_bin_var);
 	  // Import the constraint term and add it to the list
 	  // of constraint terms to be attached
-	  wspace->import( constraint, RecycleConflictNodes() );
-	  constraintTerms.add(*wspace->function(constraintName.c_str()) );
+	  proto->import( constraint, RecycleConflictNodes() );
+	  constraintTerms.add(*proto->function(constraintName.c_str()) );
 	}
 
 	// Okay, now we have the list of all parameters that determine
@@ -1407,23 +1422,24 @@ namespace HistFactory{
 	std::string conserveStatParamHistName = conserveStatPrefix;
 	ParamHistFunc ConserveStat(conserveStatParamHistName.c_str(), 
 				   conserveStatParamHistName.c_str(),
-				   obsSet, conserveParams );
+				   observables, conserveStatParams );
+	// conserveParams
 
 	// For now, assume that the 'tau' is constant
-	std::string tau_name = "tau_" + Sample.GetName() + "[1,0,10]";
-	RooRealVar* bin_tau = wspace->factory(tau_name.c_str());
-	bin_tau-setConstant(true);
+	std::string tau_name = std::string("tau_") + sample.GetName() + "[1,0,10]";
+	RooRealVar* bin_tau = dynamic_cast<RooRealVar*>(proto->factory(tau_name.c_str()));
+	bin_tau->setConstant(true);
 
 	std::string mcTimesWeightName = conserveStatParamHistName + "_x_McWeight";
 	RooProduct mcTimesWeight(mcTimesWeightName.c_str(), mcTimesWeightName.c_str(), 
 				 RooArgSet(*bin_tau, ConserveStat) );
 	
 	// Create the RooAddition
-	RooAbsArg* nominal_hist = wspace->function( interpolatedHistNodeName.c_str() );
+	RooAbsArg* nominal_hist = proto->function( interpolatedHistNodeName.c_str() );
 	std::string nominalPlusStatName = interpolatedHistNodeName + "_plus_stat";
 	RooAddition nominal_with_stat( nominalPlusStatName.c_str(), "", 
 				       RooArgSet(*nominal_hist, mcTimesWeight) );
-	wspace->import( nominal_with_stat, RecycleConflictNodes() );
+	proto->import( nominal_with_stat, RecycleConflictNodes() );
 
 	// Finally, set the outer most node to be this one
 	interpolatedHistNodeName = nominalPlusStatName;
@@ -1573,12 +1589,15 @@ namespace HistFactory{
 	  // New Plan: Create a different ParamHistFunc for each sample
 	  // (We're currently in a loop over samples...)
 	  statFuncName = "mc_stat_" + channel_name + "_" + sample.GetName();;
+	  /* Create this earlier
 	  RooArgList observables;
 	  std::vector<std::string>::iterator itr = fObsNameVec.begin();
 	  for (int idx=0; itr!=fObsNameVec.end(); ++itr, ++idx ) {
 	    observables.add( *proto->var(itr->c_str()) );
 	  }
-	  
+	  */
+
+
 	  // Create the list of terms to
 	  // control the bin heights:
 	  std::string ParamSetPrefix  = "gamma_stat_" + channel_name;
