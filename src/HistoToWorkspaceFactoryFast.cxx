@@ -1337,10 +1337,11 @@ namespace HistFactory{
       // these must come before OverallSys
       //
 
-      
       // A vector listing all bins that have zero content
       std::vector<std::pair<int, bool> > isZeroBin;
 
+      // Loop over all (nominal) bins for this sample and find the ones that 
+      // have a value of zero.
       if( sample.GetStatError().GetActivate() && sample.GetStatError().GetZeroBinMode() ) {
 
 	int num_bins = nominal->GetNbinsX()*nominal->GetNbinsY()*nominal->GetNbinsZ();
@@ -1371,6 +1372,10 @@ namespace HistFactory{
 	
 	// Create a RooArgList that includes, in order, the proper
 	// parameter for each bin
+	// - For all bins that aren't 'zeroBins', we include a constant
+	// whose value is 0.0
+	// - For all "zeroBins", we include a floating constant that will
+	// represent the value of this bin
 	RooArgList zeroBinParams;
 	for(unsigned int i=0; i < conserveStatParams.getSize(); ++i) {
 
@@ -1426,6 +1431,8 @@ namespace HistFactory{
 	// conserveParams
 
 	// For now, assume that the 'tau' is constant
+	// We will later calculate the 'tau' to be the average tau
+	// over all non-zero bins (a clever approximation)
 	std::string tau_name = std::string("tau_") + sample.GetName() + "[1,0,10]";
 	RooRealVar* bin_tau = dynamic_cast<RooRealVar*>(proto->factory(tau_name.c_str()));
 	bin_tau->setConstant(true);
@@ -1453,8 +1460,7 @@ namespace HistFactory{
       // by including these as individual (zero-bin) uncertainties as well
       // as the sample-wide gamma factors.
 
-      
-
+     
       //
       // Overall Sys: 
       // Make a new RooProduct
@@ -1519,8 +1525,7 @@ namespace HistFactory{
       // Add StatErrors to this Channel //
       ////////////////////////////////////
 
-      // Zero bins aren't used in the "global" stat uncertainty mode
-      if( sample.GetStatError().GetActivate() && ! sample.GetStatError().GetZeroBinMode() ) {
+      if( sample.GetStatError().GetActivate() ) {
 
 	if( fObsNameVec.size() > 3 ) {
 	  std::cout << "Cannot include Stat Error for histograms of more than 3 dimensions." 
@@ -1600,6 +1605,8 @@ namespace HistFactory{
 
 	  // Create the list of terms to
 	  // control the bin heights:
+	  // Do I create this for every sample...?
+	  // I should probably check first
 	  std::string ParamSetPrefix  = "gamma_stat_" + channel_name;
 	  Double_t gammaMin = 0.0;
 	  Double_t gammaMax = 10.0;
@@ -1607,6 +1614,13 @@ namespace HistFactory{
 								      ParamSetPrefix.c_str(), 
 								      observables, 
 								      gammaMin, gammaMax);
+
+	  // Anywhoo, I need to ensure that the 'zero bins' don't
+	  // get scaled by the ParamHistFunc
+	  // The best way to do this is to replace their param
+	  // with a dummy
+	  
+
 	  
 	  ParamHistFunc statUncertFunc(statFuncName.c_str(), statFuncName.c_str(), 
 				       observables, statFactorParams );
