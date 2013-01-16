@@ -1207,7 +1207,7 @@ namespace HistFactory{
     }
 
     R__ASSERT( fObsNameVec.size()>=1 && fObsNameVec.size()<=3 );
-
+    
     cout << "\n\n-------------------\nStarting to process " << channel_name 
 	 << " channel with " << fObsNameVec.size() << " observables" << endl;
 
@@ -1301,12 +1301,14 @@ namespace HistFactory{
       std::string interpolatedHistNodeName = nominalNodeName;
       string syst_x_expectedPrefix = sample.GetName() + "_" + channel_name + "_overallSyst_x_Exp";
 
-
       // Move Observable vector here
       RooArgList observables;
       std::vector<std::string>::iterator itr = fObsNameVec.begin();
-      for (int idx=0; itr!=fObsNameVec.end(); ++itr, ++idx ) {
-	observables.add( *proto->var(itr->c_str()) );
+      for (; itr!=fObsNameVec.end(); ++itr) {
+	RooRealVar* var = dynamic_cast<RooRealVar*>(proto->var(itr->c_str()));
+	std::cout << "Adding Observable Variable: " << var->GetName() << std::endl;
+	observables.add(*var);
+	//observables.add( *proto->var(itr->c_str()) );
       }
 
       // Change the nominal histogram to an interpolated
@@ -1338,27 +1340,47 @@ namespace HistFactory{
       //
 
       // A vector listing all bins that have zero content
-      std::vector<std::pair<int, bool> > isZeroBin;
+      //std::vector<std::pair<int, bool> > isZeroBin;
+      // A set containing all bins that are 'zero'
+      // and therefore need to be dealt with separately
+      std::map<int, int> isZeroBin;
 
       // Loop over all (nominal) bins for this sample and find the ones that 
       // have a value of zero.
+      // Important:  Ensure that the indexing of these ZERO bins matches the
+      // indexing of the 'conserveStatParams' set that will be created from
+      // the observables a few lines below
       if( sample.GetStatError().GetActivate() && sample.GetStatError().GetZeroBinMode() ) {
 
 	int num_bins = nominal->GetNbinsX()*nominal->GetNbinsY()*nominal->GetNbinsZ();
-	if( sample.GetStatError().GetActivate() && sample.GetStatError().GetZeroBinMode() ) {
-	  double epsilon = 10E-5;	
+	double epsilon = 10E-5;	
 
-	  for(unsigned int i=0; i < num_bins; ++i) {
-	    if( nominal->IsBinUnderflow(i) || nominal->IsBinOverflow(i) ) continue;
-	    // Push back the boolean of whether this bin has 0 content
-	    if( nominal->GetBinContent(i) < epsilon ) isZeroBin.push_back(make_pair(i, true)); //isZeroBin[i] = true; //iszeroBins.push_back(make_pair(i, true));
-	    else isZeroBin.push_back(make_pair(i, false));
+	int list_index = 0;
+	for(int th1_index=0; th1_index < num_bins; ++th1_index) {
+
+	  // Skip overfow/underflow
+	  if( nominal->IsBinUnderflow(th1_index) || nominal->IsBinOverflow(th1_index) ) {
+	    continue;
 	  }
-	}      
+
+	  list_index += 1;
+	  if( nominal->GetBinContent(th1_index) < epsilon ) { 
+	    isZeroBin[list_index] = th1_index; //list_index.insert(i);
+	  }
+	  // else isZeroBin.push_back(make_pair(i, false));
+	}
+
+	// Do we want to continue from here?
+	// We don't want to go through this whole zero bin
+	// nonsense for samples that don't actually have any
+	// zero bins, right?
+	if(isZeroBin.size()==0 ) {
+	  continue;
+	}
 
 	// Now, we create a ParamHistFunc to represent the 'zero bins' as determined above.
 	// This ParamHistFunc will have constant values for any bins that don't have zero
-	// content, and it will
+	// content, and it will be added to a sample's bin values
 
 	double nu_min = 0.0;
 	double nu_max = 20.0;
@@ -1377,24 +1399,31 @@ namespace HistFactory{
 	// - For all "zeroBins", we include a floating constant that will
 	// represent the value of this bin
 	RooArgList zeroBinParams;
-	for(unsigned int i=0; i < conserveStatParams.getSize(); ++i) {
+	for(int i=0; i < conserveStatParams.getSize(); ++i) {
 
-	  // Sanity Check:
 	  RooRealVar* zero_bin_var = dynamic_cast<RooRealVar*>(conserveStatParams.at(i));
-	  std::pair<int, double> bin_pair = isZeroBin.at(i);
 	  std::cout << "Zero Bin Uncertainty: Checking Zero bin: " << zero_bin_var->GetName()
-		    << " comparing to bin: " << bin_pair.first << " " << bin_pair.second
 		    << std::endl;
-
-	  // If this isn't a 'zero bin', we just add a 
-	  // constant that is fixed to zero
-	  if( ! bin_pair.second ) {
+	  
+	  // If this bin isn't a 'zero bin', we add the dummy
+	  // 'zero' value and we continue
+	  if( isZeroBin.find(i) == isZeroBin.end() ) {
 	    zeroBinParams.add(*stat_conserve_constant);  
 	    continue;
 	  }
 	  
-	  // We add the zero-bin-var and create a 
+	  std::pair<int, int> zero_bin_info = (*isZeroBin.find(i));
+
+	  // Else, we add the zero-bin-var and create a 
 	  // constraint term for this variable
+	  std::cout << "In Sample: " << sample.GetName()
+		    << "bin : " << zero_bin_info.first
+		    << " (with TH1 index: " << zero_bin_info.second << ")"
+		    << " has zero value."
+		    << " For stat uncertainties, we are replacing the nominal"
+		    << " stat uncertainty variable: " << zero_bin_var->GetName()
+		    << " with a variable describing only this bin"
+		    << std::endl;
 	  zeroBinParams.add(*zero_bin_var);
 	  
 	  // And create a constraint term
@@ -1428,7 +1457,6 @@ namespace HistFactory{
 	ParamHistFunc ConserveStat(conserveStatParamHistName.c_str(), 
 				   conserveStatParamHistName.c_str(),
 				   observables, conserveStatParams );
-	// conserveParams
 
 	// For now, assume that the 'tau' is constant
 	// We will later calculate the 'tau' to be the average tau
@@ -1450,7 +1478,6 @@ namespace HistFactory{
 
 	// Finally, set the outer most node to be this one
 	interpolatedHistNodeName = nominalPlusStatName;
-      
       }
 
 
@@ -1571,6 +1598,20 @@ namespace HistFactory{
 	    statErrorHist->SetName( UncertName.c_str() );
 	  }
 	
+	  // For each bin that is 'zero', we want to not include this bin
+	  // in the TOTAL stat error for this channel, since that error
+	  // will be treated individually by a separate parameter for this 
+	  // sample.  Thus, we 'by hand' set the error value of that bin
+	  // to be zero.
+	  for (std::map<int, int>::iterator it = isZeroBin.begin();
+	       it != isZeroBin.end(); ++it) {
+	    std::pair<int, int> zero_bin = (*it);
+	    int list_index = zero_bin.first;
+	    int th1_index = zero_bin.second;
+	    statErrorHist->SetBinContent(th1_index, 0.0);
+	  }
+	  
+
 	  // Save the nominal and error hists
 	  // for the building of constraint terms
 	  statHistPairs.push_back( pair<TH1*,TH1*>(nominal, statErrorHist) );
@@ -1593,7 +1634,7 @@ namespace HistFactory{
 
 	  // New Plan: Create a different ParamHistFunc for each sample
 	  // (We're currently in a loop over samples...)
-	  statFuncName = "mc_stat_" + channel_name + "_" + sample.GetName();;
+	  statFuncName = "mc_stat_" + channel_name + "_" + sample.GetName();
 	  /* Create this earlier
 	  RooArgList observables;
 	  std::vector<std::string>::iterator itr = fObsNameVec.begin();
@@ -1605,8 +1646,10 @@ namespace HistFactory{
 
 	  // Create the list of terms to
 	  // control the bin heights:
-	  // Do I create this for every sample...?
-	  // I should probably check first
+	  // It looks like we're remaking them for every sample, but really
+	  // in a given channel if the variables already exist, this will
+	  // simply return the gamma variables that have already been built
+	  // and imported into the workspace.  So, there's not too much waste.
 	  std::string ParamSetPrefix  = "gamma_stat_" + channel_name;
 	  Double_t gammaMin = 0.0;
 	  Double_t gammaMax = 10.0;
@@ -1615,15 +1658,26 @@ namespace HistFactory{
 								      observables, 
 								      gammaMin, gammaMax);
 
-	  // Anywhoo, I need to ensure that the 'zero bins' don't
+	  // I need to ensure that the 'zero bins' don't
 	  // get scaled by the ParamHistFunc
 	  // The best way to do this is to replace their param
-	  // with a dummy
-	  
+	  // with a multiplicative dummy whose value is 1
+	  RooRealVar* one_dummy = (RooRealVar*) proto->factory("one_var_dummy[1,0,1]");
+	  one_dummy->setConstant(true);
 
+	  RooArgList statParamsForThisSample;
+	  for( unsigned int i=0; i < statFactorParams.getSize(); ++i) {
+
+	    if( isZeroBin.find(i) != isZeroBin.end() ) {	      
+	      statParamsForThisSample.add( *one_dummy );
+	    }
+	    else {
+	      statParamsForThisSample.add( *statFactorParams.at(i) );
+	    }
+	  }
 	  
 	  ParamHistFunc statUncertFunc(statFuncName.c_str(), statFuncName.c_str(), 
-				       observables, statFactorParams );
+				       observables, statParamsForThisSample );
 	  
 	  proto->import( statUncertFunc, RecycleConflictNodes() );
 	  ParamHistFunc* paramHist = (ParamHistFunc*) proto->function( statFuncName.c_str() );
@@ -1675,12 +1729,14 @@ namespace HistFactory{
 	    ParamHistFunc* paramHist = (ParamHistFunc*) proto->function( funcName.c_str() );
 	    if( paramHist == NULL ) {
 	      
+	      /*
 	      RooArgList observables;
 	      std::vector<std::string>::iterator itr = fObsNameVec.begin();
 	      for (int idx=0; itr!=fObsNameVec.end(); ++itr, ++idx ) {
 		observables.add( *proto->var(itr->c_str()) );
 	      }
-	      
+	      */
+
 	      // Create the Parameters
 	      std::string funcParams = "gamma_" + shapeFactor.GetName();
 
@@ -1689,7 +1745,6 @@ namespace HistFactory{
 	      RooArgList shapeFactorParams = ParamHistFunc::createParamSet(*proto, 
 									   funcParams.c_str(), 
 									   observables, 0, 1000);
-	      
 	      // Create the Function
 	      ParamHistFunc shapeFactorFunc( funcName.c_str(), funcName.c_str(),
 					   observables, shapeFactorParams );
@@ -1793,11 +1848,13 @@ namespace HistFactory{
 	      //std::string funcParams = "gamma_" + it->shapeFactorName;
 	      //paramHist = CreateParamHistFunc( proto, fObsNameVec, funcParams, funcName );
 
+	      /*
 	      RooArgList observables;
 	      std::vector<std::string>::iterator itr = fObsNameVec.begin();
 	      for(; itr!=fObsNameVec.end(); ++itr ) {
 		observables.add( *proto->var(itr->c_str()) );
 	      }
+	      */
 
 	      // Create the Parameters
 	      std::string funcParams = "gamma_" + shapeSys.GetName();
@@ -2650,6 +2707,7 @@ namespace HistFactory{
     std::cout << "Error: In createStatConstraintTerms, encountered bad number of bins" << std::endl;
     std::cout << "Given histogram with " << numBins << " bins,"
 	      << " but require exactly " << numParams << std::endl;
+    std::cout << "Param Hist Func: " << proto->GetName() << std::endl;
     throw hf_exc();
   }
 
@@ -2804,7 +2862,7 @@ namespace HistFactory{
     // Now, figure out which of these parameters actually are allowed
     // to float (ie, which ones have 0 entries)
     RooArgList conserveParams;
-    for( unsigned int i=0; i < nominalHist->GetNbinsX(); ++i) {
+    for(int i=0; i < nominalHist->GetNbinsX(); ++i) {
       
       std::stringstream num;
       num << i;
