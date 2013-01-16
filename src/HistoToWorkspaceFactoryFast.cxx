@@ -792,8 +792,7 @@ namespace HistFactory{
     unsigned int numReplacements = 0;
     unsigned int nskipped = 0;
     map<string,double>::iterator it;
-
-    
+   
     // Do a simple check that all requested variables to edit
     // are actually present in this workspace
     for(it=gammaSyst.begin(); it!=gammaSyst.end(); ++it) {
@@ -807,8 +806,6 @@ namespace HistFactory{
 	throw hf_exc();
       }
     }
-
-
 
     // add gamma terms and their constraints
     for(it=gammaSyst.begin(); it!=gammaSyst.end(); ++it) {
@@ -1271,23 +1268,55 @@ namespace HistFactory{
       // Important:  Ensure that the indexing of these ZERO bins matches the
       // indexing of the 'conserveStatParams' set that will be created from
       // the observables a few lines below
+      std::cout << "StatError: In Sample: " << sample.GetName()
+		<< " of Channel: " << channel_name
+		<< " ActivateStatError: " << sample.GetStatError().GetActivate()
+		<< " ZeroBinMode: " << sample.GetStatError().GetZeroBinMode()
+		<< std::endl;
+      
       if( sample.GetStatError().GetActivate() && sample.GetStatError().GetZeroBinMode() ) {
+
+	std::cout << "Sample using ZeroBinMode for Statistical Uncertainties" << std::endl;
 
 	int num_bins = nominal->GetNbinsX()*nominal->GetNbinsY()*nominal->GetNbinsZ();
 	double epsilon = 10E-5;	
 
-	int list_index = 0;
-	for(int th1_index=0; th1_index < num_bins; ++th1_index) {
+	//int list_index = 0;
+	int th1_index = 0;
+	for(int list_index=0; list_index < num_bins; ++list_index) {
+    
+	  th1_index++;
+	  
+	  while( nominal->IsBinUnderflow(th1_index) || nominal->IsBinOverflow(th1_index) ){
+	    th1_index++;
+	  }
 
+	  std::cout << "StatError: TH1 Bin: " << th1_index << std::endl;
+	  /*
 	  // Skip overfow/underflow
 	  if( nominal->IsBinUnderflow(th1_index) || nominal->IsBinOverflow(th1_index) ) {
 	    continue;
 	  }
+	  */
 
-	  list_index += 1;
+	  std::cout << "StatError: In Sample: " << sample.GetName()
+		    << " of Channel: " << channel_name
+		    << " List Index: " << list_index
+		    << " TH1 Bin: " << th1_index
+		    << " has content: " << nominal->GetBinContent(th1_index)
+		    << std::endl;
+
 	  if( nominal->GetBinContent(th1_index) < epsilon ) { 
+	    std::cout << "StatError: In Sample: " << sample.GetName()
+		      << " of Channel: " << channel_name
+		      << ", bin " << list_index
+		      << " (TH1 index = " << th1_index << ")"
+		      << " has value of 0"
+		      << std::endl;
 	    isZeroBin[list_index] = th1_index; //list_index.insert(i);
 	  }
+
+	  // list_index += 1;
 	  // else isZeroBin.push_back(make_pair(i, false));
 	}
 
@@ -1295,119 +1324,117 @@ namespace HistFactory{
 	// We don't want to go through this whole zero bin
 	// nonsense for samples that don't actually have any
 	// zero bins, right?
-	if(isZeroBin.size()==0 ) {
-	  continue;
-	}
+	if(isZeroBin.size() != 0 ) {
 
-	// Now, we create a ParamHistFunc to represent the 'zero bins' as determined above.
-	// This ParamHistFunc will have constant values for any bins that don't have zero
-	// content, and it will be added to a sample's bin values
+	  // Now, we create a ParamHistFunc to represent the 'zero bins' as determined above.
+	  // This ParamHistFunc will have constant values for any bins that don't have zero
+	  // content, and it will be added to a sample's bin values
 
-	double nu_min = 0.0;
-	double nu_max = 20.0;
+	  double nu_min = 0.0;
+	  double nu_max = 20.0;
 
-	std::string conserveStatPrefix = "nu_mc_events_exp_" + sample.GetName() 
-	  + "_" + channel.GetName();
-	RooArgList conserveStatParams = ParamHistFunc::createParamSet(*proto, conserveStatPrefix,
-								      observables, nu_min, nu_max);
-	RooRealVar* stat_conserve_constant = (RooRealVar*) proto->factory("zero_var_dummy[0,0,1]");
-	stat_conserve_constant->setConstant(true);
+	  std::string conserveStatPrefix = "nu_mc_events_exp_" + sample.GetName() 
+	    + "_" + channel.GetName();
+	  RooArgList conserveStatParams = ParamHistFunc::createParamSet(*proto, conserveStatPrefix,
+									observables, nu_min, nu_max);
+	  RooRealVar* stat_conserve_constant = (RooRealVar*) proto->factory("zero_var_dummy[0,0,1]");
+	  stat_conserve_constant->setConstant(true);
 	
-	// Create a RooArgList that includes, in order, the proper
-	// parameter for each bin
-	// - For all bins that aren't 'zeroBins', we include a constant
-	// whose value is 0.0
-	// - For all "zeroBins", we include a floating constant that will
-	// represent the value of this bin
-	RooArgList zeroBinParams;
-	for(int i=0; i < conserveStatParams.getSize(); ++i) {
+	  // Create a RooArgList that includes, in order, the proper
+	  // parameter for each bin
+	  // - For all bins that aren't 'zeroBins', we include a constant
+	  // whose value is 0.0
+	  // - For all "zeroBins", we include a floating constant that will
+	  // represent the value of this bin
+	  RooArgList zeroBinParams;
+	  for(int i=0; i < conserveStatParams.getSize(); ++i) {
 
-	  RooRealVar* zero_bin_var = dynamic_cast<RooRealVar*>(conserveStatParams.at(i));
-	  std::cout << "Zero Bin Uncertainty: Checking Zero bin: " << zero_bin_var->GetName()
-		    << std::endl;
+	    RooRealVar* zero_bin_var = dynamic_cast<RooRealVar*>(conserveStatParams.at(i));
+	    std::cout << "Zero Bin Uncertainty: Checking Zero bin: " << zero_bin_var->GetName()
+		      << std::endl;
 	  
-	  // If this bin isn't a 'zero bin', we add the dummy
-	  // 'zero' value and we continue
-	  if( isZeroBin.find(i) == isZeroBin.end() ) {
-	    zeroBinParams.add(*stat_conserve_constant);  
-	    continue;
+	    // If this bin isn't a 'zero bin', we add the dummy
+	    // 'zero' value and we continue
+	    if( isZeroBin.find(i) == isZeroBin.end() ) {
+	      zeroBinParams.add(*stat_conserve_constant);  
+	      continue;
+	    }
+
+	    // Else, we add the zero-bin-var and create a 
+	    // constraint term for this variable
+	    std::pair<int, int> zero_bin_info = (*isZeroBin.find(i));
+	    std::cout << "In Sample: " << sample.GetName()
+		      << "bin : " << zero_bin_info.first
+		      << " (with TH1 index: " << zero_bin_info.second << ")"
+		      << " has zero value."
+		      << " For stat uncertainties, we are replacing the nominal"
+		      << " stat uncertainty variable: " << zero_bin_var->GetName()
+		      << " with a variable describing only this bin"
+		      << std::endl;
+	    zeroBinParams.add(*zero_bin_var);
+	  
+	    // And create a constraint term
+	    std::stringstream num;
+	    num << i;
+
+	    //std::string processExpr = "RooPoisson::" << constraintName << "
+	    std::string nominal_name = std::string("Nom_") + zero_bin_var->GetName();
+	    nominal_name += "[0, 0, 10]";
+	    RooRealVar* bin_nominal = dynamic_cast<RooRealVar*>(proto->factory(nominal_name.c_str()));
+	    bin_nominal->setConstant(true);
+	    std::string constraintName = conserveStatPrefix + "_bin_" + num.str() + "Constraint";
+	    RooPoisson constraint(constraintName.c_str(), constraintName.c_str(),
+				  *bin_nominal, *zero_bin_var);
+	    constraint.setNoRounding(true);
+	    // Import the constraint term and add it to the list
+	    // of constraint terms to be attached
+	    proto->import( constraint, RecycleConflictNodes() );
+	    constraintTerms.add(*proto->function(constraintName.c_str()) );
 	  }
-	  
-	  std::pair<int, int> zero_bin_info = (*isZeroBin.find(i));
 
-	  // Else, we add the zero-bin-var and create a 
-	  // constraint term for this variable
-	  std::cout << "In Sample: " << sample.GetName()
-		    << "bin : " << zero_bin_info.first
-		    << " (with TH1 index: " << zero_bin_info.second << ")"
-		    << " has zero value."
-		    << " For stat uncertainties, we are replacing the nominal"
-		    << " stat uncertainty variable: " << zero_bin_var->GetName()
-		    << " with a variable describing only this bin"
-		    << std::endl;
-	  zeroBinParams.add(*zero_bin_var);
-	  
-	  // And create a constraint term
-	  std::stringstream num;
-	  num << i;
+	  // Okay, now we have the list of all parameters that determine
+	  // if a bin is zero or not.
+	  // We will now:
+	  //     - Create a ParamHistFunc from this
+	  //     - Multiply that ParamHistFunc by the 'tau',
+	  //          where tau represents cross-section*Lumi/N_Events
+	  //     - Finally, we add this product to the interpolated 
+	  //          histogram and that becomes our new histogram node
 
-	  //std::string processExpr = "RooPoisson::" << constraintName << "
-	  std::string nominal_name = std::string("Nom_") + zero_bin_var->GetName();
-	  nominal_name += "[0, 0, 10]";
-	  RooRealVar* bin_nominal =dynamic_cast<RooRealVar*>(proto->factory(nominal_name.c_str()));
-	  std::string constraintName = conserveStatPrefix + "_bin_" + num.str() + "Constraint";
-	  RooPoisson constraint(constraintName.c_str(), constraintName.c_str(),
-				*bin_nominal, *zero_bin_var);
-	  // Import the constraint term and add it to the list
-	  // of constraint terms to be attached
-	  proto->import( constraint, RecycleConflictNodes() );
-	  constraintTerms.add(*proto->function(constraintName.c_str()) );
-	}
+	  // Create the ParamHistFunc
+	  std::string conserveStatParamHistName = conserveStatPrefix;
+	  ParamHistFunc ConserveStat(conserveStatParamHistName.c_str(), 
+				     conserveStatParamHistName.c_str(),
+				     observables, zeroBinParams); //conserveStatParams );
 
-	// Okay, now we have the list of all parameters that determine
-	// if a bin is zero or not.
-	// We will now:
-	//     - Create a ParamHistFunc from this
-	//     - Multiply that ParamHistFunc by the 'tau',
-	//          where tau represents cross-section*Lumi/N_Events
-	//     - Finally, we add this product to the interpolated 
-	//          histogram and that becomes our new histogram node
+	  // For now, assume that the 'tau' is constant
+	  // We will later calculate the 'tau' to be the average tau
+	  // over all non-zero bins (a clever approximation)
+	  std::string tau_name = std::string("tau_") + sample.GetName() + "[0.1, 0, 10]";
+	  RooRealVar* bin_tau = dynamic_cast<RooRealVar*>(proto->factory(tau_name.c_str()));
+	  bin_tau->setConstant(true);
 
-	// Create the ParamHistFunc
-	std::string conserveStatParamHistName = conserveStatPrefix;
-	ParamHistFunc ConserveStat(conserveStatParamHistName.c_str(), 
-				   conserveStatParamHistName.c_str(),
-				   observables, conserveStatParams );
-
-	// For now, assume that the 'tau' is constant
-	// We will later calculate the 'tau' to be the average tau
-	// over all non-zero bins (a clever approximation)
-	std::string tau_name = std::string("tau_") + sample.GetName() + "[1,0,10]";
-	RooRealVar* bin_tau = dynamic_cast<RooRealVar*>(proto->factory(tau_name.c_str()));
-	bin_tau->setConstant(true);
-
-	std::string mcTimesWeightName = conserveStatParamHistName + "_x_McWeight";
-	RooProduct mcTimesWeight(mcTimesWeightName.c_str(), mcTimesWeightName.c_str(), 
-				 RooArgSet(*bin_tau, ConserveStat) );
+	  std::string mcTimesWeightName = conserveStatParamHistName + "_x_McWeight";
+	  RooProduct mcTimesWeight(mcTimesWeightName.c_str(), mcTimesWeightName.c_str(), 
+				   RooArgSet(*bin_tau, ConserveStat) );
 	
-	// Create the RooAddition
-	RooAbsArg* nominal_hist = proto->function( interpolatedHistNodeName.c_str() );
-	std::string nominalPlusStatName = interpolatedHistNodeName + "_plus_stat";
-	RooAddition nominal_with_stat( nominalPlusStatName.c_str(), "", 
-				       RooArgSet(*nominal_hist, mcTimesWeight) );
-	proto->import( nominal_with_stat, RecycleConflictNodes() );
+	  // Create the RooAddition
+	  RooAbsArg* nominal_hist = proto->function( interpolatedHistNodeName.c_str() );
+	  std::string nominalPlusStatName = interpolatedHistNodeName + "_plus_stat";
+	  RooAddition nominal_with_stat( nominalPlusStatName.c_str(), "", 
+					 RooArgSet(*nominal_hist, mcTimesWeight) );
+	  proto->import( nominal_with_stat, RecycleConflictNodes() );
 
-	// Finally, set the outer most node to be this one
-	interpolatedHistNodeName = nominalPlusStatName;
+	  // Finally, set the outer most node to be this one
+	  interpolatedHistNodeName = nominalPlusStatName;
+	}
       }
-
 
       // Now we have a list of bins with 0 content for this sample
       // We will need this later for when we create the gamma's across
       // all samples.  We don't want to "double count" statistical uncertainties
       // by including these as individual (zero-bin) uncertainties as well
       // as the sample-wide gamma factors.
-
      
       //
       // Overall Sys: 
@@ -1416,7 +1443,6 @@ namespace HistFactory{
       //std::string productPrefix = sample.GetName() + "_" + channel_name;
       std::string histTimesEpsilonCommand = interpolatedHistNodeName+","+overallSystName;
       proto->factory(("prod:"+syst_x_expectedPrefix+"("+histTimesEpsilonCommand+","+overallSystName+")").c_str() );    
-
 
       // MB : HACK no option to have both non-hist variations and hist variations ?
       // get histogram
@@ -1466,8 +1492,6 @@ namespace HistFactory{
 						  constraintTermNames, sample, channel_name);
       }
       */
-
-
 
       ////////////////////////////////////
       // Add StatErrors to this Channel //
@@ -2750,7 +2774,8 @@ namespace HistFactory{
     std::string conserveStatPrefix = "N_mc_events_exp_" + sample.GetName() + "_" + channel;
     RooArgList conserveStatParams = ParamHistFunc::createParamSet(*wspace, conserveStatPrefix,
 								  obsSet, 0, 10);
-    RooRealVar* stat_conserve_constant = (RooRealVar*) wspace->factory("zero_var_dummy[0.0, 0.0, 1.0]");
+    std::string conserve_stat_name = "zero_var_dummy[0.0, 0.0, 1.0]";
+    RooRealVar* stat_conserve_constant = (RooRealVar*) wspace->factory(conserve_stat_name.c_str());
     stat_conserve_constant->setConstant(true);
 
     // Now, figure out which of these parameters actually are allowed
@@ -2766,7 +2791,10 @@ namespace HistFactory{
 	conserveParams.add( *conserveStatParams.at(i) );
 
 	// And create a constraint term
-	RooRealVar* Nom_N_MC = (RooRealVar*) wspace->factory((std::string("Nom_")+conserveStatPrefix.c_str()+"_bin_"+num.str()+"[0.0,0.0,1.0]").c_str()); //ConstVar Zero("Zero", "Zero", 0.0);
+	RooRealVar* Nom_N_MC = (RooRealVar*) wspace->factory((std::string("Nom_")
+							      + conserveStatPrefix.c_str()
+							      + "_bin_" + num.str()
+							      + "[0.0,0.0,1.0]").c_str());
 	Nom_N_MC->setConstant(true);
 	std::string constraintName = conserveStatPrefix + "_bin_" + num.str() + "Constraint";
 	//std::string processExpr = "RooPoisson::" << constraintName << "
@@ -2788,26 +2816,34 @@ namespace HistFactory{
     wspace->import(ConserveStat, RecycleConflictNodes());
 
     // Get the MC Weight histogram and create the value of the nominal estimate
+    // If the MC Weight Hist is null, we use the "Average"
+    // This will be implemented later
     TH1* mcWeightHist = sample.GetStatError().GetMcWeightHist();
     if( mcWeightHist==NULL ) {
-      std::cout << "Error: mcWeightHist for channel: " << channel << " and sample: " << sample.GetName()
+      std::cout << "Error: mcWeightHist for channel: " << channel 
+		<< " and sample: " << sample.GetName()
 		<< " is NULL" << std::endl;
       throw hf_exc();
     }
     std::string mcWeightPrefix = "mcWeight_" + sample.GetName() + "_" + channel;
-    RooDataHist* mcWeightDataHist = new RooDataHist((mcWeightPrefix+"DHist").c_str(), (mcWeightPrefix+"DHist").c_str(), obsSet, mcWeightHist);
-    RooHistFunc* mcWeightHistFunc = new RooHistFunc(mcWeightPrefix.c_str(), mcWeightPrefix.c_str(), obsSet, *mcWeightDataHist);
+    RooDataHist* mcWeightDataHist = new RooDataHist((mcWeightPrefix+"DHist").c_str(), 
+						    (mcWeightPrefix+"DHist").c_str(), 
+						    obsSet, mcWeightHist);
+    RooHistFunc* mcWeightHistFunc = new RooHistFunc(mcWeightPrefix.c_str(),mcWeightPrefix.c_str(), 
+						    obsSet, *mcWeightDataHist);
     wspace->import( *mcWeightHistFunc, RecycleConflictNodes() );
 
     // stat = N_mc * w_mc
     std::string mcTimesWeightName = conserveStatPrefix + "_x_McWeight";
-    RooProduct* mcTimesWeight = new RooProduct(mcTimesWeightName.c_str(), mcTimesWeightName.c_str(), 
-					       RooArgSet(*wspace->function(mcWeightPrefix.c_str()), 
-							 *wspace->function(conserveStatPrefix.c_str())));
+    RooProduct* mcTimesWeight = 
+      new RooProduct(mcTimesWeightName.c_str(), mcTimesWeightName.c_str(), 
+		     RooArgSet(*wspace->function(mcWeightPrefix.c_str()), 
+			       *wspace->function(conserveStatPrefix.c_str())));
     // Create the RooAddition:
     // nominal_with_stat = nominal + stat
     std::string nominalPlusStatName = nominalNodeName + "_plus_stat";
-    RooAddition* nominal_with_stat = new RooAddition( nominalPlusStatName.c_str(), "", RooArgSet(*nominalFunc, *mcTimesWeight) );
+    RooAddition* nominal_with_stat = new RooAddition( nominalPlusStatName.c_str(), "", 
+						      RooArgSet(*nominalFunc, *mcTimesWeight) );
     wspace->import( *nominal_with_stat, RecycleConflictNodes() );
     
     // Finally, we simply return the nominal string to be
@@ -2816,8 +2852,6 @@ namespace HistFactory{
 
   }
   
-
-
 
 } // namespace RooStats
 } // namespace HistFactory

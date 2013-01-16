@@ -130,7 +130,6 @@ protected:
   bool fNormalizeByTheory;
   bool fStatErrorActivate;
 
-
   // The Nominal Shape
   TRef fhNominal;
 

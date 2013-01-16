@@ -1422,8 +1422,7 @@ HistFactory::StatError ConfigParser::ActivateStatError( TXMLNode* node ) {
     else if( attrName == TString( "InputFile" ) ) {
       statError.SetInputFile( attrVal );
     }
-
-
+    
     else if( attrName == TString( "ZeroBinMode" ) ) {
       statError.SetZeroBinMode( CheckTrueFalse(attrVal, "StatError") );
     }
@@ -1484,14 +1483,13 @@ HistFactory::StatError ConfigParser::ActivateStatError( TXMLNode* node ) {
     // Check that a file has been set
     // (Possibly using the default)
     if( statError.GetInputFile() == "" ) {
-      statError.SetInputFile( m_currentInputFile );
+      statError.SetMcWeightInputFile( m_currentInputFile );
     }
     if( statError.GetMcWeightHistoPath() == "" ) {
       statError.SetMcWeightHistoPath( m_currentHistoPath );
     }
 
   }
-
 
   /*
   if( statError.Activate ) {

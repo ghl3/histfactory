@@ -308,9 +308,7 @@ namespace HistFactory {
 
   public:
 
-    StatError() : fActivate(false), fUseHisto(false), 
-		  fZeroBinMode(false), fhError(NULL) {;}
-
+    StatError();
     void Print(std::ostream& = std::cout);  
     void PrintXML(std::ostream&);
     void writeToFile( const std::string& FileName, const std::string& DirName );
@@ -335,7 +333,7 @@ namespace HistFactory {
 
     void SetZeroBinMode( bool ZeroBinMode ) { fZeroBinMode=ZeroBinMode; }
     bool GetZeroBinMode() { return fZeroBinMode; }
-
+    
     void SetMcWeightInputFile( const std::string& McWeightInputFile ) { fMcWeightInputFile = McWeightInputFile; }
     std::string GetMcWeightInputFile() { return fMcWeightInputFile; }
 
@@ -347,7 +345,6 @@ namespace HistFactory {
 
     TH1* GetMcWeightHist();
     void SetMcWeightHist(TH1* McWeight) { fhMcWeight = McWeight; }
-    
 
   protected:
 
