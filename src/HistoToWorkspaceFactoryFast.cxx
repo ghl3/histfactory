@@ -1380,8 +1380,11 @@ namespace HistFactory{
 	  // If the MC Weight Hist is null, we use the "Average"
 	  // This will be implemented later
 	  std::string mcWeightName = "mcWeight_" + sample.GetName() + "_" + channel_name;
+
+	  RooAbsReal* mcWeightFunc = GetMcWeightFunction(proto, mcWeightName,
+							 observables, sample);
+	  /*
 	  RooAbsReal* mcWeightFunc=NULL;
-	  
 	  
 	  TH1* mcWeightHist = sample.GetStatError().GetMcWeightHist();
 	  if( mcWeightHist==NULL ) {
@@ -1392,15 +1395,14 @@ namespace HistFactory{
 	    RooRealVar* bin_tau = dynamic_cast<RooRealVar*>(proto->factory(tau_name.c_str()));
 	    bin_tau->setConstant(true);
 	    mcWeightFunc = (RooAbsReal*) bin_tau;
-	    /*
+	    / *
 	    std::cout << "Error: mcWeightHist for channel: " << channel_name 
 		      << " and sample: " << sample.GetName()
 		      << " is NULL" << std::endl;
 	    throw hf_exc();
-	    */
+	    * /
 	  }
 	  else {
-	    
 	    RooDataHist* mcWeightDataHist = new RooDataHist((mcWeightName+"DHist").c_str(), 
 							    (mcWeightName+"DHist").c_str(), 
 							    observables, mcWeightHist);
@@ -1409,7 +1411,7 @@ namespace HistFactory{
 					   observables, *mcWeightDataHist);
 	    proto->import(*mcWeightFunc, RecycleConflictNodes() );
 	  }
-
+	*/
 	  //////////////////////////////////////////////////////////////////////////////////
 
 	  std::string mcTimesWeightName = conserveStatParamHistName + "_x_McWeight";
@@ -2750,6 +2752,44 @@ namespace HistFactory{
   
 }
 
+  RooAbsReal* HistoToWorkspaceFactoryFast::
+  GetMcWeightFunction(RooWorkspace* proto, const std::string& mcWeightName,
+		      const RooArgList& observables, RooStats::HistFactory::Sample& sample) {
+
+    RooAbsReal* mcWeightFunc=NULL;
+	  	  
+    TH1* mcWeightHist = sample.GetStatError().GetMcWeightHist();
+    if( mcWeightHist==NULL ) {
+      // For now, assume that the 'tau' is constant
+      // We will later calculate the 'tau' to be the average tau
+      // over all non-zero bins (a clever approximation)
+      std::string tau_name = mcWeightName + "[0.1, 0, 10]";
+      RooRealVar* bin_tau = dynamic_cast<RooRealVar*>(proto->factory(tau_name.c_str()));
+      bin_tau->setConstant(true);
+      mcWeightFunc = (RooAbsReal*) bin_tau;
+      /*
+	std::cout << "Error: mcWeightHist for channel: " << channel_name 
+	<< " and sample: " << sample.GetName()
+	<< " is NULL" << std::endl;
+	throw hf_exc();
+      */
+    }
+    else {
+	    
+      RooDataHist* mcWeightDataHist = new RooDataHist((mcWeightName+"DHist").c_str(), 
+						      (mcWeightName+"DHist").c_str(), 
+						      observables, mcWeightHist);
+      mcWeightFunc = new RooHistFunc(mcWeightName.c_str(),
+				     mcWeightName.c_str(), 
+				     observables, *mcWeightDataHist);
+      proto->import(*mcWeightFunc, RecycleConflictNodes() );
+    }
+    
+    return mcWeightFunc;
+
+  }
+
+  /*
   std::string HistoToWorkspaceFactoryFast::
   AddZeroBinUncertainties(RooWorkspace* wspace, std::string nominalNodeName,
 			  std::vector<std::string>& constraintTermNames,
@@ -2849,7 +2889,7 @@ namespace HistFactory{
     return nominalPlusStatName;
 
   }
-  
+  */  
 
 } // namespace RooStats
 } // namespace HistFactory

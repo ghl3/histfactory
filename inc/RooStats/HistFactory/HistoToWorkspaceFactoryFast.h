@@ -101,11 +101,15 @@ namespace RooStats{
       void MakeTotalExpected(RooWorkspace* proto, std::string totName, 
 			     std::vector<std::string>& syst_x_expectedPrefixNames,
 			     std::vector<std::string>& normByNames);
-      
+
+      RooAbsReal* GetMcWeightFunction(RooWorkspace*, const std::string&,
+				      const RooArgList&, RooStats::HistFactory::Sample&);
+
+	/*
       std::string AddZeroBinUncertainties(RooWorkspace*, std::string nominalNodeName,
 					  std::vector<std::string>& constraintTermNames,
 					  RooStats::HistFactory::Sample samp, std::string chan);
-      
+	*/
       RooDataSet* MergeDataSets(RooWorkspace* combined,
 				std::vector<RooWorkspace*> wspace_vec, 
 				std::vector<std::string> channel_names, 
