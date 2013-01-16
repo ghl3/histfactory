@@ -1268,20 +1268,11 @@ namespace HistFactory{
       // Important:  Ensure that the indexing of these ZERO bins matches the
       // indexing of the 'conserveStatParams' set that will be created from
       // the observables a few lines below
-      std::cout << "StatError: In Sample: " << sample.GetName()
-		<< " of Channel: " << channel_name
-		<< " ActivateStatError: " << sample.GetStatError().GetActivate()
-		<< " ZeroBinMode: " << sample.GetStatError().GetZeroBinMode()
-		<< std::endl;
-      
       if( sample.GetStatError().GetActivate() && sample.GetStatError().GetZeroBinMode() ) {
-
-	std::cout << "Sample using ZeroBinMode for Statistical Uncertainties" << std::endl;
 
 	int num_bins = nominal->GetNbinsX()*nominal->GetNbinsY()*nominal->GetNbinsZ();
 	double epsilon = 10E-5;	
 
-	//int list_index = 0;
 	int th1_index = 0;
 	for(int list_index=0; list_index < num_bins; ++list_index) {
     
@@ -1291,33 +1282,9 @@ namespace HistFactory{
 	    th1_index++;
 	  }
 
-	  std::cout << "StatError: TH1 Bin: " << th1_index << std::endl;
-	  /*
-	  // Skip overfow/underflow
-	  if( nominal->IsBinUnderflow(th1_index) || nominal->IsBinOverflow(th1_index) ) {
-	    continue;
-	  }
-	  */
-
-	  std::cout << "StatError: In Sample: " << sample.GetName()
-		    << " of Channel: " << channel_name
-		    << " List Index: " << list_index
-		    << " TH1 Bin: " << th1_index
-		    << " has content: " << nominal->GetBinContent(th1_index)
-		    << std::endl;
-
 	  if( nominal->GetBinContent(th1_index) < epsilon ) { 
-	    std::cout << "StatError: In Sample: " << sample.GetName()
-		      << " of Channel: " << channel_name
-		      << ", bin " << list_index
-		      << " (TH1 index = " << th1_index << ")"
-		      << " has value of 0"
-		      << std::endl;
 	    isZeroBin[list_index] = th1_index; //list_index.insert(i);
 	  }
-
-	  // list_index += 1;
-	  // else isZeroBin.push_back(make_pair(i, false));
 	}
 
 	// Do we want to continue from here?
@@ -1407,16 +1374,47 @@ namespace HistFactory{
 				     conserveStatParamHistName.c_str(),
 				     observables, zeroBinParams); //conserveStatParams );
 
-	  // For now, assume that the 'tau' is constant
-	  // We will later calculate the 'tau' to be the average tau
-	  // over all non-zero bins (a clever approximation)
-	  std::string tau_name = std::string("tau_") + sample.GetName() + "[0.1, 0, 10]";
-	  RooRealVar* bin_tau = dynamic_cast<RooRealVar*>(proto->factory(tau_name.c_str()));
-	  bin_tau->setConstant(true);
+	  //////////////////////////////////////////////////////////////////////////////////
+
+	  // Get the MC Weight histogram and create the value of the nominal estimate
+	  // If the MC Weight Hist is null, we use the "Average"
+	  // This will be implemented later
+	  std::string mcWeightName = "mcWeight_" + sample.GetName() + "_" + channel_name;
+	  RooAbsReal* mcWeightFunc=NULL;
+	  
+	  
+	  TH1* mcWeightHist = sample.GetStatError().GetMcWeightHist();
+	  if( mcWeightHist==NULL ) {
+	    // For now, assume that the 'tau' is constant
+	    // We will later calculate the 'tau' to be the average tau
+	    // over all non-zero bins (a clever approximation)
+	    std::string tau_name = mcWeightName + "[0.1, 0, 10]";
+	    RooRealVar* bin_tau = dynamic_cast<RooRealVar*>(proto->factory(tau_name.c_str()));
+	    bin_tau->setConstant(true);
+	    mcWeightFunc = (RooAbsReal*) bin_tau;
+	    /*
+	    std::cout << "Error: mcWeightHist for channel: " << channel_name 
+		      << " and sample: " << sample.GetName()
+		      << " is NULL" << std::endl;
+	    throw hf_exc();
+	    */
+	  }
+	  else {
+	    
+	    RooDataHist* mcWeightDataHist = new RooDataHist((mcWeightName+"DHist").c_str(), 
+							    (mcWeightName+"DHist").c_str(), 
+							    observables, mcWeightHist);
+	    mcWeightFunc = new RooHistFunc(mcWeightName.c_str(),
+					   mcWeightName.c_str(), 
+					   observables, *mcWeightDataHist);
+	    proto->import(*mcWeightFunc, RecycleConflictNodes() );
+	  }
+
+	  //////////////////////////////////////////////////////////////////////////////////
 
 	  std::string mcTimesWeightName = conserveStatParamHistName + "_x_McWeight";
 	  RooProduct mcTimesWeight(mcTimesWeightName.c_str(), mcTimesWeightName.c_str(), 
-				   RooArgSet(*bin_tau, ConserveStat) );
+				   RooArgSet(*mcWeightFunc, ConserveStat) );
 	
 	  // Create the RooAddition
 	  RooAbsArg* nominal_hist = proto->function( interpolatedHistNodeName.c_str() );
