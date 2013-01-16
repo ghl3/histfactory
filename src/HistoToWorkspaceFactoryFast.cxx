@@ -314,60 +314,17 @@ namespace HistFactory{
 
   }
 
+  /*
   void HistoToWorkspaceFactoryFast::ProcessExpectedHisto(const std::string& nomHistName, 
 							 RooWorkspace* proto, 
 							 string prefix, string productPrefix, 
 							 string systTerm ) {
-    /*
-    if(hist) {
-      cout << "processing hist " << hist->GetName() << endl;
-    } else {
-      cout << "hist is empty" << endl;
-      R__ASSERT(hist != 0); 
-      return;                  
-    }
-
-    /// require dimension >=1 or <=3
-    if (fObsNameVec.empty() && !fObsName.empty()) { fObsNameVec.push_back(fObsName); }    
-    R__ASSERT( fObsNameVec.size()>=1 && fObsNameVec.size()<=3 );
-
-    /// determine histogram dimensionality 
-    unsigned int histndim(1);
-    std::string classname = hist->ClassName();
-    if      (classname.find("TH1")==0) { histndim=1; }
-    else if (classname.find("TH2")==0) { histndim=2; }
-    else if (classname.find("TH3")==0) { histndim=3; }
-    R__ASSERT( histndim==fObsNameVec.size() );
-
-    /// create roorealvar observables
-    RooArgList observables;
-    std::vector<std::string>::iterator itr = fObsNameVec.begin();
-    for (int idx=0; itr!=fObsNameVec.end(); ++itr, ++idx ) {
-      if ( !proto->var(itr->c_str()) ) {
-	TAxis* axis(0);
-	if (idx==0) { axis = hist->GetXaxis(); }
-	if (idx==1) { axis = hist->GetYaxis(); }
-	if (idx==2) { axis = hist->GetZaxis(); }
-	Int_t nbins = axis->GetNbins();	
-	Double_t xmin = axis->GetXmin();
-	Double_t xmax = axis->GetXmax(); 	
-	// create observable
-	proto->factory(Form("%s[%f,%f]",itr->c_str(),xmin,xmax));
-	proto->var(itr->c_str())->setBins(nbins);
-      }
-      observables.add( *proto->var(itr->c_str()) );
-    }
     
-    std::string nomHistName = prefix+"_nominal";
-    RooDataHist* histDHist = new RooDataHist((nomHistName+"DHist").c_str(),"",observables,hist);
-    RooHistFunc* histFunc = new RooHistFunc(nomHistName.c_str(),"",observables,*histDHist,0) ;
-    proto->import(*histFunc);
-    */    
-
     /// now create the product of the overall efficiency times the sigma(params) for this estimate
     proto->factory(("prod:"+productPrefix+"("+nomHistName+","+systTerm+")").c_str() );    
 
   }
+  */
 
   void HistoToWorkspaceFactoryFast::AddMultiVarGaussConstraint(RooWorkspace* proto, string prefix,int lowBin, int highBin, vector<string>& constraintTermNames){
     // these are the nominal predictions: eg. the mean of some space of variations
@@ -459,55 +416,12 @@ namespace HistFactory{
   void HistoToWorkspaceFactoryFast::LinInterpWithConstraint(RooWorkspace* proto, 
 							    const std::string& nomHistName,
 							    std::vector<HistoSys> histoSysList,
-							    string prefix, string productPrefix, 
-							    string systTerm, 
+							    string prefix, string /*productPrefix*/, 
+							    string /*systTerm*/, 
 							    vector<string>& constraintTermNames){
 
     // these are the nominal predictions: eg. the mean of some space of variations
     // later fill these in a loop over histogram bins
-
-    /*
-    // require dimension >=1 or <=3
-    if (fObsNameVec.empty() && !fObsName.empty()) { fObsNameVec.push_back(fObsName); }    
-    R__ASSERT( fObsNameVec.size()>=1 && fObsNameVec.size()<=3 );
-
-    // determine histogram dimensionality 
-    unsigned int histndim(1);
-    std::string classname = nominal->ClassName();
-    if      (classname.find("TH1")==0) { histndim=1; }
-    else if (classname.find("TH2")==0) { histndim=2; }
-    else if (classname.find("TH3")==0) { histndim=3; }
-    R__ASSERT( histndim==fObsNameVec.size() );
-    //    cout <<"In LinInterpWithConstriants and histndim = " << histndim <<endl;
-
-    // create roorealvar observables
-    RooArgList observables;
-    std::vector<std::string>::iterator itr = fObsNameVec.begin();
-    for (int idx=0; itr!=fObsNameVec.end(); ++itr, ++idx ) {
-      if ( !proto->var(itr->c_str()) ) {
-	TAxis* axis(NULL);
-	if (idx==0) { axis = nominal->GetXaxis(); }
-	else if (idx==1) { axis = nominal->GetYaxis(); }
-	else if (idx==2) { axis = nominal->GetZaxis(); }
-	else {
-	  std::cout << "Error: Too many observables.  "
-		    << "HistFactory only accepts up to 3 observables (3d) "
-		    << std::endl;
-	  throw hf_exc();
-	}
-	Int_t nbins = axis->GetNbins();	
-	Double_t xmin = axis->GetXmin();
-	Double_t xmax = axis->GetXmax(); 	
-	// create observable
-	proto->factory(Form("%s[%f,%f]",itr->c_str(),xmin,xmax));
-	proto->var(itr->c_str())->setBins(nbins);
-      }
-      observables.add( *proto->var(itr->c_str()) );
-    }
-
-    RooDataHist* nominalDHist = new RooDataHist((prefix+"_nominalDHist").c_str(),"",observables,nominal);
-    RooHistFunc* nominalFunc = new RooHistFunc((prefix+"_nominal").c_str(),"",observables,*nominalDHist,0) ;
-    */
 
     // Get the observables
     RooArgList observables;
@@ -1188,22 +1102,28 @@ namespace HistFactory{
     //ES// string channel_name=summary[0].channel;
     string channel_name = channel.GetName();
     
-    /// MB: reset observable names for each new channel.
-    fObsNameVec.clear();
-
     /// MB: label observables x,y,z, depending on histogram dimensionality
     /// GHL: Give it the first sample's nominal histogram as a template
     ///      since the data histogram may not be present
     TH1* channel_hist_template = channel.GetSamples().at(0).GetHisto();
-    if (fObsNameVec.empty()) { GuessObsNameVec(channel_hist_template); }
 
+    /// MB: reset observable names for each new channel.
+    fObsNameVec.clear();
+    GuessObsNameVec(channel_hist_template);
+
+    // And modify the names in place
+    // Note: This could be moved into 'GuessObsNameVec'
     for ( unsigned int idx=0; idx<fObsNameVec.size(); ++idx ) {
       fObsNameVec[idx] = "obs_" + fObsNameVec[idx] + "_" + channel_name ;
     }
-
-    if (fObsNameVec.empty()) {
-      fObsName= "obs_" + channel_name; // set name ov observable
-      fObsNameVec.push_back( fObsName );
+    
+    if(fObsNameVec.empty()) {
+      std::cout << "Error: Vector of observable variable names is invalid" << std::endl;
+      throw hf_exc();
+      // Removed the following code, I'm not sure when
+      // it would have been used
+      // fObsName= "obs_" + channel_name; // set name ov observable
+      // fObsNameVec.push_back( fObsName );
     }
 
     R__ASSERT( fObsNameVec.size()>=1 && fObsNameVec.size()<=3 );
@@ -1266,11 +1186,12 @@ namespace HistFactory{
     // loop through estimates, add expectation, floating bin predictions, 
     // and terms that constrain floating to expectation via uncertainties
     // GHL: Loop over samples instead, which doesn't contain the data
-    vector<Sample>::iterator it = channel.GetSamples().begin();
-    for(; it!=channel.GetSamples().end(); ++it) {
-
+    
+    for(vector<Sample>::iterator sample_itr = channel.GetSamples().begin(); 
+	sample_itr != channel.GetSamples().end(); ++sample_itr) {
+      
       //ES// string overallSystName = it->name+"_"+it->channel+"_epsilon"; 
-      Sample& sample = (*it);
+      Sample& sample = (*sample_itr);
       string overallSystName = sample.GetName() + "_" + channel_name + "_epsilon"; 
 
       string systSourcePrefix = "alpha_";
@@ -1606,7 +1527,7 @@ namespace HistFactory{
 	  for (std::map<int, int>::iterator it = isZeroBin.begin();
 	       it != isZeroBin.end(); ++it) {
 	    std::pair<int, int> zero_bin = (*it);
-	    int list_index = zero_bin.first;
+	    // int list_index = zero_bin.first;
 	    int th1_index = zero_bin.second;
 	    statErrorHist->SetBinContent(th1_index, 0.0);
 	  }
@@ -1635,14 +1556,6 @@ namespace HistFactory{
 	  // New Plan: Create a different ParamHistFunc for each sample
 	  // (We're currently in a loop over samples...)
 	  statFuncName = "mc_stat_" + channel_name + "_" + sample.GetName();
-	  /* Create this earlier
-	  RooArgList observables;
-	  std::vector<std::string>::iterator itr = fObsNameVec.begin();
-	  for (int idx=0; itr!=fObsNameVec.end(); ++itr, ++idx ) {
-	    observables.add( *proto->var(itr->c_str()) );
-	  }
-	  */
-
 
 	  // Create the list of terms to
 	  // control the bin heights:
@@ -1666,7 +1579,7 @@ namespace HistFactory{
 	  one_dummy->setConstant(true);
 
 	  RooArgList statParamsForThisSample;
-	  for( unsigned int i=0; i < statFactorParams.getSize(); ++i) {
+	  for(int i=0; i < statFactorParams.getSize(); ++i) {
 
 	    if( isZeroBin.find(i) != isZeroBin.end() ) {	      
 	      statParamsForThisSample.add( *one_dummy );
@@ -1729,14 +1642,6 @@ namespace HistFactory{
 	    ParamHistFunc* paramHist = (ParamHistFunc*) proto->function( funcName.c_str() );
 	    if( paramHist == NULL ) {
 	      
-	      /*
-	      RooArgList observables;
-	      std::vector<std::string>::iterator itr = fObsNameVec.begin();
-	      for (int idx=0; itr!=fObsNameVec.end(); ++itr, ++idx ) {
-		observables.add( *proto->var(itr->c_str()) );
-	      }
-	      */
-
 	      // Create the Parameters
 	      std::string funcParams = "gamma_" + shapeFactor.GetName();
 
@@ -1844,17 +1749,6 @@ namespace HistFactory{
 	    ShapeSysNames.push_back( funcName );
 	    ParamHistFunc* paramHist = (ParamHistFunc*) proto->function( funcName.c_str() );
 	    if( paramHist == NULL ) {
-
-	      //std::string funcParams = "gamma_" + it->shapeFactorName;
-	      //paramHist = CreateParamHistFunc( proto, fObsNameVec, funcParams, funcName );
-
-	      /*
-	      RooArgList observables;
-	      std::vector<std::string>::iterator itr = fObsNameVec.begin();
-	      for(; itr!=fObsNameVec.end(); ++itr ) {
-		observables.add( *proto->var(itr->c_str()) );
-	      }
-	      */
 
 	      // Create the Parameters
 	      std::string funcParams = "gamma_" + shapeSys.GetName();

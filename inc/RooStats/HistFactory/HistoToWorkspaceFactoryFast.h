@@ -113,9 +113,11 @@ namespace RooStats{
 				RooArgList obsList,
 				RooCategory* channelCat);
 
+      /*
       void ProcessExpectedHisto(const std::string& nomHistName, RooWorkspace* proto, 
 				std::string prefix, 
 				std::string productPrefix, std::string systTerm );
+      */
 
       void SetObsToExpected(RooWorkspace* proto, std::string obsPrefix, std::string expPrefix, 
 			    int lowBin, int highBin);
