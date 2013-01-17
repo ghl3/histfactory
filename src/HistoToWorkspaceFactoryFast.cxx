@@ -2738,12 +2738,18 @@ namespace HistFactory{
 
       TH1* nominal_hist = sample.GetHisto();
       double n_events_effective_total = 0.0;
-      for(int binz=1; binz <= nominal_hist->GetNbinsX(); binz++) {
+      for(int binz=1; binz <= nominal_hist->GetNbinsZ(); binz++) {
 	for(int biny=1; biny <= nominal_hist->GetNbinsY(); biny++) {
-	  for(int binx=1; binx <= nominal_hist->GetNbinsZ(); binx++) {
+	  for(int binx=1; binx <= nominal_hist->GetNbinsX(); binx++) {
 	    int bin = nominal_hist->GetBin(binx,biny,binz);
 	    double bin_error = nominal_hist->GetBinError(bin);
 	    double n_events_effective = bin_error*bin_error;
+	    std::cout << "Histogram : " << nominal_hist->GetName() 
+		      << " from sample: " << sample.GetName()
+		      << " bin: " << bin 
+		      << "(" << binx << "," << biny << "," << binz << ")"
+		      << " has error: " << bin_error 
+		      << std::endl;
 	    n_events_effective_total += n_events_effective;
 	  }
 	}
@@ -2789,16 +2795,19 @@ namespace HistFactory{
       double mc_weight_average = total_mc_weight / n_events_effective_total;
       std::cout << "Estimating effective Monte Carlo weight for sample: " << sample.GetName()
 		<< " using nominal histogram: " << nominal_hist->GetName()
-		<< ": " << mc_weight_average << std::endl;
+		<< ": " << mc_weight_average 
+		<< ".  Total MC Weight: " << total_mc_weight
+		<< " N Events Effective: " << n_events_effective_total
+		<< std::endl;
       
       // Now, put this average into a histogram and continue as normal
       std::string error_name = std::string("McError_") + nominal_hist->GetName(); 
       mcWeightHist = dynamic_cast<TH1*>(nominal_hist->Clone(error_name.c_str()));
       //mcWeightHist = (TH1*) mcWeightHist->Clone(error_name.c_str());
 
-      for(int binz=1; binz <= mcWeightHist->GetNbinsX(); binz++) {
+      for(int binz=1; binz <= mcWeightHist->GetNbinsZ(); binz++) {
 	for(int biny=1; biny <= mcWeightHist->GetNbinsY(); biny++) {
-	  for(int binx=1; binx <= mcWeightHist->GetNbinsZ(); binx++) {
+	  for(int binx=1; binx <= mcWeightHist->GetNbinsX(); binx++) {
 	    int bin = mcWeightHist->GetBin(binx,biny,binz);
 	    mcWeightHist->SetBinContent(bin, mc_weight_average);
 	  }
