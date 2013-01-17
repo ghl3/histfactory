@@ -1423,8 +1423,8 @@ HistFactory::StatError ConfigParser::ActivateStatError( TXMLNode* node ) {
       statError.SetInputFile( attrVal );
     }
     
-    else if( attrName == TString( "ZeroBinMode" ) ) {
-      statError.SetZeroBinMode( CheckTrueFalse(attrVal, "StatError") );
+    else if( attrName == TString( "HandleZeroBins" ) ) {
+      statError.SetHandleZeroBins( CheckTrueFalse(attrVal, "StatError") );
     }
 
     else if( attrName == TString( "McWeightHistoName" ) ) {
@@ -1471,11 +1471,11 @@ HistFactory::StatError ConfigParser::ActivateStatError( TXMLNode* node ) {
   if( statError.GetMcWeightHistoName() != "" ) {
 
     // If we set the McWeight Histo Name, we also
-    // must ensure that the ZeroBinMode is set
-    if( ! statError.GetZeroBinMode() ) {
+    // must ensure that the HandleZeroBins is set
+    if( ! statError.GetHandleZeroBins() ) {
       std::cout << "Error: In the stat uncertainty, McWeight histogram is set"
-		<< " but ZeroBinMode is not activated."
-		<< " If you want to use ZeroBinMode, you must set: ZeroBinMode=\"True\""
+		<< " but HandleZeroBins is not activated."
+		<< " If you want to use HandleZeroBins, you must set: HandleZeroBins=\"True\""
 		<< std::endl;
       throw hf_exc();
     }

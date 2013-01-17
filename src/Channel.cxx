@@ -231,7 +231,7 @@ void RooStats::HistFactory::Channel::CollectHistograms() {
 						       sample.GetStatError().GetHistoName()) );
     }
 
-    if( sample.GetStatError().GetZeroBinMode() ) {
+    if( sample.GetStatError().GetHandleZeroBins() ) {
       std::cout << "Get Stat MC Weight Histogram" << std::endl;
 
       TH1* McWeightHist = NULL;

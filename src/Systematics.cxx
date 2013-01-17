@@ -362,7 +362,7 @@ void RooStats::HistFactory::StatErrorConfig::PrintXML( std::ostream& xml ) {
 
 // Stat Error
 RooStats::HistFactory::StatError::StatError() : fActivate(false), fUseHisto(false), 
-						fZeroBinMode(false), fhError(NULL), 
+						fHandleZeroBins(false), fhError(NULL), 
 						fhMcWeight(NULL) {;}
 
 TH1* RooStats::HistFactory::StatError::GetErrorHist() {

@@ -1268,7 +1268,7 @@ namespace HistFactory{
       // Important:  Ensure that the indexing of these ZERO bins matches the
       // indexing of the 'conserveStatParams' set that will be created from
       // the observables a few lines below
-      if( sample.GetStatError().GetActivate() && sample.GetStatError().GetZeroBinMode() ) {
+      if( sample.GetStatError().GetActivate() && sample.GetStatError().GetHandleZeroBins() ) {
 
 	int num_bins = nominal->GetNbinsX()*nominal->GetNbinsY()*nominal->GetNbinsZ();
 	double epsilon = 10E-5;	
@@ -1454,7 +1454,7 @@ namespace HistFactory{
       // Do Conserve Stat Functionality here
       // to replace the effective nominal node name
       // and we add the ConstrantTerms for these new uncertainty terms
-      if( sample.GetStatError().GetZeroBinMode() ) {
+      if( sample.GetStatError().GetHandleZeroBins() ) {
 	nominalNodeName = AddZeroBinUncertainties(proto, nominalNodeName, 
 						  constraintTermNames, sample, channel_name);
       }

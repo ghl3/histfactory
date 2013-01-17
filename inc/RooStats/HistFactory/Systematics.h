@@ -331,8 +331,8 @@ namespace HistFactory {
     TH1* GetErrorHist();
     void SetErrorHist(TH1* Error) { fhError = Error; }
 
-    void SetZeroBinMode( bool ZeroBinMode ) { fZeroBinMode=ZeroBinMode; }
-    bool GetZeroBinMode() { return fZeroBinMode; }
+    void SetHandleZeroBins( bool HandleZeroBins ) { fHandleZeroBins=HandleZeroBins; }
+    bool GetHandleZeroBins() { return fHandleZeroBins; }
     
     void SetMcWeightInputFile( const std::string& McWeightInputFile ) { fMcWeightInputFile = McWeightInputFile; }
     std::string GetMcWeightInputFile() { return fMcWeightInputFile; }
@@ -350,7 +350,7 @@ namespace HistFactory {
 
     bool fActivate;
     bool fUseHisto; // Use an external histogram for the errors 
-    bool fZeroBinMode;
+    bool fHandleZeroBins;
     std::string fInputFile;
     std::string fHistoName;
     std::string fHistoPath;
