@@ -1357,6 +1357,12 @@ namespace HistFactory{
 	    // of constraint terms to be attached
 	    proto->import( constraint, RecycleConflictNodes() );
 	    constraintTerms.add(*proto->function(constraintName.c_str()) );
+
+	    // Now we have a list of bins with 0 content for this sample
+	    // We will need this later for when we create the gamma's across
+	    // all samples.  We don't want to "double count" statistical uncertainties
+	    // by including these as individual (zero-bin) uncertainties as well
+	    // as the sample-wide gamma factors.
 	  }
 
 	  // Okay, now we have the list of all parameters that determine
@@ -1364,7 +1370,8 @@ namespace HistFactory{
 	  // We will now:
 	  //     - Create a ParamHistFunc from this
 	  //     - Multiply that ParamHistFunc by the 'tau',
-	  //          where tau represents cross-section*Lumi/N_Events
+	  //          where tau represents the effect Monte Carlo Weight,
+	  //          normally given by: cross-section*Lumi/N_Events
 	  //     - Finally, we add this product to the interpolated 
 	  //          histogram and that becomes our new histogram node
 
@@ -1398,14 +1405,9 @@ namespace HistFactory{
 
 	  // Finally, set the outer most node to be this one
 	  interpolatedHistNodeName = nominalPlusStatName;
-	}
-      }
 
-      // Now we have a list of bins with 0 content for this sample
-      // We will need this later for when we create the gamma's across
-      // all samples.  We don't want to "double count" statistical uncertainties
-      // by including these as individual (zero-bin) uncertainties as well
-      // as the sample-wide gamma factors.
+	} // End check that sample has 'zero bins'
+      } // End check on zero bin mode
      
       //
       // Overall Sys: 
