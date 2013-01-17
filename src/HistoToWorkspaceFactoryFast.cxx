@@ -2723,34 +2723,110 @@ namespace HistFactory{
   GetMcWeightFunction(RooWorkspace* proto, const std::string& mcWeightName,
 		      const RooArgList& observables, RooStats::HistFactory::Sample& sample) {
 
-    RooAbsReal* mcWeightFunc=NULL;
+    RooAbsReal* mcWeightFunc = NULL;
 	  	  
     TH1* mcWeightHist = sample.GetStatError().GetMcWeightHist();
     if( mcWeightHist==NULL ) {
-      // For now, assume that the 'tau' is constant
-      // We will later calculate the 'tau' to be the average tau
-      // over all non-zero bins (a clever approximation)
-      std::string tau_name = mcWeightName + "[0.1, 0, 10]";
-      RooRealVar* bin_tau = dynamic_cast<RooRealVar*>(proto->factory(tau_name.c_str()));
-      bin_tau->setConstant(true);
-      mcWeightFunc = (RooAbsReal*) bin_tau;
+
+      // If the McWeightHist is NULL, then we estimate the McWeight using
+      // an average over bins.  We're going to assume a flat average over
+      // the entire histogram, which is usually a decent approximation.
+
+      // Using the error hist as assuming that all errors are
+      // purely poisson: error = root(number)
+      // we can create a histogram for the number of events
+
+      TH1* nominal_hist = sample.GetHisto();
+      double n_events_effective_total = 0.0;
+      for(int binz=1; binz <= nominal_hist->GetNbinsX(); binz++) {
+	for(int biny=1; biny <= nominal_hist->GetNbinsY(); biny++) {
+	  for(int binx=1; binx <= nominal_hist->GetNbinsZ(); binx++) {
+	    int bin = nominal_hist->GetBin(binx,biny,binz);
+	    double bin_error = nominal_hist->GetBinError(bin);
+	    double n_events_effective = bin_error*bin_error;
+	    n_events_effective_total += n_events_effective;
+	  }
+	}
+      }
+
       /*
-	std::cout << "Error: mcWeightHist for channel: " << channel_name 
-	<< " and sample: " << sample.GetName()
-	<< " is NULL" << std::endl;
-	throw hf_exc();
+      for( unsigned int i=0; i < histogram_bins; ++i) {
+	double bin_error = nominal_hist->GetBinError(i);
+	double n_events_effective = bin_error*bin_error;
+	n_events_effective_total += n_events_effective;
+	//mc_n_hist->SetBinContent(i, n_events_effective);
+      }
       */
+
+      // Now that we have the number of effective events,
+      // we can get the average weight by dividing the total
+      // mc weight
+      double epsilon = 10E-5;	
+
+      if(n_events_effective_total < epsilon) {
+	std::cout << "Error: Attempting to use indivudual bin Stat Uncertainties for hist: "
+		  << nominal_hist->GetName()
+		  << ", however the histogram was not provided with a corresponding"
+		  << " histogram representing the Monte-Carlo weights"
+		  << " and the effective weight can't be guessed because the histogram"
+		  << " has (effectively) 0 total bin errors (in quadrature)" 
+		  << std::endl;
+	throw hf_exc();
+      }
+
+      double total_mc_weight = nominal_hist->GetSumOfWeights();
+      if(total_mc_weight < epsilon) {
+	std::cout << "Error: Attempting to use indivudual bin Stat Uncertainties for hist: "
+		  << nominal_hist->GetName()
+		  << ", however the histogram was not provided with a corresponding"
+		  << " histogram representing the Monte-Carlo weights"
+		  << " and the effective weight can't be guessed because the histogram"
+		  << " has (effectively) 0 total weight" 
+		  << std::endl;
+	throw hf_exc();
+      }
+
+      double mc_weight_average = total_mc_weight / n_events_effective_total;
+      std::cout << "Estimating effective Monte Carlo weight for sample: " << sample.GetName()
+		<< " using nominal histogram: " << nominal_hist->GetName()
+		<< ": " << mc_weight_average << std::endl;
+      
+      // Now, put this average into a histogram and continue as normal
+      std::string error_name = std::string("McError_") + nominal_hist->GetName(); 
+      mcWeightHist = dynamic_cast<TH1*>(nominal_hist->Clone(error_name.c_str()));
+      //mcWeightHist = (TH1*) mcWeightHist->Clone(error_name.c_str());
+
+      for(int binz=1; binz <= mcWeightHist->GetNbinsX(); binz++) {
+	for(int biny=1; biny <= mcWeightHist->GetNbinsY(); biny++) {
+	  for(int binx=1; binx <= mcWeightHist->GetNbinsZ(); binx++) {
+	    int bin = mcWeightHist->GetBin(binx,biny,binz);
+	    mcWeightHist->SetBinContent(bin, mc_weight_average);
+	  }
+	}
+      }
+      
+      std::cout << "Successfully created Monte Carlo Weight Estimate" << std::endl;
+
     }
-    else {
-	    
-      RooDataHist* mcWeightDataHist = new RooDataHist((mcWeightName+"DHist").c_str(), 
-						      (mcWeightName+"DHist").c_str(), 
-						      observables, mcWeightHist);
-      mcWeightFunc = new RooHistFunc(mcWeightName.c_str(),
-				     mcWeightName.c_str(), 
-				     observables, *mcWeightDataHist);
-      proto->import(*mcWeightFunc, RecycleConflictNodes() );
-    }
+
+    /*
+    // For now, assume that the 'tau' is constant
+    // We will later calculate the 'tau' to be the average tau
+    // over all non-zero bins (a clever approximation)
+    std::string tau_name = mcWeightName + "[0.1, 0, 10]";
+    RooRealVar* bin_tau = dynamic_cast<RooRealVar*>(proto->factory(tau_name.c_str()));
+    bin_tau->setConstant(true);
+    mcWeightFunc = dynamic_cast<RooAbsReal*>(bin_tau);
+    */
+    RooDataHist* mcWeightDataHist = new RooDataHist((mcWeightName+"DHist").c_str(), 
+						    (mcWeightName+"DHist").c_str(), 
+						    observables, mcWeightHist);
+
+    mcWeightFunc = new RooHistFunc(mcWeightName.c_str(),
+				   mcWeightName.c_str(), 
+				   observables, *mcWeightDataHist);
+    proto->import(*mcWeightFunc, RecycleConflictNodes() );
+
     
     return mcWeightFunc;
 
