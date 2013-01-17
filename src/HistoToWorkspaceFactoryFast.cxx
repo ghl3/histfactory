@@ -1582,7 +1582,6 @@ namespace HistFactory{
 	  
 	  ParamHistFunc statUncertFunc(statFuncName.c_str(), statFuncName.c_str(), 
 				       observables, statParamsForThisSample );
-	  
 	  proto->import( statUncertFunc, RecycleConflictNodes() );
 	  ParamHistFunc* paramHist = (ParamHistFunc*) proto->function( statFuncName.c_str() );
 
