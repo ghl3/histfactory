@@ -1482,7 +1482,7 @@ HistFactory::StatError ConfigParser::ActivateStatError( TXMLNode* node ) {
 
     // Check that a file has been set
     // (Possibly using the default)
-    if( statError.GetInputFile() == "" ) {
+    if( statError.GetMcWeightInputFile() == "" ) {
       statError.SetMcWeightInputFile( m_currentInputFile );
     }
     if( statError.GetMcWeightHistoPath() == "" ) {
