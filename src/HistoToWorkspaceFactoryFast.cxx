@@ -2736,67 +2736,48 @@ namespace HistFactory{
       // we can create a histogram for the number of events
 
       TH1* nominal_hist = sample.GetHisto();
-      double n_events_effective_total = 0.0;
+      //double n_events_effective_total = 0.0;
+      double epsilon = 10E-5;	
+
+      int num_bins = 0;
+      double mc_weight_total = 0;
       for(int binz=1; binz <= nominal_hist->GetNbinsZ(); binz++) {
 	for(int biny=1; biny <= nominal_hist->GetNbinsY(); biny++) {
 	  for(int binx=1; binx <= nominal_hist->GetNbinsX(); binx++) {
+
 	    int bin = nominal_hist->GetBin(binx,biny,binz);
 	    double bin_error = nominal_hist->GetBinError(bin);
+	    double bin_content = nominal_hist->GetBinContent(bin);
+	    if( bin_content < epsilon ) continue;
+	    if( bin_error < epsilon ) {
+	      std::cout << "WARNING: While calculating the average monte carlo weight"
+			<< ", encountered a bin with 0 error in sample: " << sample.GetName() 
+			<< " and bin: " << bin 
+			<< "(" << binx << "," << biny << "," << binz << ")"
+			<< std::endl;
+	    }
 	    double n_events_effective = bin_error*bin_error;
+	    double mc_weight = n_events_effective / bin_content;
 	    std::cout << "Histogram : " << nominal_hist->GetName() 
 		      << " from sample: " << sample.GetName()
 		      << " bin: " << bin 
 		      << "(" << binx << "," << biny << "," << binz << ")"
-		      << " has error: " << bin_error 
+		      << " has monte carlo weight: " << mc_weight
+		      << " (bin content: " << bin_content
+		      << ", bin error: " << bin_error
+		      << ", N MC Events Effective: " << n_events_effective
+		      << ")."
 		      << std::endl;
-	    n_events_effective_total += n_events_effective;
+	    mc_weight_total += mc_weight;
+	    num_bins += 1;
 	  }
 	}
       }
-
-      /*
-      for( unsigned int i=0; i < histogram_bins; ++i) {
-	double bin_error = nominal_hist->GetBinError(i);
-	double n_events_effective = bin_error*bin_error;
-	n_events_effective_total += n_events_effective;
-	//mc_n_hist->SetBinContent(i, n_events_effective);
-      }
-      */
-
-      // Now that we have the number of effective events,
-      // we can get the average weight by dividing the total
-      // mc weight
-      double epsilon = 10E-5;	
-
-      if(n_events_effective_total < epsilon) {
-	std::cout << "Error: Attempting to use indivudual bin Stat Uncertainties for hist: "
-		  << nominal_hist->GetName()
-		  << ", however the histogram was not provided with a corresponding"
-		  << " histogram representing the Monte-Carlo weights"
-		  << " and the effective weight can't be guessed because the histogram"
-		  << " has (effectively) 0 total bin errors (in quadrature)" 
-		  << std::endl;
-	throw hf_exc();
-      }
-
-      double total_mc_weight = nominal_hist->GetSumOfWeights();
-      if(total_mc_weight < epsilon) {
-	std::cout << "Error: Attempting to use indivudual bin Stat Uncertainties for hist: "
-		  << nominal_hist->GetName()
-		  << ", however the histogram was not provided with a corresponding"
-		  << " histogram representing the Monte-Carlo weights"
-		  << " and the effective weight can't be guessed because the histogram"
-		  << " has (effectively) 0 total weight" 
-		  << std::endl;
-	throw hf_exc();
-      }
-
-      double mc_weight_average = total_mc_weight / n_events_effective_total;
+      
+      double mc_weight_average = mc_weight_total / num_bins;
       std::cout << "Estimating effective Monte Carlo weight for sample: " << sample.GetName()
 		<< " using nominal histogram: " << nominal_hist->GetName()
 		<< ": " << mc_weight_average 
-		<< ".  Total MC Weight: " << total_mc_weight
-		<< " N Events Effective: " << n_events_effective_total
 		<< std::endl;
       
       // Now, put this average into a histogram and continue as normal
