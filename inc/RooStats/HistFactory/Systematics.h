@@ -1,4 +1,4 @@
-// @(#)root/roostats:$Id: Systematics.h 47288 2012-11-14 21:38:07Z ghl $
+// @(#)root/roostats:$Id: Systematics.h 48437 2013-01-30 05:28:15Z ghl $
 // Author: George Lewis, Kyle Cranmer
 /*************************************************************************
  * Copyright (C) 1995-2008, Rene Brun and Fons Rademakers.               *
