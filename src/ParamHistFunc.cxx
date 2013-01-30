@@ -1,13 +1,22 @@
-/*****************************************************************************
+// @(#)root/roostats:$Id:  cranmer $
+// Author: Kyle Cranmer, George Lewis 
+/*************************************************************************
+ * Copyright (C) 1995-2008, Rene Brun and Fons Rademakers.               *
+ * All rights reserved.                                                  *
+ *                                                                       *
+ * For the licensing terms see $ROOTSYS/LICENSE.                         *
+ * For the list of contributors see $ROOTSYS/README/CREDITS.             *
+ *************************************************************************/
 
- *****************************************************************************/
-
-//////////////////////////////////////////////////////////////////////////////
-// 
-// BEGIN_HTML
-// ParamHistFunc 
-// END_HTML
+//_________________________________________________
+/*
+BEGIN_HTML
+<p>
+</p>
+END_HTML
+*/
 //
+
 
 #include <sstream>
 #include <math.h>
@@ -339,6 +348,12 @@ RooArgList ParamHistFunc::createParamSet(RooWorkspace& w, const std::string& Pre
       std::stringstream VarNameStream;
       VarNameStream << Prefix << "_bin_" << i;
       std::string VarName = VarNameStream.str();
+
+      // If the var already exists, we don't remake it
+      if( w.var(VarName.c_str()) != NULL ) {
+	paramSet.add( *w.var(VarName.c_str()) );
+	continue;
+      }
 
       RooRealVar gamma( VarName.c_str(), VarName.c_str(), 1.0 ); 
       // "Hard-Code" a minimum of 0.0

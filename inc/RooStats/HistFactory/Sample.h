@@ -1,4 +1,4 @@
-// @(#)root/roostats:$Id: Sample.h 47080 2012-11-06 19:44:06Z ghl $
+// @(#)root/roostats:$Id: Sample.h 48437 2013-01-30 05:28:15Z ghl $
 // Author: George Lewis, Kyle Cranmer
 /*************************************************************************
  * Copyright (C) 1995-2008, Rene Brun and Fons Rademakers.               *
@@ -73,7 +73,6 @@ public:
   std::string GetName() { return fName; }
   void SetName(const std::string& Name) { fName = Name; }
   
-
   std::string GetInputFile() { return fInputFile; }
   void SetInputFile(const std::string& InputFile) { fInputFile = InputFile; }
 
@@ -130,7 +129,6 @@ protected:
 
   bool fNormalizeByTheory;
   bool fStatErrorActivate;
-
 
   // The Nominal Shape
   TRef fhNominal;

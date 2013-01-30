@@ -18,7 +18,7 @@
 namespace RooStats{
   namespace HistFactory{
 
-    void fastDriver(std::string input);
+    //void fastDriver(std::string input);
 
     RooWorkspace* MakeModelAndMeasurementFast( RooStats::HistFactory::Measurement& measurement );
     //RooWorkspace* MakeModelFast( RooStats::HistFactory::Measurement& measurement );
@@ -29,6 +29,7 @@ namespace RooStats{
     void FormatFrameForLikelihood(RooPlot* frame, std::string xTitle=std::string("#sigma / #sigma_{SM}"), std::string yTitle=std::string("-log likelihood"));
     void FitModel(RooWorkspace *, std::string data_name="obsData");
     void FitModelAndPlot(const std::string& measurementName, const std::string& fileNamePrefix, RooWorkspace *, std::string, std::string, TFile*, FILE*);
+
   }
 }
 

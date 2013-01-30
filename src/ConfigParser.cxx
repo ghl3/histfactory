@@ -44,21 +44,20 @@ std::vector< RooStats::HistFactory::Measurement > ConfigParser::GetMeasurementsF
   std::vector< HistFactory::Measurement > measurement_list;
 
   try {
-
+    
     // Open the Driver XML File
     TDOMParser xmlparser;
     Int_t parseError = xmlparser.ParseFile( input.c_str() );
     if( parseError ) { 
       std::cerr << "Loading of xml document \"" << input
 		<< "\" failed" << std::endl;
+      throw hf_exc();
     } 
-
-
+    
     // Read the Driver XML File
     cout << "reading input : " << input << endl;
     TXMLDocument* xmldoc = xmlparser.GetXMLDocument();
     TXMLNode* rootNode = xmldoc->GetRootNode();
-
 
     // Check that it is the proper DOCTYPE
     if( rootNode->GetNodeName() != TString( "Combination" ) ){
@@ -551,13 +550,13 @@ HistFactory::Channel ConfigParser::ParseChannelXMLFile( string filen ) {
   if( parseError ) { 
     std::cout << "Loading of xml document \"" << filen
 	      << "\" failed" << std::endl;
+    throw hf_exc();
   } 
 
   TXMLDocument* xmldoc = xmlparser.GetXMLDocument();
   TXMLNode* rootNode = xmldoc->GetRootNode();
 
   // Check that is is a CHANNEL based on the DOCTYPE
-
   if( rootNode->GetNodeName() != TString( "Channel" ) ){
     std::cout << "Error: In parsing a Channel XML, " 
 	      << "Encounterd XML with DOCTYPE: " << rootNode->GetNodeName() 
@@ -900,15 +899,18 @@ HistFactory::Sample ConfigParser::CreateSampleElement( TXMLNode* node ) {
 
   // Quickly check the properties of the Sample Node
   if( sample.GetName() == "" ) {
-    std::cout << "Error: Sample Node has no Name" << std::endl;
+    std::cout << "Error: Sample Node: " << sample.GetName() 
+	      << " in channel: " << sample.GetChannelName() << " has no Name" << std::endl;
     throw hf_exc();
   }
   if( sample.GetInputFile() == "" ) {
-    std::cout << "Error: Sample Node has no InputFile" << std::endl;
+    std::cout << "Error: Sample Node: " << sample.GetName() 
+	      << " in channel: " << sample.GetChannelName()<< " has no InputFile" << std::endl;
     throw hf_exc();
   }
   if( sample.GetHistoName() == "" ) {
-    std::cout << "Error: Sample Node has no HistoName" << std::endl;
+    std::cout << "Error: Sample Node: " << sample.GetName() 
+	      << " in channel: " << sample.GetChannelName()<< " has no HistoName" << std::endl;
     throw hf_exc();
   }
 
@@ -1024,6 +1026,24 @@ HistFactory::NormFactor ConfigParser::MakeNormFactor( TXMLNode* node ) {
     throw hf_exc();
   }
 
+  if( norm.GetLow() >= norm.GetHigh() ) {
+    std::cout << "Error: NormFactor: " << norm.GetName()
+	      << " has lower limit >= its upper limit: " 
+	      << " Low: " << norm.GetLow()
+	      << " High: " << norm.GetHigh()
+	      << ". Please Fix" << std::endl;
+    throw hf_exc();
+  }
+  if( norm.GetVal() > norm.GetHigh() || norm.GetVal() < norm.GetLow() ) {
+    std::cout << "Error: NormFactor: " << norm.GetName()
+	      << " has initial value not within its range: " 
+	      << " Val: " << norm.GetVal()
+	      << " Lower: " << norm.GetLow()
+	      << " Upper: " << norm.GetHigh()
+	      << ". Please Fix" << std::endl;
+    throw hf_exc();
+  }
+
   norm.Print();
 
   return norm;
@@ -1121,19 +1141,19 @@ HistFactory::HistoSys ConfigParser::MakeHistoSys( TXMLNode* node ) {
     throw hf_exc();
   }
   if( histoSys.GetInputFileHigh() == "" ) {
-    std::cout << "Error: HistoSysSample Node has no InputFileHigh" << std::endl;
+    std::cout << "Error: HistoSysSample Node: " << histoSys.GetName() << " has no InputFileHigh" << std::endl;
     throw hf_exc();
   }
   if( histoSys.GetInputFileLow() == "" ) {
-    std::cout << "Error: HistoSysSample Node has no InputFileLow" << std::endl;
+    std::cout << "Error: HistoSysSample Node: " << histoSys.GetName() << " has no InputFileLow" << std::endl;
     throw hf_exc();
   }
   if( histoSys.GetHistoNameHigh() == "" ) {
-    std::cout << "Error: HistoSysSample Node has no HistoNameHigh" << std::endl;
+    std::cout << "Error: HistoSysSample Node: " << histoSys.GetName() << " has no HistoNameHigh" << std::endl;
     throw hf_exc();
   }
   if( histoSys.GetHistoNameLow() == "" ) {
-    std::cout << "Error: HistoSysSample Node has no HistoNameLow" << std::endl;
+    std::cout << "Error: HistoSysSample Node: " << histoSys.GetName() << " has no HistoNameLow" << std::endl;
     throw hf_exc();
   }
 
@@ -1406,6 +1426,22 @@ HistFactory::StatError ConfigParser::ActivateStatError( TXMLNode* node ) {
       statError.SetInputFile( attrVal );
     }
     
+    else if( attrName == TString( "HandleZeroBins" ) ) {
+      statError.SetHandleZeroBins( CheckTrueFalse(attrVal, "StatError") );
+    }
+
+    else if( attrName == TString( "McWeightHistoName" ) ) {
+      statError.SetMcWeightHistoName( attrVal );
+    }
+
+    else if( attrName == TString( "McWeightHistoPath" ) ) {
+      statError.SetMcWeightHistoPath( attrVal );
+    }
+
+    else if( attrName == TString( "McWeightInputFile" ) ) {
+      statError.SetMcWeightInputFile( attrVal );
+    }
+    
     else {
       std::cout << "Error: Encountered Element in ActivateStatError with unknown name: " 
 		<< attrName << std::endl;
@@ -1431,6 +1467,29 @@ HistFactory::StatError ConfigParser::ActivateStatError( TXMLNode* node ) {
     }
     if( statError.GetHistoPath() == "" ) {
       statError.SetHistoPath( m_currentHistoPath );
+    }
+
+  }
+
+  if( statError.GetMcWeightHistoName() != "" ) {
+
+    // If we set the McWeight Histo Name, we also
+    // must ensure that the HandleZeroBins is set
+    if( ! statError.GetHandleZeroBins() ) {
+      std::cout << "Error: In the stat uncertainty, McWeight histogram is set"
+		<< " but HandleZeroBins is not activated."
+		<< " If you want to use HandleZeroBins, you must set: HandleZeroBins=\"True\""
+		<< std::endl;
+      throw hf_exc();
+    }
+
+    // Check that a file has been set
+    // (Possibly using the default)
+    if( statError.GetMcWeightInputFile() == "" ) {
+      statError.SetMcWeightInputFile( m_currentInputFile );
+    }
+    if( statError.GetMcWeightHistoPath() == "" ) {
+      statError.SetMcWeightHistoPath( m_currentHistoPath );
     }
 
   }
