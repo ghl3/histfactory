@@ -361,10 +361,17 @@ void RooStats::HistFactory::StatErrorConfig::PrintXML( std::ostream& xml ) {
 
 
 // Stat Error
+RooStats::HistFactory::StatError::StatError() : fActivate(false), fUseHisto(false), 
+						fHandleZeroBins(false), fhError(NULL), 
+						fhMcWeight(NULL) {;}
+
 TH1* RooStats::HistFactory::StatError::GetErrorHist() {
   return (TH1*) fhError.GetObject();
 }
 
+TH1* RooStats::HistFactory::StatError::GetMcWeightHist() {
+  return (TH1*) fhMcWeight.GetObject();
+}
 
 void RooStats::HistFactory::StatError::Print( std::ostream& stream ) {
   stream << "\t \t Activate: " << fActivate
@@ -387,7 +394,6 @@ void RooStats::HistFactory::StatError::PrintXML( std::ostream& xml ) {
   }
 
 }
-
 
 void RooStats::HistFactory::StatError::writeToFile( const std::string& OutputFileName, 
 						    const std::string& DirName ) {

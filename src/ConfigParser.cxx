@@ -1426,6 +1426,22 @@ HistFactory::StatError ConfigParser::ActivateStatError( TXMLNode* node ) {
       statError.SetInputFile( attrVal );
     }
     
+    else if( attrName == TString( "HandleZeroBins" ) ) {
+      statError.SetHandleZeroBins( CheckTrueFalse(attrVal, "StatError") );
+    }
+
+    else if( attrName == TString( "McWeightHistoName" ) ) {
+      statError.SetMcWeightHistoName( attrVal );
+    }
+
+    else if( attrName == TString( "McWeightHistoPath" ) ) {
+      statError.SetMcWeightHistoPath( attrVal );
+    }
+
+    else if( attrName == TString( "McWeightInputFile" ) ) {
+      statError.SetMcWeightInputFile( attrVal );
+    }
+    
     else {
       std::cout << "Error: Encountered Element in ActivateStatError with unknown name: " 
 		<< attrName << std::endl;
@@ -1451,6 +1467,29 @@ HistFactory::StatError ConfigParser::ActivateStatError( TXMLNode* node ) {
     }
     if( statError.GetHistoPath() == "" ) {
       statError.SetHistoPath( m_currentHistoPath );
+    }
+
+  }
+
+  if( statError.GetMcWeightHistoName() != "" ) {
+
+    // If we set the McWeight Histo Name, we also
+    // must ensure that the HandleZeroBins is set
+    if( ! statError.GetHandleZeroBins() ) {
+      std::cout << "Error: In the stat uncertainty, McWeight histogram is set"
+		<< " but HandleZeroBins is not activated."
+		<< " If you want to use HandleZeroBins, you must set: HandleZeroBins=\"True\""
+		<< std::endl;
+      throw hf_exc();
+    }
+
+    // Check that a file has been set
+    // (Possibly using the default)
+    if( statError.GetMcWeightInputFile() == "" ) {
+      statError.SetMcWeightInputFile( m_currentInputFile );
+    }
+    if( statError.GetMcWeightHistoPath() == "" ) {
+      statError.SetMcWeightHistoPath( m_currentHistoPath );
     }
 
   }
