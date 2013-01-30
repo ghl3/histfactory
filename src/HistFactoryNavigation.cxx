@@ -1,5 +1,19 @@
 
 #include <iomanip>
+#include <sstream>
+
+#include "TFile.h"
+#include "TRegexp.h"
+#include "TCanvas.h"
+#include "TLegend.h"
+#include "TMath.h"
+
+#include "RooRealSumPdf.h"
+#include "RooProduct.h"
+#include "RooMsgService.h"
+#include "RooCategory.h"
+#include "RooSimultaneous.h"
+#include "RooWorkspace.h"
 
 #include "RooStats/HistFactory/HistFactoryNavigation.h"
 #include "RooStats/HistFactory/HistFactoryException.h"
@@ -12,11 +26,43 @@ namespace RooStats {
   namespace HistFactory {
 
 
-    HistFactoryNavigation::HistFactoryNavigation(ModelConfig* mc) {
+    // CONSTRUCTOR
+    HistFactoryNavigation::HistFactoryNavigation(ModelConfig* mc) 
+      : _minBinToPrint(-1), _maxBinToPrint(-1), 
+	_label_print_width(20), _bin_print_width(12) {
+
+      if( !mc ) {
+	std::cout << "Error: The supplied ModelConfig is NULL " << std::endl;
+	throw hf_exc();
+      }
 
       // Save the model pointer
+      RooAbsPdf* pdf_in_mc = mc->GetPdf();
+      if( !pdf_in_mc ) {
+	std::cout << "Error: The pdf found in the ModelConfig: " << mc->GetName()
+		  << " is NULL" << std::endl;
+	throw hf_exc();
+      }
+
+      // Set the PDF member
       fModel = mc->GetPdf();
-      fObservables = (RooArgSet*) mc->GetObservables();
+
+      // Get the observables
+      RooArgSet* observables_in_mc = const_cast<RooArgSet*>(mc->GetObservables());
+      if( !observables_in_mc ) {
+	std::cout << "Error: Observable set in the ModelConfig: " << mc->GetName()
+		  << " is NULL" << std::endl;
+	throw hf_exc();
+      }
+      if( observables_in_mc->getSize() == 0 ) {
+	std::cout << "Error: Observable list: " << observables_in_mc->GetName()
+		  << " found in ModelConfig: " << mc->GetName()
+		  << " has no entries." << std::endl;
+	throw hf_exc();
+      }
+
+      // Set the observables member
+      fObservables = observables_in_mc;
       
       // Initialize the rest of the members
       _GetNodes(fModel, fObservables);
@@ -24,45 +70,233 @@ namespace RooStats {
     }
 
 
+    // CONSTRUCTOR
+    HistFactoryNavigation::HistFactoryNavigation(const std::string& FileName,
+						 const std::string& WorkspaceName,
+						 const std::string& ModelConfigName) :
+      _minBinToPrint(-1), _maxBinToPrint(-1), 
+      _label_print_width(20), _bin_print_width(12) {
+      
+      // Open the File
+      TFile* file = new TFile(FileName.c_str());
+      if( !file ) {
+	std::cout << "Error: Failed to open file: " << FileName << std::endl;
+	throw hf_exc();
+      }
+
+      // Get the workspace
+      RooWorkspace* wspace = (RooWorkspace*) file->Get(WorkspaceName.c_str());
+      if( !wspace ) {
+	std::cout << "Error: Failed to get workspace: " << WorkspaceName
+		  << " from file: " << FileName << std::endl;
+	throw hf_exc();
+      }
+
+      // Get the ModelConfig
+      ModelConfig* mc = (ModelConfig*) wspace->obj(ModelConfigName.c_str());
+      if( !mc ) {
+	std::cout << "Error: Failed to find ModelConfig: " << ModelConfigName
+		  << " from workspace: " << WorkspaceName
+		  << " in file: " << FileName << std::endl;
+	throw hf_exc();
+      }
+
+      // Save the model pointer
+      RooAbsPdf* pdf_in_mc = mc->GetPdf();
+      if( !pdf_in_mc ) {
+	std::cout << "Error: The pdf found in the ModelConfig: " << ModelConfigName
+		  << " is NULL" << std::endl;
+	throw hf_exc();
+      }
+
+      // Set the PDF member
+      fModel = pdf_in_mc;
+
+      // Get the observables
+      RooArgSet* observables_in_mc = const_cast<RooArgSet*>(mc->GetObservables());
+      if( !observables_in_mc ) {
+	std::cout << "Error: Observable set in the ModelConfig: " << ModelConfigName
+		  << " is NULL" << std::endl;
+	throw hf_exc();
+      }
+      if( observables_in_mc->getSize() == 0 ) {
+	std::cout << "Error: Observable list: " << observables_in_mc->GetName()
+		  << " found in ModelConfig: " << ModelConfigName
+		  << " in file: " << FileName
+		  << " has no entries." << std::endl;
+	throw hf_exc();
+      }
+
+      // Set the observables member
+      fObservables = observables_in_mc;
+      
+      // Initialize the rest of the members
+      _GetNodes(fModel, fObservables);
+
+    }
+
+
+    // CONSTRUCTOR
+    HistFactoryNavigation::HistFactoryNavigation(RooAbsPdf* model, RooArgSet* observables) :
+      _minBinToPrint(-1), _maxBinToPrint(-1), 
+      _label_print_width(20), _bin_print_width(12) {
+
+      // Save the model pointer
+      if( !model ) {
+	std::cout << "Error: The supplied pdf is NULL" << std::endl;
+	throw hf_exc();
+      }
+
+      // Set the PDF member
+      fModel = model;
+
+      // Get the observables
+      if( !observables ) {
+	std::cout << "Error: Supplied Observable set is NULL" << std::endl;
+	throw hf_exc();
+      }
+      if( observables->getSize() == 0 ) {
+	std::cout << "Error: Observable list: " << observables->GetName()
+		  << " has no entries." << std::endl;
+	throw hf_exc();
+      }
+
+      // Set the observables
+      fObservables = observables;
+
+      // Initialize the rest of the members
+      _GetNodes(fModel, fObservables);
+
+    }
+
+    // CONSTRUCTOR
+    HistFactoryNavigation::HistFactoryNavigation(RooAbsPdf* model, RooAbsData* data) :
+      _minBinToPrint(-1), _maxBinToPrint(-1), 
+      _label_print_width(20), _bin_print_width(12) {
+
+      RooArgSet* observables = model->getObservables(*data);
+
+      // Save the model pointer
+      if( !model ) {
+	std::cout << "Error: The supplied pdf is NULL" << std::endl;
+	throw hf_exc();
+      }
+
+      // Set the PDF member
+      fModel = model;
+
+      if( observables->getSize() == 0 ) {
+	std::cout << "Error: Observable list: " << observables->GetName()
+		  << " has no entries." << std::endl;
+	throw hf_exc();
+      }
+
+      // Set the observables
+      fObservables = observables;
+
+      // Initialize the rest of the members
+      _GetNodes(fModel, fObservables);
+
+    }
+
+    void HistFactoryNavigation::PrintMultiDimHist(TH1* hist, int bin_print_width) {
+
+      // This is how ROOT makes us loop over histograms :(
+      int current_bin = 0;
+      int num_bins = hist->GetNbinsX()*hist->GetNbinsY()*hist->GetNbinsZ();
+      for(int i = 0; i < num_bins; ++i) {
+	// Avoid the overflow/underflow
+	current_bin++;
+	while( hist->IsBinUnderflow(current_bin) ||
+	       hist->IsBinOverflow(current_bin) ) {
+	  current_bin++;
+	}
+	// Check that we should print this bin
+	if( _minBinToPrint != -1 && i < _minBinToPrint) continue;
+	if( _maxBinToPrint != -1 && i > _maxBinToPrint) break;
+	std::cout << std::setw(bin_print_width) << hist->GetBinContent(current_bin);
+      }
+      std::cout << std::endl;
+
+    }
+
+
+
+    RooAbsPdf* HistFactoryNavigation::GetChannelPdf(const std::string& channel) {
+
+      std::map< std::string, RooAbsPdf* >::iterator itr;
+      itr = fChannelPdfMap.find(channel);
+      
+      if( itr == fChannelPdfMap.end() ) {
+	std::cout << "Warning: Could not find channel: " << channel
+		  << " in pdf: " << fModel->GetName() << std::endl;
+	return NULL;
+      }
+      
+      RooAbsPdf* pdf = itr->second;
+      if( pdf == NULL ) {
+	std::cout << "Warning: Pdf associated with channel: " << channel
+		  << " is NULL" << std::endl;
+	return NULL;
+      }
+
+      return pdf;
+
+    }
+
     void HistFactoryNavigation::PrintState(const std::string& channel) {
 
-      int label_print_width = 20;
-      int bin_print_width = 10;
+      //int label_print_width = 20;
+      //int bin_print_width = 12;
       std::cout << std::endl << channel << ":" << std::endl;
+
+      // Get the map of Samples for this channel
+      std::map< std::string, RooAbsReal*> SampleFunctionMap = GetSampleFunctionMap(channel);      
+
+      // Set the size of the print width if necessary
+      /*
+      for( std::map< std::string, RooAbsReal*>::iterator itr = SampleFunctionMap.begin(); 
+	   itr != SampleFunctionMap.end(); ++itr) {
+	std::string sample_name = itr->first;
+	label_print_width = TMath::Max(label_print_width, (int)sample_name.size()+2);
+      }
+      */
 
       // Loop over the SampleFunctionMap and print the individual histograms
       // to get the total histogram for the channel
       int num_bins = 0;
-      std::map< std::string, RooAbsReal*> SampleFunctionMap = GetSampleFunctionMap(channel);
       std::map< std::string, RooAbsReal*>::iterator itr = SampleFunctionMap.begin();
       for( ; itr != SampleFunctionMap.end(); ++itr) {
+
 	std::string sample_name = itr->first;
 	std::string tmp_name = sample_name + channel + "_pretty_tmp";
 	TH1* sample_hist = GetSampleHist(channel, sample_name, tmp_name);
-	num_bins = sample_hist->GetNbinsX();
-	std::cout << std::setw(label_print_width) << sample_name;
-	for(int i = 0; i < num_bins; ++i) {
-	  std::cout << std::setw(bin_print_width) << sample_hist->GetBinContent(i+1);
-	}
-	std::cout << std::endl;
+	num_bins = sample_hist->GetNbinsX()*sample_hist->GetNbinsY()*sample_hist->GetNbinsZ();
+	std::cout << std::setw(_label_print_width) << sample_name;
+
+	// Print the content of the histogram
+	PrintMultiDimHist(sample_hist, _bin_print_width);
 	delete sample_hist;
+
       }
 
+      // Make the line break as a set of "===============" ...
       std::string line_break;
-      for(int i = 0; i < label_print_width + num_bins*bin_print_width; ++i) {
+      int high_bin = _maxBinToPrint==-1 ? num_bins : TMath::Min(_maxBinToPrint, (int)num_bins);
+      int low_bin = _minBinToPrint==-1 ? 1 : _minBinToPrint;
+      int break_length = (high_bin - low_bin + 1) * _bin_print_width;
+      break_length += _label_print_width;
+      for(int i = 0; i < break_length; ++i) {
 	line_break += "=";
       }
-
-      //std::cout << "=================================" << std::endl;
       std::cout << line_break << std::endl;
 
       std::string tmp_name = channel + "_pretty_tmp";
       TH1* channel_hist = GetChannelHist(channel, tmp_name);
-      std::cout << std::setw(label_print_width) << "TOTAL:";
-      for(int i = 0; i < channel_hist->GetNbinsX(); ++i) {
-	std::cout << std::setw(bin_print_width) << channel_hist->GetBinContent(i+1);
-      }
-      std::cout << std::endl;
+      std::cout << std::setw(_label_print_width) << "TOTAL:";
+
+      // Print the Histogram
+      PrintMultiDimHist(channel_hist, _bin_print_width);
       delete channel_hist;
 
       return;
@@ -77,9 +311,26 @@ namespace RooStats {
       }
     }
 
+    
+    void HistFactoryNavigation::SetPrintWidths(const std::string& channel) {
 
-    void HistFactoryNavigation::PrintDataSet(RooDataSet* data, const std::string& channel_to_print) {
+      // Get the map of Samples for this channel
+      std::map< std::string, RooAbsReal*> SampleFunctionMap = GetSampleFunctionMap(channel);      
 
+      // Get the max of the samples
+      for( std::map< std::string, RooAbsReal*>::iterator itr = SampleFunctionMap.begin(); 
+	   itr != SampleFunctionMap.end(); ++itr) {
+	std::string sample_name = itr->first;
+	_label_print_width = TMath::Max(_label_print_width, (int)sample_name.size()+2);
+      }
+
+      _label_print_width = TMath::Max( _label_print_width, (int)channel.size() + 7); 
+    }
+
+
+    void HistFactoryNavigation::PrintDataSet(RooDataSet* data, 
+					     const std::string& channel_to_print) {
+      
       // Print the contents of a 'HistFactory' RooDataset
       // These are stored in a somewhat odd way that makes
       // them difficult to inspect for humans.
@@ -94,48 +345,23 @@ namespace RooStats {
       //                        ...etc...
       // =====================================================
 
-      // Create a map of channel names to the channel's bin values
-      std::map< std::string, std::vector<double> > ChannelBinsMap;
+      // int label_print_width = 20;
+      // int bin_print_width = 12;
 
-      // Then loop and fill these vectors for each channel      
-      for(int i = 0; i < data->numEntries(); ++i) {
+      // Get the Data Histogram for this channel
+      for( unsigned int i_chan=0; i_chan < fChannelNameVec.size(); ++i_chan) {
 
-	// Get the row
-	const RooArgSet* row = data->get(i);
-
-	// The current bin height is the weight
-	// of this row.
-	double bin_height = data->weight();
-
-	// Let's figure out the channel
-	// For now, the variable 'channelCat' is magic, but
-	// we should change this to be a bit smarter...
-	std::string channel = row->getCatLabel("channelCat");
-
-	// Get the vector of bin heights (creating if necessary)
-	// and append
-	std::vector<double>& bins = ChannelBinsMap[channel];
-	bins.push_back(bin_height);
-
-      }
-
-      // Now that we have the information, we loop over
-      // our newly created object and pretty print the info
-      std::map< std::string, std::vector<double> >::iterator itr = ChannelBinsMap.begin();
-      for( ; itr != ChannelBinsMap.end(); ++itr) {
-
-	std::string channel_name = itr->first;
+	std::string channel_name = fChannelNameVec.at(i_chan);
 
 	// If we pass a channel string, we only print that one channel
 	if( channel_to_print != "" && channel_name != channel_to_print) continue;
 
-	std::cout << std::setw(20) << channel_name + " (data)";
-	std::vector<double>& bins = itr->second;
-	for(unsigned int i = 0; i < bins.size(); ++i) {
-	  std::cout << std::setw(10) << bins.at(i);
-	}
-	std::cout << std::endl;
+	TH1* data_hist = GetDataHist(data, channel_name, channel_name+"_tmp");
+	std::cout << std::setw(_label_print_width) << channel_name + " (data)";
 
+	// Print the Histogram
+	PrintMultiDimHist(data_hist, _bin_print_width);
+	delete data_hist;
       }
     }
 
@@ -147,6 +373,7 @@ namespace RooStats {
 
       for( unsigned int i = 0; i < fChannelNameVec.size(); ++i) {
 	std::string channel = fChannelNameVec.at(i);
+	SetPrintWidths(channel);
 	PrintState(channel);
 	PrintDataSet(data, channel);
       }
@@ -189,6 +416,120 @@ namespace RooStats {
 
       return;
     }
+
+    void HistFactoryNavigation::PrintChannelParameters(const std::string& channel,
+						       bool IncludeConstantParams) {
+
+      // Get the list of parameters
+      RooArgSet* params = fModel->getParameters(*fObservables);
+
+      // Get the pdf for this channel
+      RooAbsPdf* channel_pdf = GetChannelPdf(channel);
+
+      std::cout << std::endl;
+
+      int label_print_width = 30;  
+      int val_print_width = 15;
+
+      {
+	TIterator* paramItr = params->createIterator();
+	RooRealVar* param = NULL;
+	while( (param=(RooRealVar*)paramItr->Next()) ) {
+	  if( !IncludeConstantParams && param->isConstant() ) continue;
+	  if( findChild(param->GetName(), channel_pdf)==NULL ) continue;
+ 	  std::string ComponentName = param->GetName();
+	  label_print_width = TMath::Max(label_print_width, (int)ComponentName.size()+2);
+	}
+      }
+
+      // Create the title row
+      std::cout << std::setw(label_print_width) << "Parameter";
+      std::cout << std::setw(val_print_width) << "Value"
+		<< std::setw(val_print_width) << "Error Low" 
+		<< std::setw(val_print_width) << "Error High"
+		<< std::endl;
+
+
+      // Loop over the parameters and print their values, etc
+      TIterator* paramItr = params->createIterator();
+      RooRealVar* param = NULL;
+      while( (param=(RooRealVar*)paramItr->Next()) ) {
+
+	if( !IncludeConstantParams && param->isConstant() ) continue;
+	if( findChild(param->GetName(), channel_pdf)==NULL ) continue;
+
+	std::cout << std::setw(label_print_width) << param->GetName();
+	std::cout << std::setw(val_print_width) << param->getVal();
+	if( !param->isConstant() ) {
+	  std::cout << std::setw(val_print_width) << param->getErrorLo() 
+		    << std::setw(val_print_width) << param->getErrorHi();
+	}
+	std::cout<< std::endl;
+      }
+      
+      std::cout << std::endl;
+
+      return;
+    }
+
+
+    void HistFactoryNavigation::PrintSampleParameters(const std::string& channel,
+						      const std::string& sample,
+						      bool IncludeConstantParams) {
+
+      // Get the list of parameters
+      RooArgSet* params = fModel->getParameters(*fObservables);
+
+      // Get the pdf for this channel
+      RooAbsReal* sample_func = SampleFunction(channel, sample);
+      
+      std::cout << std::endl;
+
+      int label_print_width = 30;  
+      int val_print_width = 15;
+
+      {
+	TIterator* paramItr = params->createIterator();
+	RooRealVar* param = NULL;
+	while( (param=(RooRealVar*)paramItr->Next()) ) {
+	  if( !IncludeConstantParams && param->isConstant() ) continue;
+	  if( findChild(param->GetName(), sample_func)==NULL ) continue;
+ 	  std::string ComponentName = param->GetName();
+	  label_print_width = TMath::Max(label_print_width, (int)ComponentName.size()+2);
+	}
+      }
+      
+
+      // Create the title row
+      std::cout << std::setw(label_print_width) << "Parameter";
+      std::cout << std::setw(val_print_width) << "Value"
+		<< std::setw(val_print_width) << "Error Low" 
+		<< std::setw(val_print_width) << "Error High"
+		<< std::endl;
+      
+      // Loop over the parameters and print their values, etc
+      TIterator* paramItr = params->createIterator();
+      RooRealVar* param = NULL;
+      while( (param=(RooRealVar*)paramItr->Next()) ) {
+
+	if( !IncludeConstantParams && param->isConstant() ) continue;
+	if( findChild(param->GetName(), sample_func)==NULL ) continue;
+
+	std::cout << std::setw(label_print_width) << param->GetName();
+	std::cout << std::setw(val_print_width) << param->getVal();
+	if( !param->isConstant() ) {
+	  std::cout << std::setw(val_print_width) << param->getErrorLo() 
+		    << std::setw(val_print_width) << param->getErrorHi();
+	}
+	std::cout<< std::endl;
+      }
+      
+      std::cout << std::endl;
+
+      return;
+    }
+
+
 
     double HistFactoryNavigation::GetBinValue(int bin, const std::string& channel) {
       // Get the total bin height for the ith bin (ROOT indexing convention)
@@ -267,11 +608,53 @@ namespace RooStats {
       }
       
       return channel_itr->second;
+      
+    }
+    
+    RooAbsReal* HistFactoryNavigation::GetNominalNode(const std::string& channel, 
+						      const std::string& sample) {
+      
+      // First, get the (fully interpolated and scaled) function
+      RooAbsReal* full_node = SampleFunction(channel, sample);
+      RooAbsReal* nominal_node = NULL;
+
+      // Next, get the sub function that has the name 'nominal'
+      RooArgSet* components = full_node->getComponents();
+      TIterator* argItr = components->createIterator();
+      RooAbsArg* arg = NULL;
+      while( (arg=(RooAbsArg*)argItr->Next()) ) {
+	std::string NodeName = arg->GetName();
+	if( NodeName.find("nominal") != std::string::npos ) {
+	  nominal_node = dynamic_cast<RooAbsReal*>(arg);
+	  break;
+	}
+      }
+
+      if( nominal_node==NULL ) {
+	std::cout << "Error: Nominal node for sample: " << sample
+		  << " in channel: " << channel << " is NULL" << std::endl;
+	throw hf_exc();
+      }
+
+      // Finally, do some sanity checks
+      std::string NominalNodeName = nominal_node->GetName();
+      std::string NameA = sample + "_" + channel + "_nominal";
+      std::string NameB = sample + "_" + channel + "_Hist_alphanominal";
+      if( NominalNodeName != NameA && NominalNodeName != NameB ) {
+	std::cout << "Error: Nominal node for sample: " << sample
+		  << " in channel: " << channel 
+		  << " has unexpected name: " << NominalNodeName << std::endl;
+	throw hf_exc();
+      }
+
+      // And return if all is well
+      return nominal_node;
 
     }
+    
 
-
-    TH1* HistFactoryNavigation::GetSampleHist(const std::string& channel, const std::string& sample,
+    TH1* HistFactoryNavigation::GetSampleHist(const std::string& channel, 
+					      const std::string& sample,
 					      const std::string& hist_name) {
       // Get a histogram of the expected values for
       // a particular sample in a particular channel
@@ -284,7 +667,11 @@ namespace RooStats {
 
       RooAbsReal* sample_function = SampleFunction(channel, sample);
 
-      return MakeHistFromRooFunction( sample_function, observable_list, name );
+      TH1* hist = MakeHistFromRooFunction( sample_function, observable_list, name );
+      hist->SetName(name.c_str());
+      hist->SetTitle(name.c_str());
+
+      return hist;
 				     
     }
 
@@ -295,7 +682,7 @@ namespace RooStats {
       // Give a name, or a default one will be used
 
       RooArgList observable_list( *GetObservableSet(channel) );
-
+      
       std::map< std::string, RooAbsReal*> SampleFunctionMap = GetSampleFunctionMap(channel);
 
       // Okay, 'loop' once 
@@ -305,7 +692,8 @@ namespace RooStats {
 	std::string sample_name = itr->first;
 	std::string tmp_hist_name = sample_name + "_hist_tmp";
 	RooAbsReal* sample_function = itr->second;
-	TH1* sample_hist = MakeHistFromRooFunction(sample_function, observable_list, tmp_hist_name);
+	TH1* sample_hist = MakeHistFromRooFunction(sample_function, observable_list, 
+						   tmp_hist_name);
 	total_hist = (TH1*) sample_hist->Clone("TotalHist");
 	delete sample_hist;
 	break;
@@ -319,7 +707,8 @@ namespace RooStats {
 	std::string sample_name = itr->first;
 	std::string tmp_hist_name = sample_name + "_hist_tmp";
 	RooAbsReal* sample_function = itr->second;
-	TH1* sample_hist = MakeHistFromRooFunction(sample_function, observable_list, tmp_hist_name);
+	TH1* sample_hist = MakeHistFromRooFunction(sample_function, observable_list, 
+						   tmp_hist_name);
 	total_hist->Add(sample_hist);
 	delete sample_hist;
       }
@@ -330,6 +719,205 @@ namespace RooStats {
       return total_hist;
 
     }
+
+
+    std::vector< std::string > HistFactoryNavigation::GetChannelSampleList(const std::string& channel) {
+      
+      std::vector<std::string> sample_list;
+
+      std::map< std::string, RooAbsReal*> sample_map = fChannelSampleFunctionMap[channel];
+      std::map< std::string, RooAbsReal*>::iterator itr = sample_map.begin();;
+      for( ; itr != sample_map.end(); ++itr) {
+	sample_list.push_back( itr->first );
+      }
+
+      return sample_list;
+
+    }
+
+    
+    THStack* HistFactoryNavigation::GetChannelStack(const std::string& channel, 
+						    const std::string& name) {
+    
+      THStack* stack = new THStack(name.c_str(), "");
+
+      std::vector< std::string > samples = GetChannelSampleList(channel);
+
+      // Add the histograms
+      for( unsigned int i=0; i < samples.size(); ++i) {
+	std::string sample_name = samples.at(i);
+	TH1* hist = GetSampleHist(channel, sample_name, sample_name);
+	
+	int color = 2+i;
+	if( fColorMap.find(sample_name) != fColorMap.end() ){
+	  color = fColorMap[sample_name];
+	} else {
+	  fColorMap[sample_name] = color;
+	}
+	hist->SetFillColor(color);
+	hist->SetLineColor(kBlack);
+	//if( color != 0 ) hist->SetLineColor(color);
+	//else hist->SetLineColor(1);
+	stack->Add(hist);
+      }
+
+      return stack;
+
+    }
+
+  
+    TH1* HistFactoryNavigation::GetDataHist(RooDataSet* data, const std::string& channel, 
+					    const std::string& name) {
+					    
+      // TO DO:
+      // MAINTAIN THE ACTUAL RANGE, USING THE OBSERVABLES
+      // MAKE IT WORK FOR MULTI-DIMENSIONAL
+      // 
+
+      // If the dataset covers multiple categories,
+      // Split the dataset based on the categories
+      if(strcmp(fModel->ClassName(),"RooSimultaneous")==0){
+
+	// If so, get a list of the component pdf's:
+	RooSimultaneous* simPdf = (RooSimultaneous*) fModel;
+	RooCategory* channelCat = (RooCategory*) (&simPdf->indexCat());
+
+	TList* dataset_list = data->split(*channelCat);
+
+	data = dynamic_cast<RooDataSet*>( dataset_list->FindObject(channel.c_str()) );
+	
+      }
+
+      RooArgList vars( *GetObservableSet(channel) );
+
+      int dim = vars.getSize();
+
+      TH1* hist = NULL;
+
+      if( dim==1 ) {
+	RooRealVar* varX = (RooRealVar*) vars.at(0);
+	hist = data->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()) );
+      }
+      else if( dim==2 ) {
+	RooRealVar* varX = (RooRealVar*) vars.at(0);
+	RooRealVar* varY = (RooRealVar*) vars.at(1);
+	hist = data->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()),
+				      RooFit::YVar(*varY, RooFit::Binning(varY->getBinning())) );
+      }
+      else if( dim==3 ) {
+	RooRealVar* varX = (RooRealVar*) vars.at(0);
+	RooRealVar* varY = (RooRealVar*) vars.at(1);
+	RooRealVar* varZ = (RooRealVar*) vars.at(2);
+	hist = data->createHistogram( name.c_str(),*varX, RooFit::Binning(varX->getBinning()), 
+				      RooFit::YVar(*varY, RooFit::Binning(varY->getBinning())),
+				      RooFit::YVar(*varZ, RooFit::Binning(varZ->getBinning())) );
+      }
+      else {
+	std::cout << "Error: To Create Histogram from RooDataSet, Dimension must be 1, 2, or 3" 
+		  << std::endl;
+	std::cout << "Observables: " << std::endl;
+	vars.Print("V");
+	throw hf_exc();
+      }
+
+      // Set the errors to be root(N) "by hand"
+      // Since it's data, this is a decent assumption
+
+      for( int i=0; i < hist->GetNbinsX()*hist->GetNbinsY()*hist->GetNbinsZ(); ++i) {
+	int current_bin = i+1;
+	if( hist->IsBinUnderflow(current_bin) || hist->IsBinOverflow(current_bin) ) continue;
+	
+	double bin_error = TMath::Sqrt(hist->GetBinContent(current_bin));
+	hist->SetBinError(current_bin, bin_error);
+      }
+
+      return hist;
+
+    }
+
+
+    void HistFactoryNavigation::DrawChannel(const std::string& channel, RooDataSet* data, 
+					    bool DrawLegend) {
+    
+      // Get the stack
+      THStack* stack = GetChannelStack(channel, channel+"_stack_tmp");
+      TList* hist_list = stack->GetHists();
+      stack->Draw();
+
+      // Get and draw the data if necessary
+      TH1* data_hist=NULL;
+      if( data!=NULL ) {
+	data_hist = GetDataHist(data, channel, channel+"_data_tmp");
+	data_hist->SetLineColor(kBlack);
+	double max_height = TMath::Max( stack->GetMaximum(), data_hist->GetMaximum());
+	stack->SetMaximum(max_height*1.4); 
+	stack->Draw();
+	//stack->SetLineSize(2);
+	data_hist->Draw("SAME");
+      }
+      
+      // Create and draw the legend
+      TLegend* leg = NULL;
+      if( DrawLegend ) {
+	leg = new TLegend(.75, .70, .90, .90);
+	leg->SetFillColor(0);
+	leg->SetBorderSize(0);
+
+	if(data_hist != NULL) {
+	  leg->AddEntry(data_hist, "data", "lpe");
+	}
+
+	// Iterate over hists and draw them
+	TIter itr(hist_list);
+	TObject* hist = 0;
+	std::vector<TH1*> hist_vec;
+	while((hist = itr())) {
+	  hist_vec.push_back(dynamic_cast<TH1*>(hist));
+	}
+	for( unsigned int i=0; i < hist_vec.size(); ++i) {
+	  unsigned int entry = hist_vec.size() - i - 1;
+	  TH1* mc_hist = hist_vec.at(entry);
+	  leg->AddEntry( mc_hist, mc_hist->GetName(), "f" );
+	}
+
+	leg->Draw();
+      }
+
+    }
+  
+
+
+    RooArgSet HistFactoryNavigation::_GetAllProducts(RooProduct* node) {
+
+      // An internal method to recursively get all products,
+      // including if a RooProduct is a Product of RooProducts
+      // etc
+
+      RooArgSet allTerms;
+
+      // Get All Subnodes of this product
+      RooArgSet productComponents = node->components();
+      
+      // Loop over the subnodes and add
+      TIterator* itr = productComponents.createIterator();
+      RooAbsArg* arg = NULL;
+      while( (arg=(RooAbsArg*)itr->Next()) ) {
+	std::string ClassName = arg->ClassName();
+	if( ClassName == "RooProduct" ) {
+	  RooProduct* prod = dynamic_cast<RooProduct*>(arg);
+	  allTerms.add( _GetAllProducts(prod) );
+	}
+	else {
+	  allTerms.add(*arg);
+	}
+      }
+      delete itr;
+
+      return allTerms;
+
+    }
+
+
 
 
     void HistFactoryNavigation::_GetNodes(RooAbsPdf* modelPdf, const RooArgSet* observables) {
@@ -354,7 +942,7 @@ namespace RooStats {
 	// If so, get a list of the component pdf's:
 	RooSimultaneous* simPdf = (RooSimultaneous*) modelPdf;
 	RooCategory* channelCat = (RooCategory*) (&simPdf->indexCat());
-	
+
 	// Iterate over the categories and get the
 	// pdf and observables for each category
 	TIterator* iter = channelCat->typeIterator() ;
@@ -370,7 +958,9 @@ namespace RooStats {
 
       } else { 
 	RooArgSet* obstmp = modelPdf->getObservables(*observables) ;	
+	// The channel name is model_CHANNEL
 	std::string ChannelName = modelPdf->GetName();
+	ChannelName = ChannelName.replace(0, 6, "");
 	fChannelNameVec.push_back(ChannelName);
 	fChannelPdfMap[ChannelName] = modelPdf;
 	fChannelObservMap[ChannelName] = obstmp;
@@ -410,7 +1000,7 @@ namespace RooStats {
       for( unsigned int i = 0; i < fChannelNameVec.size(); ++i ) {
 
 	std::string ChannelName = fChannelNameVec.at(i);
-	RooRealSumPdf* sumPdf = (RooRealSumPdf*) fChannelSumNodeMap[ChannelName];
+	RooRealSumPdf* sumPdf = dynamic_cast<RooRealSumPdf*>(fChannelSumNodeMap[ChannelName]);
 	
 	// We now take the RooRealSumPdf and loop over
 	// its component functions.  The RooRealSumPdf turns
@@ -459,22 +1049,56 @@ namespace RooStats {
     }
 
 
-    RooAbsReal* HistFactoryNavigation::findChild(const std::string& name, RooAbsReal* parent) {
+    RooAbsArg* HistFactoryNavigation::findChild(const std::string& name, RooAbsReal* parent) const {
       
-      RooAbsReal* term=NULL;
+      RooAbsArg* term=NULL;
 
-      // Some RooFit boilerplate...
+      // Check if it is a "component",
+      // ie a sub node:
       RooArgSet* components = parent->getComponents();
       TIterator* argItr = components->createIterator();
       RooAbsArg* arg = NULL;
       while( (arg=(RooAbsArg*)argItr->Next()) ) {
 	std::string ArgName = arg->GetName();
 	if( ArgName == name ) {
-	  term = dynamic_cast<RooAbsReal*>(arg);
+	  term = arg; //dynamic_cast<RooAbsReal*>(arg);
 	  break;
 	}
       }
       delete components;
+      delete argItr;
+
+      if( term != NULL ) return term;
+
+      // If that failed, 
+      // Check if it's a Parameter
+      // (ie a RooRealVar)
+      RooArgSet* args = new RooArgSet();
+      RooArgSet* paramSet = parent->getParameters(args);
+      TIterator* paramItr = paramSet->createIterator();
+      RooAbsArg* param = NULL;
+      while( (param=(RooAbsArg*)paramItr->Next()) ) {
+	std::string ParamName = param->GetName();
+	if( ParamName == name ) {
+	  term = param; //dynamic_cast<RooAbsReal*>(arg);
+	  break;
+	}
+      }
+      delete args;
+      delete paramSet;
+      delete paramItr;
+
+      /* Not sure if we want to be silent
+	 But since we're returning a pointer which can be NULL,
+	 I think it's the user's job to do checks on it.
+	 A dereference will always cause a crash, so it won't
+	 be silent for long...
+	 if( term==NULL ) {
+	 std::cout << "Error: Failed to find node: " << name
+	 << " as a child of: " << parent->GetName()
+	 << std::endl;
+	 }
+      */
 
       return term;
 
@@ -485,14 +1109,22 @@ namespace RooStats {
      
       std::string ConstraintTermName = parameter + "Constraint";
 
+      // First, as a sanity check, let's see if the parameter
+      // itself actually exists and if the model depends on it:
+      RooRealVar* param = dynamic_cast<RooRealVar*>(findChild(parameter, fModel));
+      if( param==NULL ) {
+	std::cout << "Error: Couldn't Find parameter: " << parameter << " in model."
+		  << std::endl;
+	return NULL;
+      }
+
       // The "gamma"'s use a different constraint term name
       if( parameter.find("gamma_stat_") != std::string::npos ) { 
 	ConstraintTermName = parameter + "_constraint";
       }
-      // RooAbsReal* term = NULL;
-      // RooAbsReal* term = dynamic_cast<RooAbsReal*>(fModel->findServer(ConstraintTermName.c_str()));
 
-      RooAbsReal* term = findChild(ConstraintTermName, fModel);
+      // Now, get the constraint itself
+      RooAbsReal* term = dynamic_cast<RooAbsReal*>(findChild(ConstraintTermName, fModel));
 
       if( term==NULL ) {
 	std::cout << "Error: Couldn't Find constraint term for parameter: " << parameter
@@ -501,88 +1133,6 @@ namespace RooStats {
       }
 
       return term;
-
-      /*
-      // Get the set of all variables
-      RooArgSet all_vars = wspace->allVars();
-
-      // Loop over all variables (boilerplate...)
-      TIterator* iter = all_vars.createIterator() ;
-      RooAbsArg* arg ;
-      while((arg=(RooAbsArg*)iter->Next())) {
-
-	// Get the variable, ensuring that it's valid
-	RooRealVar* var = dynamic_cast<RooRealVar*>(arg) ;
-	if( !var ) {
-	  std::cout << "Error: Failed to obtain pointer to variable: " << arg->GetName() << std::endl;
-	  throw runtime_error("fixStatError");
-	}
-
-	std::string VarName = var->GetName();
-
-	if( VarName == "" ) {
-	  std::cout << "Error: Invalid variable name encountered" << std::endl;
-	  throw runtime_error("fixStatError");
-	}
-
-	// Skip if it's not a "gamma_stat_* variable"
-	if( string(VarName).find("gamma_stat_")==string::npos ) continue;
-
-	// Skip if it's not "nominal" parameter
-	if( string(VarName).find("nom_")!=string::npos ) continue;
-    
-
-
-	// Get the constraint and check its type:
-	RooAbsReal* constraint = (RooAbsReal*) wspace->obj( (VarName+"_constraint").c_str() );
-	std::string ConstraintType = constraint->IsA()->GetName();
-
-	double sigma = 0.0;
-
-	if( ConstraintType == "" ) {
-	  std::cout << "Error: Strange constraint type for Stat Uncertainties" << std::endl;
-	  throw runtime_error("fixStatError");
-	}
-	else if( ConstraintType == "RooGaussian" ){
-	  RooAbsReal* sigmaVar = (RooAbsReal*) wspace->obj( (VarName+"_sigma").c_str() );
-	  sigma = sigmaVar->getVal();
-	}
-	else if( ConstraintType == "RooPoisson" ){
-	  RooAbsReal* nom_gamma = (RooAbsReal*) wspace->obj( ("nom_" + VarName).c_str() );
-	  double nom_gamma_val = nom_gamma->getVal();
-	  sigma = 1.0 / TMath::Sqrt( nom_gamma_val );
-	} 
-	else {
-	  std::cout << "Error: Strange constraint type for Stat Uncertainties: " << ConstraintType << std::endl;
-	  throw runtime_error("fixStatError");
-	}
-
-	std::cout << "Encountered a statistical uncertainty variable: " << VarName
-		  << " Error is: " << sigma;
-
-	// Now, fix the parameter if it
-	// is less than some value
-	if( sigma < error_min ) {
-	  if( var->isConstant() ) std::cout << ". Keepting this variable Constant";
-	  else std::cout << ". Setting this variable Constant";
-
-	  var->setConstant(true);
-	}
-	else {
-	  if( var->isConstant() ) std::cout << ". Setting this variable NOT Constant";
-	  else std::cout << ". Keepting this variable NOT Constant";
-
-	  var->setConstant(false);
-	}
-
-	std::cout << std::endl;
-
-      }
-
-      // Done :)
-      return;
-
-*/
 
     }
 
@@ -625,7 +1175,6 @@ namespace RooStats {
 	}
 
 	// Get the sigma and its value
-	//RooAbsReal* sigmaVar = findChild(sigmaName, constraintTerm);
 	RooAbsReal* sigmaVar = dynamic_cast<RooAbsReal*>(constraintTerm->findServer(sigmaName.c_str()));
 	if( sigmaVar==NULL ) {
 	  std::cout << "Error: Failed to find the 'sigma' node: " << sigmaName
@@ -657,8 +1206,158 @@ namespace RooStats {
 
     }
 
+    void HistFactoryNavigation::ReplaceNode(const std::string& ToReplace, RooAbsArg* ReplaceWith) {
 
-    TH1* HistFactoryNavigation::MakeHistFromRooFunction( RooAbsReal* func, RooArgList vars, std::string name ) {
+      // First, check that the node to replace is actually a node:
+      RooAbsArg* nodeToReplace = findChild(ToReplace, fModel);
+      if( nodeToReplace==NULL ) {
+	std::cout << "Error: Cannot replace node: " << ToReplace
+		  << " because this node wasn't found in: " << fModel->GetName()
+		  << std::endl;
+	throw hf_exc();
+      }
+
+      // Now that we have the node we want to replace, we have to 
+      // get its parent node
+      
+      // Do this by looping over the clients and replacing their servers
+      // (NOTE: This happens for ALL clients across the pdf)
+      TIterator* clientItr = nodeToReplace->clientIterator();
+      RooAbsArg* client=NULL;
+      while((client=(RooAbsArg*)clientItr->Next())) {
+	
+	// Check if this client is a member of our pdf
+	// (We probably don't want to mess with clients
+	// if they aren't...)
+	if( findChild(client->GetName(), fModel)==NULL ) continue;
+	
+	// Now, do the replacement:
+	bool valueProp=false;
+	bool shapeProp=false;
+	client->replaceServer( *nodeToReplace, *ReplaceWith, valueProp, shapeProp );
+	std::cout << "Replaced: " << ToReplace << " with: " << ReplaceWith->GetName()
+		  << " in node: " << client->GetName() << std::endl;
+
+      }
+      delete clientItr;
+
+      return;
+
+    }
+
+
+    void HistFactoryNavigation::PrintSampleComponents(const std::string& channel, 
+						      const std::string& sample) {
+      
+      // Get the Sample Node
+      RooAbsReal* sampleNode = SampleFunction(channel, sample);
+
+      // Get the observables for this channel
+      RooArgList observable_list( *GetObservableSet(channel) );
+
+      // Make the total histogram for this sample
+      std::string total_Name = sampleNode->GetName();
+      TH1* total_hist= MakeHistFromRooFunction( sampleNode, observable_list, total_Name + "_tmp");
+      unsigned int num_bins = total_hist->GetNbinsX()*total_hist->GetNbinsY()*total_hist->GetNbinsZ();
+      
+      // Let's see what it is...
+      //SetPrintWidths(channel);
+      
+      int label_print_width = 30;  
+      int bin_print_width = 12;
+
+      // Get the components of this sample
+      RooArgSet components;
+      if( strcmp(sampleNode->ClassName(),"RooProduct")==0){
+	RooProduct* prod = dynamic_cast<RooProduct*>(sampleNode);
+	components.add( _GetAllProducts(prod) );
+      }
+      else {
+	components.add(*sampleNode);
+      }
+      
+      /////// NODE SIZE
+      {
+	TIterator* itr = components.createIterator();
+	RooAbsArg* arg = NULL;
+	while( (arg=(RooAbsArg*)itr->Next()) ) {
+	  RooAbsReal* component = dynamic_cast<RooAbsReal*>(arg);
+	  std::string NodeName = component->GetName();
+	  label_print_width = TMath::Max(label_print_width, (int)NodeName.size()+2);
+	}
+      }
+
+      // Now, loop over the components and print them out:
+      std::cout << std::endl;
+      std::cout << "Channel: " << channel << " Sample: " << sample << std::endl;
+      std::cout << std::setw(label_print_width) << "Factor";
+
+      for(unsigned int i=0; i < num_bins; ++i) {
+	if( _minBinToPrint != -1 && (int)i < _minBinToPrint) continue;
+	if( _maxBinToPrint != -1 && (int)i > _maxBinToPrint) break;
+	std::stringstream sstr;
+	sstr << "Bin" << i;
+	std::cout << std::setw(bin_print_width) << sstr.str();
+      }
+      std::cout << std::endl;
+
+      TIterator* itr = components.createIterator();
+      RooAbsArg* arg = NULL;
+      while( (arg=(RooAbsArg*)itr->Next()) ) {
+	RooAbsReal* component = dynamic_cast<RooAbsReal*>(arg);
+	std::string NodeName = component->GetName();
+
+	// Make a histogram for this node	
+	// Do some horrible things to prevent some really
+	// annoying messages from being printed
+	RooFit::MsgLevel levelBefore = RooMsgService::instance().globalKillBelow();
+	RooMsgService::instance().setGlobalKillBelow(RooFit::FATAL);
+	TH1* hist=NULL;
+	try {
+	  hist = MakeHistFromRooFunction( component, observable_list, NodeName+"_tmp");
+	} catch(...) {
+	  RooMsgService::instance().setGlobalKillBelow(levelBefore);
+	  throw;
+	}
+	RooMsgService::instance().setGlobalKillBelow(levelBefore);
+
+	// Print the hist
+	std::cout << std::setw(label_print_width) << NodeName;
+
+	// Print the Histogram
+	PrintMultiDimHist(hist, bin_print_width);
+	delete hist;
+      }
+      /////
+      std::string line_break;
+      int high_bin = _maxBinToPrint==-1 ? num_bins : TMath::Min(_maxBinToPrint, (int)num_bins);
+      int low_bin = _minBinToPrint==-1 ? 1 : _minBinToPrint;
+      int break_length = (high_bin - low_bin + 1) * bin_print_width;
+      break_length += label_print_width;
+      for(int i = 0; i < break_length; ++i) {
+	line_break += "=";
+      }
+      std::cout << line_break << std::endl;
+
+      std::cout << std::setw(label_print_width) << "TOTAL:";
+      PrintMultiDimHist(total_hist, bin_print_width);
+      /*
+      for(unsigned int i = 0; i < num_bins; ++i) {
+	if( _minBinToPrint != -1 && (int)i < _minBinToPrint) continue;
+	if( _maxBinToPrint != -1 && (int)i > _maxBinToPrint) break;
+	std::cout << std::setw(bin_print_width) << total_hist->GetBinContent(i+1);
+      }
+      std::cout << std::endl << std::endl;
+      */
+      delete total_hist;
+      
+      return;
+
+    }
+
+
+    TH1* HistFactoryNavigation::MakeHistFromRooFunction( RooAbsReal* func, RooArgList vars, 
+							 std::string name ) {
 
       // Turn a RooAbsReal* into a TH1* based 
       // on a template histogram.  
@@ -710,6 +1409,64 @@ namespace RooStats {
       _GetNodes(modelPdf, observables);
     }
 
+
+    void HistFactoryNavigation::SetConstant(const std::string& regExpr, bool constant) {
+
+      // Regex FTW
+      
+      TString RegexTString(regExpr);
+      TRegexp theRegExpr(RegexTString);
+
+      // Now, loop over all variables and 
+      // set the constant as 
+
+      // Get the list of parameters
+      RooArgSet* params = fModel->getParameters(*fObservables);
+      
+      std::cout << std::endl;
+
+      // Create the title row
+      std::cout << std::setw(30) << "Parameter";
+      std::cout << std::setw(15) << "Value"
+		<< std::setw(15) << "Error Low" 
+		<< std::setw(15) << "Error High"
+		<< std::endl;
+      
+      // Loop over the parameters and print their values, etc
+      TIterator* paramItr = params->createIterator();
+      RooRealVar* param = NULL;
+      while( (param=(RooRealVar*)paramItr->Next()) ) {
+
+	std::string ParamName = param->GetName();
+	TString ParamNameTString(ParamName);
+
+	// Use the Regex to skip all parameters that don't match
+	//if( theRegExpr.Index(ParamNameTString, ParamName.size()) == -1 ) continue;
+	Ssiz_t dummy;
+	if( theRegExpr.Index(ParamNameTString, &dummy) == -1 ) continue;
+	
+	param->setConstant( constant );
+	std::cout << "Setting param: " << ParamName << " constant" 
+		  << " (matches regex: " << regExpr << ")" << std::endl;
+      }
+    }
+
+    RooRealVar* HistFactoryNavigation::var(const std::string& varName) const {
+      
+      RooAbsArg* arg = findChild(varName, fModel);
+      if( !arg ) return NULL;
+
+      RooRealVar* var_obj = dynamic_cast<RooRealVar*>(arg);
+      return var_obj;
+
+    }
+
+    /*
+      void HistFactoryNavigation::AddChannel(const std::string& channel, RooAbsPdf* pdf, 
+      RooDataSet* data=NULL) {
+
+      }
+    */
 
   } // namespace HistFactory
 } // namespace RooStats

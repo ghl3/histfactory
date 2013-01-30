@@ -1,3 +1,24 @@
+// @(#)root/roostats:$Id: Channel.cxx 47288 2012-11-14 21:38:07Z ghl $
+// Author: Kyle Cranmer, George Lewis 
+/*************************************************************************
+ * Copyright (C) 1995-2008, Rene Brun and Fons Rademakers.               *
+ * All rights reserved.                                                  *
+ *                                                                       *
+ * For the licensing terms see $ROOTSYS/LICENSE.                         *
+ * For the list of contributors see $ROOTSYS/README/CREDITS.             *
+ *************************************************************************/
+
+//_________________________________________________
+/*
+BEGIN_HTML
+<p>
+</p>
+END_HTML
+*/
+//
+
+
+
 #include "RooStats/HistFactory/Channel.h"
 #include <stdlib.h>
 
@@ -61,7 +82,6 @@ void RooStats::HistFactory::Channel::Print( std::ostream& stream ) {
 void RooStats::HistFactory::Channel::PrintXML( std::string Directory, std::string Prefix ) {
 
   // Create an XML file for this channel
-
   std::cout << "Printing XML Files for channel: " << GetName() << std::endl;
   
   std::string XMLName = Prefix + fName + ".xml";
@@ -69,19 +89,10 @@ void RooStats::HistFactory::Channel::PrintXML( std::string Directory, std::strin
   
   ofstream xml( XMLName.c_str() );
 
-
   // Add the time
   xml << "<!--" << std::endl;
   xml << "This xml file created automatically on: " << std::endl;
-/*
-  time_t t = time(0);   // get time now
-  struct tm * now = localtime( &t );
-  xml << (now->tm_year + 1900) << '-'
-      << (now->tm_mon + 1) << '-'
-      << now->tm_mday
-      << std::endl;
-*/
-// LM: use TTimeStamp since time_t does not work on Windows
+  // LM: use TTimeStamp since time_t does not work on Windows
   TTimeStamp t; 
   UInt_t year = 0; 
   UInt_t month = 0; 
@@ -91,9 +102,7 @@ void RooStats::HistFactory::Channel::PrintXML( std::string Directory, std::strin
       << month << '-'
       << day
       << std::endl;
-
   xml << "-->" << std::endl;
-  
 
   // Add the DOCTYPE
   xml << "<!DOCTYPE Channel  SYSTEM 'HistFactorySchema.dtd'>  " << std::endl << std::endl;
@@ -101,16 +110,20 @@ void RooStats::HistFactory::Channel::PrintXML( std::string Directory, std::strin
   // Add the Channel
   xml << "  <Channel Name=\"" << fName << "\" InputFile=\"" << fInputFile << "\" >" << std::endl << std::endl;
 
+  fData.PrintXML( xml );
+  /*
   xml << "    <Data HistoName=\"" << fData.GetHistoName() << "\" "
       << "InputFile=\"" << fData.GetInputFile() << "\" "
       << "HistoPath=\"" << fData.GetHistoPath() << "\" "
       << " /> " << std::endl << std::endl;  
+  */
 
-
+  fStatErrorConfig.PrintXML( xml );
+  /*
   xml << "    <StatErrorConfig RelErrorThreshold=\"" << fStatErrorConfig.GetRelErrorThreshold() << "\" "
       << "ConstraintType=\"" << Constraint::Name( fStatErrorConfig.GetConstraintType() ) << "\" "
       << "/> " << std::endl << std::endl;            
-
+  */
 
   for( unsigned int i = 0; i < fSamples.size(); ++i ) {
     fSamples.at(i).PrintXML( xml );
@@ -118,14 +131,10 @@ void RooStats::HistFactory::Channel::PrintXML( std::string Directory, std::strin
   }
 
   xml << std::endl;
-
   xml << "  </Channel>  " << std::endl;
-
   xml.close();
 
   std::cout << "Finished printing XML files" << std::endl;
-
-
 
 }
 
@@ -187,18 +196,24 @@ void RooStats::HistFactory::Channel::CollectHistograms() {
   // and collect all necessary histograms
 
   // Get the Data Histogram:
-
   if( fData.GetInputFile() != "" ) {
     fData.SetHisto( GetHistogram(fData.GetInputFile(), 
 				 fData.GetHistoPath(),
 				 fData.GetHistoName()) );
   }
 
+  // Collect any histograms for additional Datasets
+  for( unsigned int i=0; i < fAdditionalData.size(); ++i) {
+    RooStats::HistFactory::Data& data = fAdditionalData.at(i);
+    if( data.GetInputFile() != "" ) {
+      data.SetHisto( GetHistogram(data.GetInputFile(), data.GetHistoPath(),data.GetHistoName()) );
+    }
+  }
+
   // Get the histograms for the samples:
   for( unsigned int sampItr = 0; sampItr < fSamples.size(); ++sampItr ) {
 
     RooStats::HistFactory::Sample& sample = fSamples.at( sampItr );
-
 
     // Get the nominal histogram:
     std::cout << "Collecting Nominal Histogram" << std::endl;
@@ -208,20 +223,35 @@ void RooStats::HistFactory::Channel::CollectHistograms() {
 
     sample.SetHisto( Nominal );
 
-
     // Get the StatError Histogram (if necessary)
-
     if( sample.GetStatError().GetUseHisto() ) {
-
+      std::cout << "Get Stat Error Histogram" << std::endl;
       sample.GetStatError().SetErrorHist( GetHistogram(sample.GetStatError().GetInputFile(),
 						       sample.GetStatError().GetHistoPath(),
 						       sample.GetStatError().GetHistoName()) );
     }
 
-      
-    // Get the HistoSys Variations:
-    for( unsigned int histoSysItr = 0; histoSysItr < sample.GetHistoSysList().size(); ++histoSysItr ) {
+    if( sample.GetStatError().GetHandleZeroBins() ) {
+      std::cout << "Get Stat MC Weight Histogram" << std::endl;
 
+      TH1* McWeightHist = NULL;
+      
+      // If the name is given, we get the histogram
+      // Otherwise, it stays as NULL and HistoToWorkspaceFactory
+      // will use the 'average' in the NULL case (to be implemented)
+      if( sample.GetStatError().GetMcWeightHistoName() != "" ) {
+	McWeightHist = GetHistogram(sample.GetStatError().GetMcWeightInputFile(),
+				    sample.GetStatError().GetMcWeightHistoPath(),
+				    sample.GetStatError().GetMcWeightHistoName());
+      }
+      
+      sample.GetStatError().SetMcWeightHist(McWeightHist);
+      
+    }
+
+    // Get the HistoSys Variations:
+    for(unsigned int histoSysItr=0; histoSysItr < sample.GetHistoSysList().size(); ++histoSysItr) {
+      
       RooStats::HistFactory::HistoSys& histoSys = sample.GetHistoSysList().at( histoSysItr );
 	
       histoSys.SetHistoLow( GetHistogram(histoSys.GetInputFileLow(), 
@@ -259,6 +289,20 @@ void RooStats::HistFactory::Channel::CollectHistograms() {
 					  shapeSys.GetHistoName()) );
     } // End Loop over ShapeSys
 
+    
+    // Get any initial shape for a ShapeFactor
+    for( unsigned int shapeFactorItr = 0; shapeFactorItr < sample.GetShapeFactorList().size(); ++shapeFactorItr ) {
+
+      RooStats::HistFactory::ShapeFactor& shapeFactor = sample.GetShapeFactorList().at( shapeFactorItr );
+
+      // Check if we need an InitialShape
+      if( shapeFactor.HasInitialShape() ) {
+	TH1* hist = GetHistogram( shapeFactor.GetInputFile(), shapeFactor.GetHistoPath(), 
+				  shapeFactor.GetHistoName() );
+	shapeFactor.SetInitialShape( hist );
+      }
+
+    } // End Loop over ShapeFactor
 
   } // End Loop over Samples
 
@@ -393,15 +437,25 @@ bool RooStats::HistFactory::Channel::CheckHistograms() {
 
 
 
-TH1* RooStats::HistFactory::Channel::GetHistogram(std::string InputFile, std::string HistoPath, std::string HistoName) {
+TH1* RooStats::HistFactory::Channel::GetHistogram(std::string InputFile, 
+						  std::string HistoPath, 
+						  std::string HistoName) {
+
+  if(HistoName=="") {
+    std::cout << "Cannot Get Histogram: Histo is empty" << std::endl;
+    throw hf_exc();
+  }
+
+  if(InputFile=="") {
+    std::cout << "Cannot Get Histogram: InputFile is empty" << std::endl;
+    throw hf_exc();
+  }
 
   std::cout << "Getting histogram. "  
 	    << " InputFile " << InputFile
 	    << " HistoPath " << HistoPath
 	    << " HistoName " << HistoName
 	    << std::endl;
-
-  //  TFile* file = TFile::Open( InputFile.c_str() );
 
   TFile* inFile = TFile::Open( InputFile.c_str() );
   if( !inFile ) {

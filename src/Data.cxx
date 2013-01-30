@@ -1,9 +1,32 @@
+// @(#)root/roostats:$Id: Data.cxx 47288 2012-11-14 21:38:07Z ghl $
+// Author: Kyle Cranmer, George Lewis 
+/*************************************************************************
+ * Copyright (C) 1995-2008, Rene Brun and Fons Rademakers.               *
+ * All rights reserved.                                                  *
+ *                                                                       *
+ * For the licensing terms see $ROOTSYS/LICENSE.                         *
+ * For the list of contributors see $ROOTSYS/README/CREDITS.             *
+ *************************************************************************/
+
+//_________________________________________________
+/*
+BEGIN_HTML
+<p>
+</p>
+END_HTML
+*/
+//
  
 
 #include "RooStats/HistFactory/Data.h"
 
 
-RooStats::HistFactory::Data::Data( std::string HistoName, std::string InputFile, std::string HistoPath ) :
+RooStats::HistFactory::Data::Data() : fName("") {
+  ;
+}
+
+RooStats::HistFactory::Data::Data( std::string HistoName, std::string InputFile, 
+				   std::string HistoPath ) :
   fInputFile( InputFile ), fHistoName( HistoName ), fHistoPath( HistoPath ) {;}
 
 TH1* RooStats::HistFactory::Data::GetHisto() {
@@ -38,4 +61,14 @@ void RooStats::HistFactory::Data::writeToFile( std::string OutputFileName, std::
 
   }
 
+}
+
+
+void RooStats::HistFactory::Data::PrintXML( std::ostream& xml ) {
+
+  xml << "    <Data HistoName=\"" << GetHistoName() << "\" "
+      << "InputFile=\"" << GetInputFile() << "\" "
+      << "HistoPath=\"" << GetHistoPath() << "\" "
+      << " /> " << std::endl << std::endl;  
+  
 }

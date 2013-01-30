@@ -5,6 +5,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
+
 #pragma link C++ namespace RooStats;
 #pragma link C++ namespace RooStats::HistFactory;
 
@@ -32,6 +33,7 @@
 #pragma link C++ class RooStats::HistFactory::Channel+ ;
 #pragma link C++ class RooStats::HistFactory::Sample+ ;
 #pragma link C++ class RooStats::HistFactory::Data+ ;
+#pragma link C++ class RooStats::HistFactory::Asimov+ ;
 
 #pragma link C++ class RooStats::HistFactory::StatError+ ;
 #pragma link C++ class RooStats::HistFactory::StatErrorConfig+ ;

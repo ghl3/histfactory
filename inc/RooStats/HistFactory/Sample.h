@@ -1,7 +1,15 @@
+// @(#)root/roostats:$Id: Sample.h 47080 2012-11-06 19:44:06Z ghl $
+// Author: George Lewis, Kyle Cranmer
+/*************************************************************************
+ * Copyright (C) 1995-2008, Rene Brun and Fons Rademakers.               *
+ * All rights reserved.                                                  *
+ *                                                                       *
+ * For the licensing terms see $ROOTSYS/LICENSE.                         *
+ * For the list of contributors see $ROOTSYS/README/CREDITS.             *
+ *************************************************************************/
 
 #ifndef HISTFACTORY_SAMPLE_H
 #define HISTFACTORY_SAMPLE_H
-
 
 #include <string>
 #include <fstream>
@@ -10,8 +18,6 @@
 
 #include "TRef.h"
 #include "RooStats/HistFactory/Systematics.h"
-//#include "RooStats/HistFactory/HistCollector.h"
-
 
 namespace RooStats{
 namespace HistFactory {
@@ -20,10 +26,6 @@ class Sample {
 
 
 public:
-  //friend class Channel;
-  // 
-  // Nominal definitions
-  // 
 
   Sample();
   Sample(std::string Name);
@@ -71,7 +73,6 @@ public:
   std::string GetName() { return fName; }
   void SetName(const std::string& Name) { fName = Name; }
   
-
   std::string GetInputFile() { return fInputFile; }
   void SetInputFile(const std::string& InputFile) { fInputFile = InputFile; }
 
@@ -128,7 +129,6 @@ protected:
 
   bool fNormalizeByTheory;
   bool fStatErrorActivate;
-
 
   // The Nominal Shape
   TRef fhNominal;

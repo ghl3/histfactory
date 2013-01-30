@@ -1,3 +1,22 @@
+// @(#)root/roostats:$Id: Measurement.cxx 47288 2012-11-14 21:38:07Z ghl $
+// Author: Kyle Cranmer, George Lewis 
+/*************************************************************************
+ * Copyright (C) 1995-2008, Rene Brun and Fons Rademakers.               *
+ * All rights reserved.                                                  *
+ *                                                                       *
+ * For the licensing terms see $ROOTSYS/LICENSE.                         *
+ * For the list of contributors see $ROOTSYS/README/CREDITS.             *
+ *************************************************************************/
+
+//_________________________________________________
+/*
+BEGIN_HTML
+<p>
+</p>
+END_HTML
+*/
+//
+
 
 #include <ctime>
 #include <iostream>
@@ -205,7 +224,6 @@ void RooStats::HistFactory::Measurement::PrintXML( std::string Directory, std::s
 
   // First, check that the directory exists:
 
-
   // LM : fixes for Windows 
   if( gSystem->OpenDirectory( Directory.c_str() ) == 0 ) {
     int success = gSystem->MakeDirectory(Directory.c_str() );    
@@ -252,7 +270,6 @@ void RooStats::HistFactory::Measurement::PrintXML( std::string Directory, std::s
       << day
       << std::endl;
 
-
   xml << "-->" << std::endl;
 
   // Add the doctype
@@ -264,10 +281,13 @@ void RooStats::HistFactory::Measurement::PrintXML( std::string Directory, std::s
   // Add the Preprocessed Functions
   for( unsigned int i = 0; i < fFunctionObjects.size(); ++i ) {
     RooStats::HistFactory::PreprocessFunction func = fFunctionObjects.at(i);
+    func.PrintXML(xml);
+    /*
     xml << "<Function Name=\"" << func.GetName() << "\" "
 	<< "Expression=\""     << func.GetExpression() << "\" "
 	<< "Dependents=\""     << func.GetDependents() << "\" "
 	<< "/>" << std::endl;
+    */
   }
   
   xml << std::endl;
@@ -283,8 +303,8 @@ void RooStats::HistFactory::Measurement::PrintXML( std::string Directory, std::s
   xml << "  <Measurement Name=\"" << GetName() << "\" "
       << "Lumi=\""        << fLumi       << "\" " 
       << "LumiRelErr=\""  << fLumiRelErr << "\" "
-      << "BinLow=\""      << fBinLow     << "\" "
-      << "BinHigh=\""     << fBinHigh    << "\" "
+    //<< "BinLow=\""      << fBinLow     << "\" "
+    // << "BinHigh=\""     << fBinHigh    << "\" "
       << "ExportOnly=\""  << (fExportOnly ? std::string("True") : std::string("False")) << "\" "
       << " >" <<  std::endl;
 
@@ -292,7 +312,8 @@ void RooStats::HistFactory::Measurement::PrintXML( std::string Directory, std::s
   // Set the POI
   xml << "    <POI>" ;
   for(unsigned int i = 0; i < fPOI.size(); ++i) {
-    xml << fPOI.at(i) << " ";
+    if(i==0) xml << fPOI.at(i);
+    else     xml << " " << fPOI.at(i);
   } 
   xml << "</POI>  " << std::endl;
   
@@ -302,6 +323,35 @@ void RooStats::HistFactory::Measurement::PrintXML( std::string Directory, std::s
     xml << fConstantParams.at(i) << " ";
   }
   xml << "</ParamSetting>" << std::endl;
+
+  // Set the Parameters with new Constraint Terms
+  std::map<std::string, double>::iterator ConstrItr;
+  
+  // Gamma
+  for( ConstrItr = fGammaSyst.begin(); ConstrItr != fGammaSyst.end(); ++ConstrItr ) {
+    xml << "<ConstraintTerm Type=\"Gamma\" RelativeUncertainty=\""
+	<< ConstrItr->second << "\">" << ConstrItr->first
+	<< "</ConstraintTerm>" << std::endl; 
+  }
+  // Uniform
+  for( ConstrItr = fUniformSyst.begin(); ConstrItr != fUniformSyst.end(); ++ConstrItr ) {
+    xml << "<ConstraintTerm Type=\"Uniform\" RelativeUncertainty=\""
+	<< ConstrItr->second << "\">" << ConstrItr->first
+	<< "</ConstraintTerm>" << std::endl; 
+  }
+  // LogNormal
+  for( ConstrItr = fLogNormSyst.begin(); ConstrItr != fLogNormSyst.end(); ++ConstrItr ) {
+    xml << "<ConstraintTerm Type=\"LogNormal\" RelativeUncertainty=\""
+	<< ConstrItr->second << "\">" << ConstrItr->first
+	<< "</ConstraintTerm>" << std::endl; 
+  }
+  // NoSyst
+  for( ConstrItr = fNoSyst.begin(); ConstrItr != fNoSyst.end(); ++ConstrItr ) {
+    xml << "<ConstraintTerm Type=\"NoSyst\" RelativeUncertainty=\""
+	<< ConstrItr->second << "\">" << ConstrItr->first
+	<< "</ConstraintTerm>" << std::endl; 
+  }
+
 
   // Close the Measurement
   xml << "  </Measurement> " << std::endl << std::endl;
@@ -381,7 +431,6 @@ void RooStats::HistFactory::Measurement::writeToFile( TFile* file ) {
     chanDir->cd();
 
     // Save the data:
-    
     TDirectory* dataDir = chanDir->mkdir( "data" );
     if( dataDir == NULL ) {
       std::cout << "Error: Cannot make directory " << chanDir << std::endl;
@@ -450,6 +499,8 @@ void RooStats::HistFactory::Measurement::writeToFile( TFile* file ) {
 
       // Write the histograms associated with
       // systematics
+
+      /*  THIS IS WHAT I"M COMMENTING
       sample.GetStatError().writeToFile( OutputFileName, sampleDirPath );
 
       // Must write all systematics that contain internal histograms
@@ -464,7 +515,7 @@ void RooStats::HistFactory::Measurement::writeToFile( TFile* file ) {
       for( unsigned int i = 0; i < sample.GetShapeSysList().size(); ++i ) {
 	sample.GetShapeSysList().at(i).writeToFile( OutputFileName, sampleDirPath );
       }
-
+      END COMMENT  */
       /*
       sample.statError.writeToFile( OutputFileName, sampleDirPath );
 
